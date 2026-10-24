@@ -2,6 +2,22 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.5 — 2026-10-24
+- Peak list is now front and centre on PC: big red "▲ Seznam vrhov" button at the top of the sidebar and a floating button top-right
+  (with visited count); the list opens by default on first visit and remembers open/closed; map controls and snow legend move aside.
+
+### tools — 2026-10-24
+- `tools/vrhovi-1500.html`: LiDAR analysis of 1092 OSM peaks ≥1500 m (snap to true summit, height, prominence, link to the 2000 list) -> CSV.
+- Cross-check of OSM vs our 2000 list: median position difference 7 m, 282/351 within 30 m, heights agree (median 0.6 m).
+
+## web-v0.4 — 2026-10-24
+- Famous variants: named relations near the summit (up to 7 km) are followed to their far end and, if that end is not in the valley,
+  continued to the nearest parking -> e.g. Triglav now offers Tominškova, Čez Plemenice, Čez Prag, Krma, Trenta (Komar), Pokljuka.
+- Relations that end on another peak are ignored; absurd detours (> 2.2× shortest or +6 km) and weakly marked unnamed routes are dropped;
+  near-duplicates from the same start area merged; max 9 routes, shortest first, named ones preferred.
+- Route label = relation that covers most of the route, bonus if it names the peak. Start named after a hut within 700 m when there is one.
+- "čez" huts listed in order from the start.
+
 ## web-v0.3 — 2026-10-24
 - PZS / official routes: pack v2 keeps OSM hiking relations (name, ref, operator, from/to, osmc:symbol) and which ways belong to them.
   Routes show the official route name + red PZS badge (Knafelc marking / PD or PZS operator); long-distance routes (SPP, E6/E7, Via Alpina …) ignored for naming.

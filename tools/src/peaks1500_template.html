@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="sl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vrhovi 1500+ · LiDAR analiza</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<style>
+  :root{--bg:#f6f5f1;--ink:#1d2120;--mute:#6b706d;--line:#d9d6ce;--acc:#c62828}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171a19;--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d}}
+  *{box-sizing:border-box} body{margin:0;font:14px system-ui,sans-serif;background:var(--bg);color:var(--ink);display:grid;grid-template-columns:minmax(320px,46%) 1fr;height:100vh}
+  #side{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+  header{padding:12px 14px;border-bottom:1px solid var(--line)} h1{font-size:17px;margin:0 0 4px} .sub{color:var(--mute);font-size:12.5px}
+  .bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+  button{font:inherit;font-weight:600;padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--ink);color:var(--bg);cursor:pointer}
+  button:disabled{opacity:.4;cursor:default} button.s{background:transparent;color:var(--ink)}
+  input[type=number]{width:70px;font:inherit;padding:5px;border:1px solid var(--line);border-radius:6px;background:transparent;color:var(--ink)}
+  #status{margin-top:8px;font-size:12.5px;color:var(--mute);min-height:1.3em}
+  #sum{font-size:12.5px;margin-top:6px}
+  #tbl{overflow:auto;flex:1} table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+  th,td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap} th{position:sticky;top:0;background:var(--bg);cursor:pointer}
+  td.n{text-align:right} tr:hover td{background:rgba(127,127,127,.08);cursor:pointer}
+  .st{display:inline-block;padding:0 6px;border-radius:8px;font-size:11px;font-weight:700;color:#fff}
+  .ok{background:#2e7d32}.moved{background:#ef6c00}.nodem{background:#9e9e9e}.low{background:#757575}.k2{background:#5c6bc0}
+  #map{height:100vh}
+  @media (max-width:800px){body{grid-template-columns:1fr;grid-template-rows:60vh 40vh}#map{height:40vh}}
+</style></head><body>
+<div id="side">
+  <header><h1>Vrhovi nad 1500 m · LiDAR analiza</h1>
+    <div class="sub">__N__ vrhov iz OSM. Za vsak vrh: najbližji vrh v LiDAR terenu (višina, prominenca), nato natančen premik na najvišjo točko. Teče v brskalniku (~3–8 min).</div>
+    <div class="bar"><button id="run">Zaženi analizo</button><button id="exp" class="s" disabled>Izvozi CSV</button>
+      <label>min. prominenca <input type="number" id="pmin" value="30" min="0" step="10"> m</label>
+      <label><input type="checkbox" id="hide2k" checked> skrij že v seznamu 2000</label></div>
+    <div id="status">Pripravljeno.</div><div id="sum"></div>
+  </header>
+  <div id="tbl"></div>
+</div>
+<div id="map"></div>
+<script>__PROMCORE__</script>
+<script>
+const OSM=__OSM__, OURS=__OURS__;
+const REG=[ // DEM regions (z11 ≈ 26 m pixels): Alps + Prealps, Pohorje, Snežnik
+  {n:'Alpe',bbox:[13.30,46.10,15.10,46.67]},{n:'Pohorje',bbox:[15.10,46.40,15.42,46.56]},{n:'Snežnik',bbox:[14.33,45.52,14.50,45.63]}];
+const $=id=>document.getElementById(id), stat=t=>$('status').textContent=t, tick=()=>new Promise(r=>setTimeout(r,20));
+const tileCache=new Map();
+function fetchTile(z,x,y){ const k=`${z}/${x}/${y}`; if(tileCache.has(k)) return tileCache.get(k);
+  const p=(async()=>{ let r; for(let a=0;a<4;a++){ try{ r=await fetch(`https://tiles.mapterhorn.com/${k}.webp`); if(r.ok) break; }catch(e){} await new Promise(s=>setTimeout(s,500*(a+1))); }
+    if(!r||!r.ok) throw new Error('tile '+k);
+    let bmp; try{ bmp=await createImageBitmap(await r.blob(),{colorSpaceConversion:'none',premultiplyAlpha:'none'}); }catch(_){ bmp=await createImageBitmap(await r.blob()); }
+    const cv=document.createElement('canvas'); cv.width=cv.height=TS; const cx=cv.getContext('2d',{willReadFrequently:true});
+    cx.drawImage(bmp,0,0); const d=cx.getImageData(0,0,TS,TS).data, h=new Float32Array(TS*TS);
+    for(let j=0;j<TS*TS;j++) h[j]=d[4*j]*256+d[4*j+1]+d[4*j+2]/256-32768; return h; })();
+  tileCache.set(k,p); p.catch(()=>tileCache.delete(k)); return p; }
+// fine snap: highest local max within radius on z15 (≈2 m), scored by |h-target| + dist/40
+async function snapAt(lat,lon,target,radius){
+  for(const z of [15,14,13]){ try{
+    const mpp=40075016.686*Math.cos(lat*Math.PI/180)/(TS*Math.pow(2,z));
+    const R=Math.ceil(radius/mpp), cx=Math.round(gx(lon,z)), cy=Math.round(gy(lat,z));
+    const x0=cx-R-3,x1=cx+R+3,y0=cy-R-3,y1=cy+R+3,W=x1-x0+1,H=y1-y0+1,g=new Float32Array(W*H),tiles={};
+    for(let ty=Math.floor(y0/TS);ty<=Math.floor(y1/TS);ty++)for(let tx=Math.floor(x0/TS);tx<=Math.floor(x1/TS);tx++) tiles[tx+','+ty]=await fetchTile(z,tx,ty);
+    for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++) g[(y-y0)*W+(x-x0)]=tiles[Math.floor(x/TS)+','+Math.floor(y/TS)][(y%TS)*TS+(x%TS)];
+    let best=null;
+    for(let y=3;y<H-3;y++)for(let x=3;x<W-3;x++){ const dx=x+x0-cx,dy=y+y0-cy; if(dx*dx+dy*dy>R*R) continue;
+      const h=g[y*W+x]; let ok=true; for(let b=-3;b<=3&&ok;b++)for(let a=-3;a<=3;a++) if((a||b)&&g[(y+b)*W+x+a]>h){ok=false;break;}
+      if(!ok) continue; const dist=Math.hypot(dx,dy)*mpp, sc=Math.abs(h-target)+dist/40;
+      if(!best||sc<best.sc) best={sc,h,dist,lat:latOf(y+y0+.5,z),lon:lonOf(x+x0+.5,z),z}; }
+    return best; }catch(e){} }
+  return null; }
+const P=OSM.map(o=>({...o, h:null, prom:null, lb:false, slat:null, slon:null, moved:null, st:'', k2:''}));
+// link to our 2000 list
+for(const p of P){ let bd=150, b=null; for(const q of OURS){ if(q.lat==null) continue; const d=distM(p.lat,p.lon,q.lat,q.lon); if(d<bd){ bd=d; b=q; } } if(b) p.k2=b.id; }
+async function run(){
+  $('run').disabled=true; const t0=Date.now();
+  for(const [ri,R] of REG.entries()){
+    const inR=P.filter(p=>p.lon>=R.bbox[0]&&p.lon<=R.bbox[2]&&p.lat>=R.bbox[1]&&p.lat<=R.bbox[3]); if(!inR.length) continue;
+    const grid=await buildGrid(R.bbox,11,fetchTile,(d,n)=>stat(`${ri+1}/${REG.length} ${R.n}: teren ${d}/${n} ploščic …`));
+    stat(`${ri+1}/${REG.length} ${R.n}: računam prominenco …`); await tick();
+    const dem=peaksToLatLon(grid,prominence(grid,12000,14000,50)); grid.G=null;
+    // nearest DEM summit within 150 m, scored by height difference + distance
+    for(const p of inR){ let best=null;
+      for(const d of dem){ const dist=distM(p.lat,p.lon,d.lat,d.lon); if(dist>150) continue; const sc=Math.abs(d.h-p.ele)+dist/15;
+        if(!best||sc<best.sc) best={sc,d,dist}; }
+      if(best){ p.prom=best.d.prom; p.lb=best.d.lb; p._s=[best.d.lat,best.d.lon]; } }
+  }
+  const jobs=P.map(p=>[p,(p._s||[p.lat,p.lon]),p._s?70:100]); let k=0; const q=[...jobs];
+  await Promise.all(Array.from({length:6},async()=>{ while(q.length){ const [p,[la,lo],r]=q.shift(); const s=await snapAt(la,lo,p.ele,r);
+    if(s){ p.h=Math.round(s.h*10)/10; p.slat=+s.lat.toFixed(6); p.slon=+s.lon.toFixed(6); p.moved=Math.round(distM(p.lat,p.lon,s.lat,s.lon)); }
+    k++; if(k%20===0) stat(`LiDAR natančni premik ${k}/${jobs.length} …`); } }));
+  for(const p of P) p.st=p.h==null?'nodem':p.prom==null?'nodem':p.moved>60?'moved':'ok';
+  stat(`Končano v ${Math.round((Date.now()-t0)/1000)} s.`); $('run').disabled=false; $('exp').disabled=false; render(); }
+let SORT='h', DESC=true;
+function vis(){ const pm=+$('pmin').value||0, h2=$('hide2k').checked; return P.filter(p=>(p.prom==null||p.prom>=pm)&&!(h2&&p.k2)); }
+function render(){ const V=vis().sort((a,b)=>{ const x=a[SORT]??a.ele, y=b[SORT]??b.ele; return (x>y?1:x<y?-1:0)*(DESC?-1:1); });
+  const done=P.some(p=>p.st);
+  $('sum').textContent=done?`Prikazanih ${V.length} · s prominenco ≥ ${$('pmin').value} m: ${P.filter(p=>p.prom!=null&&p.prom>=(+$('pmin').value||0)).length} · brez LiDAR ujemanja: ${P.filter(p=>p.st==='nodem').length} · premaknjeni >60 m: ${P.filter(p=>p.st==='moved').length} · v seznamu 2000: ${P.filter(p=>p.k2).length}`:`${P.length} vrhov iz OSM, ${P.filter(p=>p.k2).length} že v seznamu 2000.`;
+  const th=(k,l)=>`<th data-k="${k}">${l}${SORT===k?(DESC?' ▾':' ▴'):''}</th>`;
+  $('tbl').innerHTML=`<table><tr>${th('name','Ime')}${th('ele','OSM m')}${th('h','LiDAR m')}${th('prom','Prom. m')}${th('moved','Premik m')}<th>Stanje</th></tr>`+
+    V.map(p=>`<tr data-id="${p.id}"><td>${p.name||'<i>(brez imena)</i>'}</td><td class="n">${p.ele}</td><td class="n">${p.h??''}</td><td class="n">${p.prom==null?'':Math.round(p.prom)+(p.lb?'+':'')}</td><td class="n">${p.moved??''}</td>
+      <td>${p.st?`<span class="st ${p.st}">${{ok:'ok',moved:'premaknjen',nodem:'ni v terenu'}[p.st]}</span>`:''} ${p.k2?'<span class="st k2">2000</span>':''}</td></tr>`).join('')+'</table>';
+  $('tbl').querySelectorAll('th').forEach(t=>t.onclick=()=>{ const k=t.dataset.k; if(!k) return; if(SORT===k) DESC=!DESC; else { SORT=k; DESC=k!=='name'; } render(); });
+  $('tbl').querySelectorAll('tr[data-id]').forEach(r=>r.onclick=()=>{ const p=P.find(x=>x.id==r.dataset.id); map.flyTo({center:[p.slon??p.lon,p.slat??p.lat],zoom:14}); });
+  if(map.getSource('p')) map.getSource('p').setData(fc(V)); }
+const fc=V=>({type:'FeatureCollection',features:V.map(p=>({type:'Feature',properties:{n:p.name,pr:p.prom??-1,k2:p.k2?1:0},geometry:{type:'Point',coordinates:[p.slon??p.lon,p.slat??p.lat]}}))});
+function csv(){ const H=['osm_id','name','name_sl','osm_ele','osm_lat','osm_lon','lidar_h','prom','prom_lower_bound','lat','lon','moved_m','status','in_2000_list'];
+  const esc=v=>v==null?'':/[;"\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v;
+  const rows=P.map(p=>[p.id,p.name,p.name_sl,p.ele,p.lat,p.lon,p.h,p.prom==null?'':Math.round(p.prom),p.lb?1:0,p.slat,p.slon,p.moved,p.st,p.k2].map(esc).join(';'));
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['﻿'+H.join(';')+'\n'+rows.join('\n')],{type:'text/csv'})); a.download='vrhovi_1500_lidar.csv'; a.click(); }
+$('run').onclick=run; $('exp').onclick=csv; $('pmin').oninput=render; $('hide2k').onchange=render;
+const map=new maplibregl.Map({container:'map',center:[14.4,46.3],zoom:8.3,style:{version:8,glyphs:'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  sources:{t:{type:'raster',tileSize:256,tiles:['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'],attribution:'© OpenStreetMap, SRTM | OpenTopoMap (CC-BY-SA) · Mapterhorn (ARSO/GURS LiDAR)'}},
+  layers:[{id:'t',type:'raster',source:'t'}]}});
+map.on('load',()=>{ map.addSource('p',{type:'geojson',data:fc(vis())});
+  map.addLayer({id:'p',type:'circle',source:'p',paint:{'circle-radius':['interpolate',['linear'],['zoom'],8,3,13,7],'circle-stroke-width':1.5,'circle-stroke-color':'#fff',
+    'circle-color':['case',['==',['get','k2'],1],'#5c6bc0',['<',['get','pr'],0],'#9e9e9e',['<',['get','pr'],100],'#ef6c00','#c62828']}});
+  map.addLayer({id:'pl',type:'symbol',source:'p',minzoom:11,layout:{'text-field':['get','n'],'text-font':['Noto Sans Bold'],'text-size':11,'text-offset':[0,1],'text-anchor':'top'},paint:{'text-halo-color':'#fff','text-halo-width':1.3}}); });
+render();
+</script></body></html>

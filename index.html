@@ -30,6 +30,19 @@
   #drawer{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:100%;background:var(--panel);backdrop-filter:blur(8px);
     border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s,visibility .25s;visibility:hidden;z-index:10}
   #drawer.open{transform:none;visibility:visible}
+  .pbig{display:flex!important;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px!important;margin:10px 0 2px!important;font-size:1em!important;font-weight:700;background:#c62828!important;border-color:#c62828!important;color:#fff!important;border-radius:9px!important}
+  .pbig span,.pbig em{white-space:nowrap}.pbig em{font-style:normal;font-weight:500;font-size:.82em;opacity:.95}
+  #peaksFab{display:none}
+  @media (min-width:701px){
+    #peaksFab{display:flex;align-items:center;gap:8px;position:absolute;top:10px;right:56px;z-index:9;font:700 15px system-ui,sans-serif;padding:9px 14px;border-radius:22px;border:0;
+      background:#c62828;color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.25);cursor:pointer}
+    #peaksFab em{font-style:normal;font-weight:500;font-size:13px;background:rgba(255,255,255,.22);border-radius:10px;padding:1px 8px}
+    #peaksFab:hover{filter:brightness(1.08)}
+    body.dopen #peaksFab{display:none}
+    body.dopen .maplibregl-ctrl-top-right{right:362px;transition:right .25s}
+    body.in360 #peaksFab{display:none}
+    body.dopen #snowleg{right:372px}
+  }
   #dhead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
   #dhead h2{font-size:1.07em;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
   #dhead h2 button{border:0;background:none;font-size:1.43em;cursor:pointer;color:var(--ink);line-height:1}
@@ -225,6 +238,7 @@
 <div class="card" id="rcard"></div>
 <div class="card" id="dcard"></div>
 <div id="dprof"></div>
+<button id="peaksFab" title="Seznam vseh vrhov in obiskanih">▲ Seznam vrhov <em id="vcount3">0 / 364</em></button>
 <div id="drawer">
   <div id="dhead">
     <h2>Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
@@ -240,6 +254,7 @@
   <button class="mclose" id="mclose" aria-label="Zapri">×</button>
   <h1>Dvatisočaki</h1>
   <div class="sub">364 vrhov nad 2000 m · LiDAR teren</div>
+  <button class="btn dsk pbig" id="openDrawer"><span>▲ Seznam vrhov</span><em><b id="vcount">0</b> obiskanih</em></button>
 
   <div class="grp"><b>Podlaga</b>
     <label><input type="radio" name="base" value="relief" checked> Relief (barvna višina)</label>
@@ -270,9 +285,6 @@
     <button class="btn dsk" id="drawBtn">Riši pot</button>
   </div>
 
-  <div class="grp dsk"><b>Moji vrhovi</b>
-    <button class="btn" id="openDrawer">Obiskani: <span id="vcount">0</span></button>
-  </div>
 
   <div class="grp"><b>Velikost besedila</b>
     <input type="range" id="tscale" min="0.8" max="1.8" step="0.1" value="1.2">
@@ -714,7 +726,10 @@ function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh
 
 // --- drawer
 const $=id=>document.getElementById(id), drawer=$('drawer');
-$('openDrawer').onclick=()=>{ drawer.classList.add('open'); document.body.classList.remove('menu'); };
+$('openDrawer').onclick=$('peaksFab').onclick=()=>{ drawer.classList.add('open'); document.body.classList.remove('menu'); };
+// desktop: drawer state remembered, open by default on first visit (the list is the main point of the site)
+new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); if(innerWidth>700) try{ localStorage.setItem('dvat3d_drawer',o?'1':'0'); }catch(_){} }).observe(drawer,{attributes:true,attributeFilter:['class']});
+if(innerWidth>700){ let o='1'; try{ o=localStorage.getItem('dvat3d_drawer')??'1'; }catch(_){} if(o==='1') drawer.classList.add('open'); }
 $('mclose').onclick=()=>document.body.classList.remove('menu');
 function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
   const st={layers:document.body.classList.contains('menu'),peaks:drawer.classList.contains('open'),draw:!!window.DRAW_ON};
@@ -756,7 +771,7 @@ $('dlist').onclick=e=>{const t=e.target;
   if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
   else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
-  $('vcount').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
+  $('vcount').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount3').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
   const R=PEAKS.filter(p=>p.rank), nA=cntV(PEAKS), nR=cntV(R);
   const dOpen=!!$('progress').querySelector('details[open]');
   $('progress').innerHTML=`<div class="pstat"><div>Vsi vrhovi<br><b>${nA}</b> / ${PEAKS.length}${barH(nA,PEAKS.length)}</div>
@@ -952,36 +967,48 @@ function pathStats(g, edges){
   for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m') mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac) sac=w.sac;
     if(w.name) names.set(w.name,(names.get(w.name)||0)+l);
     if(w.rel){ let p=false; for(const ri of w.rel){ const R=RELS[ri]; if(relPZS(R)) p=true; if(!relLong(R)) rc.set(ri,(rc.get(ri)||0)+l); } if(p||w.kind==='m') pz+=l; } }
-  const top=[...rc].sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=0.35*L).slice(0,2).map(x=>x[0]);
-  return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]), rels:top, pzs:L?pz/L:0};
+  const top=[...rc].sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=0.35*L).slice(0,4).map(x=>x[0]), cov=new Map(top.map(r=>[r,rc.get(r)/L]));
+  return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]), rels:top, cov, pzs:L?pz/L:0};
 }
 // Dijkstra restricted to edges accepted by ok(q)
-function searchF(g, src, maxCost, ok){
+function searchF(g, src, maxCost, ok, wf){
   const dist=new Float64Array(g.n).fill(Infinity), pe=new Int32Array(g.n).fill(-1), done=new Uint8Array(g.n), h=new Heap(), seen=[];
   dist[src]=0; h.push(0,src);
   while(h.size){ const u=h.pop(); if(done[u]) continue; done[u]=1; seen.push(u); const du=dist[u]; if(du>maxCost) break;
-    for(let q=g.off[u];q<g.off[u+1];q++){ if(!ok(q)) continue; const v=g.adj[q], nd=du+g.len[q]; if(nd<dist[v]){ dist[v]=nd; pe[v]=q; h.push(nd,v); } } }
+    for(let q=g.off[u];q<g.off[u+1];q++){ if(!ok(q)) continue; const v=g.adj[q], nd=du+(wf?wf(q):g.len[q]); if(nd<dist[v]){ dist[v]=nd; pe[v]=q; h.push(nd,v); } } }
   return {dist, pe, seen};
 }
-// official (named, non-long) hiking relations that reach the summit -> one route per relation branch, from its far end
-function relationRoutes(g, s){
+// official (named, non-long) hiking relations near the summit -> extra routes:
+// summit -> (shortest way) -> first point of the relation -> along the relation (small gaps bridged) to its far end
+// -> if that end is not in the valley, on to the nearest parking. Catches famous variants such as "Pot čez Prag"
+// (ends at Kredarica) or "Čez Plemenice" (ends at Luknja).
+function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
   if(!RELS.length) return [];
-  const near=new Set(); { const r0=searchF(g,s,250,()=>true); for(const u of r0.seen) for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]]; if(w.rel) for(const ri of w.rel) if(!relLong(RELS[ri])) near.add(ri); } }
+  const entry=new Map();
+  for(let u=0;u<g.n;u++){ const du=base.dist[u]; if(!(du<=RMAX)) continue;
+    for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]]; if(!w.rel) continue;
+      for(const ri of w.rel){ if(relLong(RELS[ri])) continue; const e=entry.get(ri); if(e==null||base.dist[e]>du) entry.set(ri,u); } } }
+  const startAt=new Map(); for(const st of starts) if(st.node>=0) startAt.set(st.node,st);
   const out=[];
-  for(const ri of near){
-    const ok=q=>{ const w=g.W[g.wy[q]]; return w.kind==='g'||(w.rel&&w.rel.includes(ri)); };
-    const ok2=q=>ok(q)||g.len[q]<30; // tolerate tiny gaps between members
-    const res=searchF(g,s,40000,ok2);
-    // dead ends of this relation, farthest first
-    const ends=res.seen.filter(u=>{ let k=0; for(let q=g.off[u];q<g.off[u+1];q++) if(ok(q)) k++; return k<=1 && res.dist[u]>800; }).sort((a,b)=>res.dist[b]-res.dist[a]);
-    const taken=[];
-    for(const e of ends){ if(taken.length>=2) break; const tr=trace(g,res.pe,e); const set=new Set(tr.nodes);
-      if(taken.some(t=>{ let k=0; for(const x of tr.nodes) if(x!==s&&t.has(x)&&res.dist[x]>300) k++; return k/tr.nodes.length>0.3; })) continue;
-      taken.push(set); out.push({ri, end:e, nodes:tr.nodes, edges:tr.edges, set}); }
+  for(const [ri,en] of [...entry].sort((a,b)=>base.dist[a[1]]-base.dist[b[1]]).slice(0,40)){
+    const inR=q=>{ const w=g.W[g.wy[q]]; return !!(w.rel&&w.rel.includes(ri)); };
+    const res=searchF(g,en,30000,q=>true,q=>inR(q)||g.W[g.wy[q]].kind==='g'?g.len[q]:g.len[q]*6);
+    const rdeg=u=>{ let k=0; for(let q=g.off[u];q<g.off[u+1];q++) if(inR(q)) k++; return k; };
+    const ends=res.seen.filter(u=>{ const k=rdeg(u); return k===1 && res.dist[u]>600 && base.dist[u]>base.dist[en]+400; }).sort((a,b)=>res.dist[b]-res.dist[a]);
+    const head=trace(g,base.pe,en); const taken=[];
+    for(const e of ends){ if(taken.length>=2) break; const tr=trace(g,res.pe,e);
+      if(taken.some(t=>{ let k=0; for(const x of tr.nodes) if(t.has(x)&&res.dist[x]>300) k++; return k/tr.nodes.length>0.3; })) continue;
+      taken.push(new Set(tr.nodes));
+      let nodes=tr.nodes.concat(head.nodes.slice(1)), edges=tr.edges.concat(head.edges), end=e, st=startAt.get(e)||null;
+      const ne=nearEnd(g.lat[e],g.lon[e]); if(ne<0) continue; // relation ends on another peak
+      if(!ne){ // continue down to the nearest parking
+        const r2=search(g,e,9000); let bn=-1, bd=Infinity; for(const [n] of startAt) if(r2.dist[n]<bd&&base.dist[n]>base.dist[e]){ bd=r2.dist[n]; bn=n; }
+        if(bn<0) continue; const tail=trace(g,r2.pe,bn); nodes=tail.nodes.concat(nodes.slice(1)); edges=tail.edges.concat(edges); end=bn; st=startAt.get(bn); }
+      const set=new Set(nodes); if(set.size<nodes.length*0.9) continue; // doubles back on itself
+      out.push({ri, end, st, nodes, edges, set}); }
   }
   return out;
 }
-// routes from starts to summit; starts: [{node,name,lat,lon}]
 function peakRoutes(g, la, lo, starts, opt={}){
   const s = nearestNode(g, la, lo, opt.snap||250, 0, true); if (s<0) return null;
   const {dist, pe} = search(g, s, opt.maxCost||30000);
@@ -997,15 +1024,29 @@ function peakRoutes(g, la, lo, starts, opt={}){
       coords: tr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: pathStats(g, tr.edges)});
   }
   // add official relation routes not already covered
-  for (const rr of relationRoutes(g, s)){
-    if (acc.length >= (opt.max||7)+3) break;
+  const best=acc.length?Math.min(...acc.map(a=>a.stats.len)):Infinity, near=opt.nearEnd||(()=>true);
+  for (const rr of relationRoutes(g, s, {dist, pe}, starts, near)){
+    if (acc.length >= (opt.max||7)+4) break;
+    const st=pathStats(g, rr.edges);
+    if (st.len > Math.max(2.2*best, best+6000)) continue;            // absurd detours
     const dup=acc.find(a=>{ let k=0; for(const x of rr.nodes) if(a.set.has(x)) k++; return k/rr.nodes.length>0.7; });
-    if (dup){ if(!dup.rel) dup.rel=rr.ri; continue; }
-    const R=RELS[rr.ri], la2=g.lat[rr.end], lo2=g.lon[rr.end];
-    acc.push({start:{node:rr.end, name:'', lat:la2, lon:lo2, kind:'rel'}, rel:rr.ri, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:Infinity,
-      coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: pathStats(g, rr.edges)});
+    if (dup) continue;
+    acc.push({start:rr.st?{...rr.st}:{node:rr.end, name:'', lat:g.lat[rr.end], lon:g.lon[rr.end], kind:'rel'}, rel:rr.ri, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:st.len, coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: st});
   }
-  return {summit:s, routes:acc};
+  // label: relation that covers most of the route; bonus if it names this peak, small bonus for PZS marking
+  const pn=(opt.peakName||'').toLowerCase().split(/[ (]/)[0];
+  for (const a of acc){ if (a.rel!=null) continue; let bs=0;
+    for (const ri of a.stats.rels){ const R=RELS[ri], sc=(a.stats.cov.get(ri)||0)+(pn&&relName(R).toLowerCase().includes(pn)?0.5:0)+(relPZS(R)?0.1:0); if(sc>bs){ bs=sc; a.rel=ri; } } }
+  // drop absurd detours, then near-duplicates (same start area and mostly the same way), keep at most max+2
+  const good=acc.filter(a=>a.stats.marked>=0.6).length;
+  let keep=acc.filter(a=>(a.stats.len<=Math.max(2.2*best,best+6000)||acc.length<=3)&&!(good>=4&&a.rel==null&&a.stats.marked<0.4));
+  keep.sort((a,b)=>(b.rel!=null)-(a.rel!=null)||a.stats.len-b.stats.len);
+  const fin=[];
+  for (const a of keep){ if (fin.length>=(opt.max||7)+2) break;
+    if (fin.some(f=>hav(f.start.lat,f.start.lon,a.start.lat,a.start.lon)<600 && [...a.set].filter(x=>f.set.has(x)).length>0.5*a.set.size)) continue;
+    fin.push(a); }
+  keep=fin.sort((a,b)=>a.stats.len-b.stats.len);
+  return {summit:s, routes:keep};
 }
 function nearCands(g, la, lo, maxM, roadPen){ // best node per connected piece within maxM
   const C=g.C, r=Math.ceil(maxM/380)+1, cy=Math.floor(la/C), cx=Math.floor(lo/C), best=new Map();
@@ -1375,21 +1416,24 @@ function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().s
   for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }
   let best='', bd=2500; for(const x of [...HUTS,...PLACES,...STARTS]){ if(!x.name) continue; const d=hav(x.lat,x.lon,r.start.lat,r.start.lon); if(d<bd){ bd=d; best=x.name; } }
   return best?('pri '+best):'konca poti'; }
+const hutNear=st=>{ let best='', bd=700; for(const h of HUTS){ if(!h.name||/^Bivak \/|^Planinska koča$/.test(h.name)) continue; const d=hav(h.lat,h.lon,st.lat,st.lon); if(d<bd){ bd=d; best=h.name; } } return best?'pri '+best:''; };
 // height profiles: all routes, or only the selected one in varčni način
 async function routeProfiles(){ const cur=RT; if(!cur) return;
   for(const [i,r] of cur.routes.entries()){ if(r.P||(window.LITE_ON&&i!==cur.sel)) continue; r.P=await profile(r.coords); if(RT===cur) renderRoutes(); } }
 function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.map((r,i)=>({type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:r.coords}}))}); }
-function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push(h.name); break; } } } return out; }
+function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start
 window.peakRoutesUI = async function(id){
   const p=byId[id]; if(!p) return; if(popup) popup.remove();
   const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
   if(!G){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
     if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(); if(!G) return; }
-  const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7});
+  // an extra (relation) route must end in the valley: at a parking, or at a hut ≥3 km away - never on another peak
+  const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:(STARTS.some(x=>hav(x.lat,x.lon,la,lo)<1000)||(hav(la,lo,p.lat,p.lon)>3000&&HUTS.some(x=>hav(x.lat,x.lon,la,lo)<400)))?1:0;
+  const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
   if(!res||!res.routes.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
       <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
-  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); if(!r.start.name) r.start.name=relStartName(r,p); });
+  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=hutNear(r.start)||r.start.name||relStartName(r,p); });
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };

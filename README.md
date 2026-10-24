@@ -22,6 +22,7 @@ Live: GitHub Pages (`https://<user>.github.io/<repo>/`).
 | `tools/build.py` | Build: `python tools/build.py` → `index.html`; `--single` → `dist/dvatisocaki-single.html` (offline, everything embedded). |
 | `tools/dvat_fetch.py` | Download fresh OSM pack from Overpass (resumable). |
 | `tools/slim_pack.js` | Slim a pack for phones: `node --max-old-space-size=6000 tools/slim_pack.js in.gz dvat-osm.json.gz 3` |
+| `tools/vrhovi-1500.html` | Browser tool: LiDAR height + prominence for the OSM peaks ≥1500 m (`data/osm_peaks_1500.json`), exports CSV. Built by build.py. |
 | `tools/snow_fetch.py` | Build `snow.json` (used by the daily Action). |
 | `docs/PLATFORMS.md` | Web vs app: what differs, decisions, open items. |
 | `CHANGELOG.md` | Versions. |

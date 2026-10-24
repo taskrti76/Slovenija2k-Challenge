@@ -18,3 +18,13 @@ dst = os.path.join(R, 'dist', 'dvatisocaki-single.html') if single else os.path.
 os.makedirs(os.path.dirname(dst), exist_ok=True)
 open(dst, 'w', encoding='utf8').write(out)
 print('built', os.path.relpath(dst, R), len(out) // 1024, 'KB')
+# helper tool: LiDAR analysis of OSM peaks >= 1500 m (runs in the browser, exports CSV)
+T = os.path.join(R, 'tools', 'src', 'peaks1500_template.html')
+if os.path.exists(T) and not single:
+    osm = json.load(open(os.path.join(R, 'data', 'osm_peaks_1500.json'), encoding='utf8'))
+    ours = [{'id': p['id'], 'lat': p['lat'], 'lon': p['lon']} for p in P]
+    t2 = (open(T, encoding='utf8').read().replace('__PROMCORE__', open(os.path.join(R, 'tools', 'src', 'promcore.js'), encoding='utf8').read())
+          .replace('__OSM__', json.dumps(osm, ensure_ascii=False, separators=(',', ':'))).replace('__OURS__', json.dumps(ours, separators=(',', ':')))
+          .replace('__N__', str(len(osm))))
+    open(os.path.join(R, 'tools', 'vrhovi-1500.html'), 'w', encoding='utf8').write(t2)
+    print('built tools/vrhovi-1500.html', len(t2) // 1024, 'KB')

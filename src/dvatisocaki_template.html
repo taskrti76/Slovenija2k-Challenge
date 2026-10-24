@@ -30,6 +30,19 @@
   #drawer{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:100%;background:var(--panel);backdrop-filter:blur(8px);
     border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s,visibility .25s;visibility:hidden;z-index:10}
   #drawer.open{transform:none;visibility:visible}
+  .pbig{display:flex!important;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px!important;margin:10px 0 2px!important;font-size:1em!important;font-weight:700;background:#c62828!important;border-color:#c62828!important;color:#fff!important;border-radius:9px!important}
+  .pbig span,.pbig em{white-space:nowrap}.pbig em{font-style:normal;font-weight:500;font-size:.82em;opacity:.95}
+  #peaksFab{display:none}
+  @media (min-width:701px){
+    #peaksFab{display:flex;align-items:center;gap:8px;position:absolute;top:10px;right:56px;z-index:9;font:700 15px system-ui,sans-serif;padding:9px 14px;border-radius:22px;border:0;
+      background:#c62828;color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.25);cursor:pointer}
+    #peaksFab em{font-style:normal;font-weight:500;font-size:13px;background:rgba(255,255,255,.22);border-radius:10px;padding:1px 8px}
+    #peaksFab:hover{filter:brightness(1.08)}
+    body.dopen #peaksFab{display:none}
+    body.dopen .maplibregl-ctrl-top-right{right:362px;transition:right .25s}
+    body.in360 #peaksFab{display:none}
+    body.dopen #snowleg{right:372px}
+  }
   #dhead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
   #dhead h2{font-size:1.07em;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
   #dhead h2 button{border:0;background:none;font-size:1.43em;cursor:pointer;color:var(--ink);line-height:1}
@@ -225,6 +238,7 @@
 <div class="card" id="rcard"></div>
 <div class="card" id="dcard"></div>
 <div id="dprof"></div>
+<button id="peaksFab" title="Seznam vseh vrhov in obiskanih">▲ Seznam vrhov <em id="vcount3">0 / 364</em></button>
 <div id="drawer">
   <div id="dhead">
     <h2>Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
@@ -240,6 +254,7 @@
   <button class="mclose" id="mclose" aria-label="Zapri">×</button>
   <h1>Dvatisočaki</h1>
   <div class="sub">364 vrhov nad 2000 m · LiDAR teren</div>
+  <button class="btn dsk pbig" id="openDrawer"><span>▲ Seznam vrhov</span><em><b id="vcount">0</b> obiskanih</em></button>
 
   <div class="grp"><b>Podlaga</b>
     <label><input type="radio" name="base" value="relief" checked> Relief (barvna višina)</label>
@@ -270,9 +285,6 @@
     <button class="btn dsk" id="drawBtn">Riši pot</button>
   </div>
 
-  <div class="grp dsk"><b>Moji vrhovi</b>
-    <button class="btn" id="openDrawer">Obiskani: <span id="vcount">0</span></button>
-  </div>
 
   <div class="grp"><b>Velikost besedila</b>
     <input type="range" id="tscale" min="0.8" max="1.8" step="0.1" value="1.2">
@@ -714,7 +726,10 @@ function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh
 
 // --- drawer
 const $=id=>document.getElementById(id), drawer=$('drawer');
-$('openDrawer').onclick=()=>{ drawer.classList.add('open'); document.body.classList.remove('menu'); };
+$('openDrawer').onclick=$('peaksFab').onclick=()=>{ drawer.classList.add('open'); document.body.classList.remove('menu'); };
+// desktop: drawer state remembered, open by default on first visit (the list is the main point of the site)
+new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); if(innerWidth>700) try{ localStorage.setItem('dvat3d_drawer',o?'1':'0'); }catch(_){} }).observe(drawer,{attributes:true,attributeFilter:['class']});
+if(innerWidth>700){ let o='1'; try{ o=localStorage.getItem('dvat3d_drawer')??'1'; }catch(_){} if(o==='1') drawer.classList.add('open'); }
 $('mclose').onclick=()=>document.body.classList.remove('menu');
 function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
   const st={layers:document.body.classList.contains('menu'),peaks:drawer.classList.contains('open'),draw:!!window.DRAW_ON};
@@ -756,7 +771,7 @@ $('dlist').onclick=e=>{const t=e.target;
   if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
   else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
-  $('vcount').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
+  $('vcount').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount3').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
   const R=PEAKS.filter(p=>p.rank), nA=cntV(PEAKS), nR=cntV(R);
   const dOpen=!!$('progress').querySelector('details[open]');
   $('progress').innerHTML=`<div class="pstat"><div>Vsi vrhovi<br><b>${nA}</b> / ${PEAKS.length}${barH(nA,PEAKS.length)}</div>
