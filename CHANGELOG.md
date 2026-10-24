@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.10 — 2026-10-24
+- New trail pack (OSM 2026-10-24, 101 areas incl. Pohorje, Snežnik, Prealps, eastern Karavanke), pruned to what is near a peak:
+  whole ways kept if any part is ≤12 km (trails) / ≤15 km (roads, parkings, huts) from a peak - nothing cut at an edge.
+  269k -> 115k ways, 8.9 -> 4.2 MB, all 2 665 hiking relations kept; routes unchanged. Same pruning now in tools/dvat_fetch.py
+  (tools/prune_pack.js for an existing pack).
+- Routing network built per region (~55 × 55 km around the peak / drawing area); rebuilt automatically when needed.
+- "% markirano" also counts ways that belong to a hiking route (Pohorje forest roads, etc.).
+- Peak list: scope chips (98 prominentnih / Vsi vrhovi) + status switch (Vsi / Neobiskani / Obiskani) instead of one row that was cut off;
+  range counts follow the scope (e.g. Julijske 2 / 72 prominent); heights with "m".
+  (1500–2000 m also happens to have exactly 98 peaks with ≥100 m prominence - the big counter's label changes.)
+- Border: whole of Slovenia (Natural Earth outline built in; precise OSM border fetched once for the whole country).
+- 360: one quick warm-up turn on arrival loads every direction once (tap to stop); resolution no longer drops while turning
+  (except varčni način); bigger tile cache so turning back is served from memory.
+
 ## web-v0.9 — 2026-10-24
 - The 98 prominent 2000 m peaks are the main view: default filter, big red counter at the top of the list, count on the red tab.
 - Ranges for new peaks by valley boundaries (tools/make_1500.py, data/range_overrides.json): Sava Dolinka splits Julijske/Karavanke,

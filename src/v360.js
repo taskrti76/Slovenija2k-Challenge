@@ -82,9 +82,13 @@ addEventListener('resize', ()=>{ if (S.on){ fitFov(); schedule(); } });
 function fitFov(){ const c=map.getContainer(); const portrait=c.clientHeight>c.clientWidth;
   S.fov=clamp((portrait?46:34)*S.zoomK, 12, 75); if (map.setVerticalFieldOfView) map.setVerticalFieldOfView(S.fov); }
 function zoomBy(f){ S.zoomK=clamp(S.zoomK*f, 0.3, 1.6); fitFov(); schedule(); }
-function setAuto(on){
-  S.auto = on; $$('v360auto').classList.toggle('on', on); cancelAnimationFrame(S.raf);
-  if (on){ let t0 = performance.now(); const step = t => { if (!S.on || !S.auto) return; S.brg += (t - t0) * 0.006; t0 = t; apply(); S.raf = requestAnimationFrame(step); }; S.raf = requestAnimationFrame(step); }
+function setAuto(on, warm){
+  S.auto = on; $$('v360auto').classList.toggle('on', on && !warm); cancelAnimationFrame(S.raf);
+  // warm = one quick full turn right after arriving: every direction gets its tiles loaded once,
+  // so later turning is served from the tile cache (smooth, same sharpness)
+  if (on){ let t0 = performance.now(), turned = 0; const spd = warm ? 0.05 : 0.006;
+    const step = t => { if (!S.on || !S.auto) return; const d=(t - t0) * spd; S.brg += d; turned += d; t0 = t; apply();
+      if (warm && turned >= 360){ setAuto(false); return; } S.raf = requestAnimationFrame(step); }; S.raf = requestAnimationFrame(step); }
 }
 function goTo(p){
   S.p = p; S.eye = Math.max(p.elev, p.dem_h || 0) + 5; S.look = -6; setAuto(false);
@@ -92,7 +96,8 @@ function goTo(p){
   buildLabels(); fitFov();
   S.flying = true;
   map.flyTo(Object.assign(cam(), {duration:1600, essential:true}));
-  const done = () => { if (!S.flying || S.p !== p) return; S.flying = false; if (!S.on) return; ready = true; apply(); };
+  const done = () => { if (!S.flying || S.p !== p) return; S.flying = false; if (!S.on) return; ready = true; apply();
+    if (!window.LITE_ON) setTimeout(()=>{ if (S.on && S.p === p && !S.auto) setAuto(true, true); }, 400); };
   map.once('moveend', done); setTimeout(done, 2200);
 }
 window.enter360 = id => { try { enter360_(id); } catch (err) { console.error(err); window.toastErr && toastErr('360: ' + err.message); try { exit360(); } catch(_){} } };
@@ -188,7 +193,7 @@ $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i=
 applyQuality.restore = ()=>{};
 // adaptive resolution: render lighter while turning, full sharpness ~0.35 s after you stop
 let still=0;
-window.__v360moving = () => { if (!S.on || qi===0) return; clearTimeout(still);
+window.__v360moving = () => { if (!S.on || qi===0 || !window.LITE_ON) return; clearTimeout(still);
   if (!movingPR){ movingPR=true; setPR(Math.min(devicePixelRatio,1)); }
   still=setTimeout(()=>{ if (!S.on || S.auto) return; movingPR=false; setPR(Math.min(devicePixelRatio,Q[qi].pr)); }, 350); };
 $$('v360in').onclick = () => zoomBy(1/1.35); $$('v360out').onclick = () => zoomBy(1.35);

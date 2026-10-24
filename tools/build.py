@@ -15,6 +15,7 @@ b64 = base64.b64encode(open(pk, 'rb').read()).decode() if single and os.path.exi
 out = (S('dvatisocaki_template.html')
        .replace('__PEAKS__', json.dumps(P_ALL, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/'))
        .replace('__PACKJS__', S('pack.js')).replace('__TRAILS__', S('trails.js')).replace('__V360__', S('v360.js'))
+       .replace('__BORDER__', json.dumps(json.load(open(os.path.join(R, 'data', 'slovenia_border.json')))['coordinates'], separators=(',', ':')))
        .replace('__PACKSRC__', '' if single else ' data-src="dvat-osm.json.gz"')
        .replace('__OSMPACK__', b64))
 dst = os.path.join(R, 'dist', 'dvatisocaki-single.html') if single else os.path.join(R, 'index.html')

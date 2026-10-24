@@ -62,7 +62,10 @@
   #tiers button{flex:1;font:inherit;font-weight:600;font-size:.9em;padding:6px 4px;border:0;background:transparent;color:var(--ink);cursor:pointer}
   #tiers button+button{border-left:1px solid var(--line)}#tiers button.on{background:var(--ink);color:var(--panel)}
   .it .t15{flex:none;font-size:.68em;color:var(--mute)}
-  #chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+  #chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0 2px}
+  #stchips{display:flex;margin:6px 0 2px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  #stchips button{flex:1;font:inherit;font-size:.86em;padding:5px 4px;border:0;background:transparent;color:var(--mute);cursor:pointer}
+  #stchips button+button{border-left:1px solid var(--line)}#stchips button.on{background:rgba(127,127,127,.18);color:var(--ink);font-weight:600}
   #chips::-webkit-scrollbar{display:none}
   #chips button{flex:none;font:inherit;font-size:0.893em;padding:5px 11px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
   #chips button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
@@ -77,7 +80,7 @@
   .it .nm{flex:1;cursor:pointer;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .it .nm.nc{cursor:default;color:var(--mute)}
   .it.done .nm{color:#2e7d32;font-weight:600}
-  .it .el{flex:none;font-variant-numeric:tabular-nums;color:var(--mute);font-size:0.857em;width:38px;text-align:right}
+  .it .el{flex:none;font-variant-numeric:tabular-nums;color:var(--mute);font-size:0.857em;width:4.6em;text-align:right;white-space:nowrap}
   .it .rk{flex:none;font-size:0.714em;padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--mute);font-variant-numeric:tabular-nums}
   .it.sub .nm{font-size:0.893em;color:var(--mute)}
   .it.sub.done .nm{color:#2e7d32}
@@ -232,7 +235,7 @@
     .it{padding:6px 16px;min-height:46px;font-size:calc(16px * var(--ui,1));gap:12px}
     .it input{width:24px;height:24px}
     .it.sub .nm{font-size:calc(15px * var(--ui,1))}
-    .it .el{font-size:calc(14px * var(--ui,1));width:44px}.it .rk{font-size:calc(11px * var(--ui,1))}
+    .it .el{font-size:calc(14px * var(--ui,1))}.it .rk{font-size:calc(11px * var(--ui,1))}
     #dfoot button{padding:8px 14px;font-size:calc(14px * var(--ui,1))}
     .maplibregl-popup-content{font-size:calc(15px * var(--ui,1));padding:12px 14px}.pbtns button{padding:10px 8px!important;font-size:calc(14px * var(--ui,1))}
     #v360 .vh{display:none}
@@ -253,7 +256,8 @@
     <div id="tiers"><button data-t="2000">2000+ m</button><button data-t="1500">1500–2000 m</button><button data-t="all">Vsi</button></div>
     <div id="progress"></div>
     <input id="q" type="search" placeholder="Išči vrh …" autocomplete="off">
-    <div id="chips"><button data-f="rank" id="chipRank">98 prominentnih</button><button data-f="all">Vsi</button><button data-f="todo">Neobiskani</button><button data-f="done">Obiskani</button></div>
+    <div id="chips"><button data-f="rank" id="chipRank">98 prominentnih</button><button data-f="all" id="chipAll">Vsi vrhovi</button></div>
+    <div id="stchips"><button data-s="all">Vsi</button><button data-s="todo">Neobiskani</button><button data-s="done">Obiskani</button></div>
   </div>
   <div id="dlist"></div>
   <div id="dfoot"><button id="vexp">Izvozi</button><button id="vimp">Uvozi</button><input type="file" id="vfile" accept=".json" hidden><span class="fnote">shranjeno v brskalniku</span></div>
@@ -361,7 +365,7 @@ const style = {
     topo:{type:"raster",tileSize:256,maxzoom:17,
       tiles:["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
       attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>, SRTM | © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'},
-    border:{type:"geojson",data:{type:"Feature",properties:{},geometry:{type:"MultiLineString",coordinates:[[[15.00315,46.63737],[14.96715,46.60022],[14.94915,46.6188],[14.93475,46.62049],[14.92035,46.61542],[14.89875,46.60529],[14.89515,46.60529],[14.87715,46.6036],[14.86275,46.60529],[14.85195,46.60191],[14.83395,46.58503],[14.82315,46.56814],[14.81595,46.55126],[14.80875,46.53606],[14.79795,46.51917],[14.78715,46.50735],[14.78355,46.50398],[14.76195,46.49553],[14.73675,46.49384],[14.72595,46.49722],[14.70795,46.49216],[14.70435,46.48709],[14.69715,46.48033],[14.68635,46.47189],[14.67915,46.45838],[14.67195,46.46007],[14.66835,46.46007],[14.66115,46.46007],[14.64315,46.44487],[14.63235,46.43981],[14.62155,46.43812],[14.59995,46.43643],[14.58915,46.43474],[14.57475,46.41955],[14.56755,46.40097],[14.56035,46.39253],[14.55675,46.38409],[14.53875,46.37902],[14.52795,46.38746],[14.51715,46.40604],[14.50275,46.41786],[14.46674,46.41279],[14.45234,46.41448],[14.43794,46.41955],[14.41994,46.42461],[14.41274,46.42968],[14.41274,46.43474],[14.40554,46.43981],[14.39474,46.4415],[14.36234,46.43643],[14.24354,46.43812],[14.14994,46.43981],[14.14634,46.43981],[14.13554,46.44319],[14.08154,46.47527],[14.06714,46.48033],[14.04914,46.48371],[14.03114,46.4854],[14.01314,46.48202],[13.99874,46.48033],[13.98074,46.48202],[13.89074,46.51242],[13.86194,46.5158],[13.79714,46.50735],[13.78274,46.50735],[13.71434,46.51917],[13.69994,46.51917],[13.69994,46.51242],[13.69994,46.50566],[13.69634,46.49891],[13.68914,46.49384],[13.68914,46.46851],[13.68554,46.46345],[13.67834,46.45163],[13.66034,46.44487],[13.63514,46.44487],[13.59914,46.44319],[13.57394,46.4263],[13.55594,46.40604],[13.53074,46.38915],[13.48393,46.37058],[13.45873,46.35876],[13.44793,46.35538],[13.43353,46.35369],[13.42273,46.34525],[13.40833,46.3233],[13.39393,46.30641],[13.39033,46.30135],[13.36513,46.28953],[13.37233,46.28108],[13.37953,46.26757],[13.38313,46.24393],[13.39753,46.23043],[13.40113,46.21692],[13.40833,46.20847],[13.43713,46.21016],[13.42273,46.22874],[13.43713,46.22536],[13.46953,46.22367],[13.48393,46.21861],[13.50914,46.21354],[13.53074,46.2051],[13.55954,46.18483],[13.58474,46.18146],[13.61354,46.18315],[13.62794,46.18146],[13.63874,46.17977],[13.64234,46.17133],[13.64594,46.16119],[13.61714,46.12573],[13.52354,46.07508]]]}}},
+    border:{type:"geojson",data:{type:"Feature",properties:{},geometry:{type:"MultiLineString",coordinates:__BORDER__}}},
     trails:{type:"raster",tileSize:256,maxzoom:18,
       tiles:["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"],
       attribution:'<a href="https://hiking.waymarkedtrails.org">Waymarked Trails</a> (CC-BY-SA)'}
@@ -403,6 +407,7 @@ const map = new maplibregl.Map({
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
   maxBounds:[[12.9,45.3],[16.7,47.0]], // all of Slovenia (Snežnik, Pohorje …)
   maxTileCacheZoomLevels:LITE_ON?5:8,
+  ...(LITE_ON?{}:{maxTileCacheSize:900}), // bigger tile cache: turning back in 360 / panning back reuses tiles instead of reloading
   ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
   hash:true
 });
@@ -659,14 +664,14 @@ function applyScale(){ const k=+tsc.value; tscv.textContent=k.toFixed(1)+'×';
 tsc.oninput=applyScale; applyScale();
 
 // --- border: Natural Earth fallback embedded; upgrade to precise OSM boundary (cached)
-const BKEY='dvat3d_border_osm_v1';
+const BKEY='dvat3d_border_osm_v2'; // whole of Slovenia
 function setBorder(lines){ const s=map.getSource('border'); if(s) s.setData({type:"Feature",properties:{},geometry:{type:"MultiLineString",coordinates:lines}}); }
 async function loadOsmBorder(){
   try{ const c=localStorage.getItem(BKEY); if(c){ setBorder(JSON.parse(c)); return; } }catch(e){}
-  const q='[out:json][timeout:60];rel["ISO3166-1"="SI"]["admin_level"="2"];way(r)(46.10,13.25,46.72,15.05);out geom;';
+  const q='[out:json][timeout:60];rel["ISO3166-1"="SI"]["admin_level"="2"];way(r);out geom;';
   for(const u of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
     try{ const r=await fetch(u,{method:'POST',body:'data='+encodeURIComponent(q)}); if(!r.ok) continue;
-      const j=await r.json(); const lines=j.elements.filter(e=>e.geometry).map(e=>e.geometry.map(g=>[+g.lon.toFixed(6),+g.lat.toFixed(6)]));
+      const j=await r.json(); const lines=j.elements.filter(e=>e.geometry).map(e=>e.geometry.filter((g,i,a)=>i%2===0||i===a.length-1).map(g=>[+g.lon.toFixed(5),+g.lat.toFixed(5)]));
       if(!lines.length) continue; setBorder(lines); try{ localStorage.setItem(BKEY,JSON.stringify(lines)); }catch(e){} return;
     }catch(e){}
   }
@@ -761,26 +766,30 @@ new MutationObserver(syncTabs).observe(document.body,{attributes:true,attributeF
 new MutationObserver(syncTabs).observe(drawer,{attributes:true,attributeFilter:['class']});
 map.on('movestart',e=>{ if(e.originalEvent) document.body.classList.remove('menu'); });
 $('closeDrawer').onclick=()=>drawer.classList.remove('open');
-let FLT='rank'; try{ FLT=localStorage.getItem('dvat3d_flt')||'rank'; }catch(_){} const CLOSED=new Set(); // default: the 98 prominent 2000 m peaks
+let FLT='rank', STF='all'; try{ FLT=localStorage.getItem('dvat3d_flt')||'rank'; if(FLT!=='rank'&&FLT!=='all') FLT='rank'; STF=localStorage.getItem('dvat3d_stf')||'all'; }catch(_){}
+const inScope=p=>inTier(p)&&(FLT!=='rank'||isMain(p)); const CLOSED=new Set(); // default: the 98 prominent 2000 m peaks
 $('q').oninput=renderList;
 $('chips').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; FLT=b.dataset.f; try{ localStorage.setItem('dvat3d_flt',FLT); }catch(_){}
   $('chips').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderList(); };
 $('chips').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.f===FLT));
+$('stchips').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; STF=b.dataset.s; try{ localStorage.setItem('dvat3d_stf',STF); }catch(_){} syncChips(); renderList(); };
+function syncChips(){ $('chips').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.f===FLT)); $('stchips').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.s===STF)); }
+syncChips();
 const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const cntV=list=>list.filter(p=>visited.has(p.id)).length;
 const barH=(n,N)=>`<div class="bar"><i style="width:${N?100*n/N:0}%"></i></div>`;
 function renderList(){
   const q=norm($('q').value.trim()), f=FLT;
-  const ok=p=>inTier(p)&&(!q||norm(p.name+' '+(p.pb_name||'')).includes(q))&&(f==='all'||(f==='rank'&&isMain(p))||(f==='todo'&&!visited.has(p.id))||(f==='done'&&visited.has(p.id)));
+  const ok=p=>inScope(p)&&(!q||norm(p.name+' '+(p.pb_name||'')).includes(q))&&(STF==='all'||(STF==='todo'&&!visited.has(p.id))||(STF==='done'&&visited.has(p.id)));
   let h='';
   for(const [r,c] of RANGES){
-    const all=PEAKS.filter(p=>p.range===r&&inTier(p)), L=all.filter(ok).sort((a,b)=>b.elev-a.elev); if(!L.length) continue;
+    const all=PEAKS.filter(p=>p.range===r&&inScope(p)), L=all.filter(ok).sort((a,b)=>b.elev-a.elev); if(!L.length) continue;
     const closed=CLOSED.has(r)&&!q;
     h+=`<div class="rg${closed?' closed':''}" data-r="${r}" style="color:${c}"><span class="chev">▾</span>${r}<span class="cnt">${cntV(all)} / ${all.length}</span></div>`;
     if(closed) continue;
     h+=L.map(p=>{const v=visited.has(p.id);return `<div class="it${isMain(p)?'':' sub'}${v?' done':''}"><input type="checkbox" data-id="${p.id}" ${v?'checked':''} aria-label="${p.name}">
       <span class="nm${p.lat==null?' nc':''}" data-id="${p.id}" ${p.lat==null?'title="Lega še ni določena"':''}>${p.name}</span>
-      ${p.rank?`<span class="rk">#${p.rank}</span>`:p.rank15?`<span class="rk" title="rang po prominenci med 1500–2000 m">#${p.rank15}</span>`:''}${TIER==='all'&&p.tier==='1500'?'<span class="t15">1500</span>':''}<span class="el">${Math.round(p.elev)}</span></div>`;}).join('');
+      ${p.rank?`<span class="rk">#${p.rank}</span>`:p.rank15?`<span class="rk" title="rang po prominenci med 1500–2000 m">#${p.rank15}</span>`:''}${TIER==='all'&&p.tier==='1500'?'<span class="t15">1500</span>':''}<span class="el">${Math.round(p.elev)} m</span></div>`;}).join('');
   }
   $('dlist').innerHTML=h||'<div class="empty">Ni zadetkov.</div>';
 }
@@ -792,7 +801,7 @@ function refresh(){
   const TP=PEAKS.filter(inTier), R=TP.filter(isMain), nA=cntV(TP), nR=cntV(R);
   $('vcount3').textContent=`${nR} / ${R.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
   $('tiers').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===TIER));
-  $('chipRank').textContent=`${R.length} prominentnih`;
+  $('chipRank').textContent=`${R.length} prominentnih`; $('chipAll').textContent=`Vsi vrhovi (${TP.length})`;
   const dOpen=!!$('progress').querySelector('details[open]');
   $('progress').innerHTML=`<div class="pmain"><div><b>${nR}</b> / ${R.length}</div><span>${TIER==='2000'?'prominentnih dvatisočakov':TIER==='1500'?'prominentnih vrhov 1500–2000 m (≥100 m)':'prominentnih vrhov'}</span>${barH(nR,R.length)}</div>
     <div class="pstat"><div>${TIER==='1500'?'Vsi 1500–2000 m':TIER==='all'?'Vsi vrhovi':'Vsi nad 2000 m (s podvrhi)'}<br><b>${nA}</b> / ${TP.length}${barH(nA,TP.length)}</div></div>

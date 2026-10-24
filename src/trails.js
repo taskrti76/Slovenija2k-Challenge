@@ -123,7 +123,7 @@ const relPZS=r=>!!r&&(/red_round|white_dot|red:white|knafel/i.test(r['osmc:symbo
 const relName=r=>r?(r.name||r.ref||''):'';
 function pathStats(g, edges){
   let L=0, mk=0, rd=0, sac=0, fer=false, pz=0; const names=new Map(), rc=new Map();
-  for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m') mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac) sac=w.sac;
+  for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m'||(w.rel&&w.rel.some(ri=>!relLong(RELS[ri])))) mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac) sac=w.sac;
     if(w.name) names.set(w.name,(names.get(w.name)||0)+l);
     if(w.rel){ let p=false; for(const ri of w.rel){ const R=RELS[ri]; if(relPZS(R)) p=true; if(!relLong(R)) rc.set(ri,(rc.get(ri)||0)+l); } if(p||w.kind==='m') pz+=l; } }
   const top=[...rc].sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=0.35*L).slice(0,4).map(x=>x[0]), cov=new Map(top.map(r=>[r,rc.get(r)/L]));
@@ -418,14 +418,23 @@ window.setDrawColor=c=>{ DCOL=c; try{ localStorage.setItem('dvat3d_dcol',c); }ca
 document.documentElement.style.setProperty('--dcol',DCOL);
 
 // ---------- state ----------
-let GRAPHSRC=null, GBUILD=null;
-async function ensureGraph(){
-  if(G) return G; if(!GRAPHSRC) return null; if(GBUILD) return GBUILD;
-  GBUILD=(async()=>{ const prev=el('tstatus').textContent; status('Gradim omrežje poti (prvič, nekaj sekund) …'); await new Promise(r=>setTimeout(r,30));
-    const src=GRAPHSRC, g=buildGraph(src.ways, src.marked);
-    if(GRAPHSRC!==src){ GBUILD=null; return ensureGraph(); } // data changed while building
-    STARTS=STARTS.map(s=>({...s,node:nearestNode(g,s.lat,s.lon,350,0,true)})).filter(s=>s.node>=0);
-    G=g; status(prev); return g; })();
+let GRAPHSRC=null, GBUILD=null, STARTS_ALL=[];
+// routing network is built for a region (~55 × 55 km) around the place you need it, not for all of Slovenia
+// (whole country = 2 M nodes / 600 MB - too much for phones). Rebuilt when you ask for a peak or draw outside it.
+const GR=0.25, GRL=0.36;
+const inG=(la,lo,m=0)=>!!(G&&G.bb&&la>G.bb[0]+m&&la<G.bb[2]-m&&lo>G.bb[1]+m*1.4&&lo<G.bb[3]-m*1.4);
+async function ensureGraph(la,lo,margin=0.1){
+  if(la==null){ const c=map.getCenter(); la=c.lat; lo=c.lng; }
+  if(inG(la,lo,margin)) return G; if(!GRAPHSRC) return null;
+  if(GBUILD){ await GBUILD; if(inG(la,lo,margin)) return G; }
+  GBUILD=(async()=>{ const prev=el('tstatus').textContent; status('Gradim omrežje poti za to območje …'); await new Promise(r=>setTimeout(r,30));
+    const src=GRAPHSRC, bb=[la-GR,lo-GRL,la+GR,lo+GRL];
+    if(!src.wb){ src.wb=new Float64Array(src.ways.length*4); src.ways.forEach((w,i)=>{ let a=90,b=180,c=-90,d=-180; for(const q of w.geometry||[]){ if(!q) continue; if(q.lat<a)a=q.lat; if(q.lat>c)c=q.lat; if(q.lon<b)b=q.lon; if(q.lon>d)d=q.lon; } src.wb.set([a,b,c,d],i*4); }); }
+    const W=src.wb, sub=src.ways.filter((w,i)=>W[i*4]<=bb[2]&&W[i*4+2]>=bb[0]&&W[i*4+1]<=bb[3]&&W[i*4+3]>=bb[1]);
+    const g=buildGraph(sub, src.marked); g.bb=bb;
+    if(GRAPHSRC!==src){ GBUILD=null; return ensureGraph(la,lo,margin); } // data changed while building
+    STARTS=STARTS_ALL.filter(s=>s.lat>bb[0]&&s.lat<bb[2]&&s.lon>bb[1]&&s.lon<bb[3]).map(s=>({...s,node:nearestNode(g,s.lat,s.lon,350,0,true)})).filter(s=>s.node>=0);
+    G=g; GBUILD=null; status(prev); return g; })();
   return GBUILD;
 }
 window.ensureGraph=ensureGraph;
@@ -562,6 +571,7 @@ async function build(poi,tr,src){
     pf.push({type:'Feature',properties:{t:k,name:t.name||'',ele:t.ele||'',web:t.website||t['contact:website']||''},geometry:{type:'Point',coordinates:[lo,la]}});
   }
   for(const s of STARTS) if(!s.name){ let best=null,bd=4000; for(const p of PLACES){const d=hav(s.lat,s.lon,p.lat,p.lon); if(d<bd&&p.name){bd=d;best=p.name;}} s.name=best?`pri ${best}`:'parkirišče'; }
+  STARTS_ALL=STARTS; STARTS=[];
   map.getSource('poi').setData({type:'FeatureCollection',features:pf});
   const nr=feats.filter(f=>f.properties.k==='r').length;
   status(`Poti: ${(feats.length-nr).toLocaleString('sl')} odsekov${nr?` · ceste: ${nr.toLocaleString('sl')}`:''} · koče/bivaki: ${HUTS.length} · izhodišča: ${STARTS.length} · ${src}`);
@@ -588,8 +598,8 @@ function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<co
 window.peakRoutesUI = async function(id){
   const p=byId[id]; if(!p) return; if(popup) popup.remove();
   const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
-  if(!G){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
-    if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(); if(!G) return; }
+  if(!inG(p.lat,p.lon,0.17)){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
+    if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }
   // an extra (relation) route must end in the valley: at a parking, or at a hut ≥3 km away - never on another peak
   // every route starts at a parking/trailhead (≤300 m); relation routes that end elsewhere (also at a hut) are continued to the nearest parking
   const nearStart=(la,lo)=>{ let b=null,bd=300; for(const x of STARTS){ const d=hav(x.lat,x.lon,la,lo); if(d<bd){ bd=d; b={...x}; } } for(const h of HUTS){ const d=hav(h.lat,h.lon,la,lo); if(d<bd){ bd=d; b={name:h.name,lat:h.lat,lon:h.lon,kind:'hut'}; } } return b; };
@@ -657,7 +667,8 @@ let MY=[]; try{ MY=JSON.parse(localStorage.getItem(MYKEY)||'[]'); }catch(e){}
 const saveMy=()=>{ try{ localStorage.setItem(MYKEY,JSON.stringify(MY)); }catch(e){} };
 const drawCoords=()=>!D.segs.length?D.pts.slice():D.segs.reduce((a,s,i)=>a.concat(i?s.c.slice(1):s.c),[]);
 const pushHist=()=>{ D.hist.push(JSON.stringify({p:D.pts,s:D.segs})); if(D.hist.length>100) D.hist.shift(); };
-function makeSeg(a,b){ const c=(D.follow&&G)?routeBetween(G,a,b,150):null; return {c:c||[a,b], f:!!c}; }
+function makeSeg(a,b){ const c=(D.follow&&G&&inG(a[1],a[0])&&inG(b[1],b[0]))?routeBetween(G,a,b,150):null; return {c:c||[a,b], f:!!c}; }
+map.on('moveend',()=>{ if(!window.DRAW_ON) return; const c=map.getCenter(); if(!inG(c.lat,c.lng,0.1)) ensureGraph(c.lat,c.lng); });
 function setDrawData(){
   const n=D.pts.length, f=D.segs.map((s,i)=>({type:'Feature',properties:{si:i,f:s.f},geometry:{type:'LineString',coordinates:s.c}}));
   D.pts.forEach((p,i)=>f.push({type:'Feature',properties:{i,r:i===0?'s':i===n-1?'e':'m',sel:i===D.sel},geometry:{type:'Point',coordinates:p}}));

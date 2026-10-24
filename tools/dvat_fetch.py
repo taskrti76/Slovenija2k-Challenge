@@ -138,6 +138,31 @@ def encode(ways, poi, marked, rels=()):
             "w": {"k": "".join(K), "s": S, "vis": V, "n": N, "names": names, "len": L, "xy": XY, "rel": RL}, "p": P, "r": R,
             "rb": list(range(16)), "ext": 1}
 
+# ---------- keep only what is near a peak (whole ways, nothing cut at the edge): trails <=12 km, roads/POIs <=15 km
+def prune_far(ways, poi, trail_km=12, road_km=15):
+    here = os.path.dirname(os.path.abspath(__file__)); peaks = []
+    for f in ('peaks_final.json', 'peaks_extra.json'):
+        for cand in (os.path.join(here, '..', 'src', f), os.path.join(here, f)):
+            if os.path.exists(cand): peaks += [p for p in json.load(open(cand, encoding='utf8')) if p.get('lat') is not None]; break
+    if not peaks: print('prune: peak lists not found, skipped'); return ways, poi
+    C, grid = 0.1, {}
+    for p in peaks: grid.setdefault((math.floor(p['lat'] / C), math.floor(p['lon'] / C)), []).append(p)
+    def near(la, lo, km):
+        cy, cx, r = math.floor(la / C), math.floor(lo / C), int(km / 8) + 1
+        for y in range(cy - r, cy + r + 1):
+            for x in range(cx - r, cx + r + 1):
+                for p in grid.get((y, x), ()):
+                    if math.hypot((p['lat'] - la) * 111.3, (p['lon'] - lo) * 77) <= km: return True
+        return False
+    kw = []
+    for w in ways:
+        g = w['geometry']; km = road_km if ROADRE.match((w.get('tags') or {}).get('highway', '')) else trail_km
+        step = max(1, len(g) // 20)
+        if any(near(q['lat'], q['lon'], km) for q in g[::step] + [g[-1]]): kw.append(w)
+    kp = [e for e in poi if (e.get('lat', (e.get('center') or {}).get('lat')) is None) or near(e.get('lat', (e.get('center') or {}).get('lat')), e.get('lon', (e.get('center') or {}).get('lon')), road_km)]
+    print(f"Prune: ways {len(ways)} -> {len(kw)}, POIs {len(poi)} -> {len(kp)} (far from every peak)")
+    return kw, kp
+
 # ---------- slimming (same rules as tools/slim_pack.js): phones need a lighter network ----------
 def slim(ways, poi, marked, tol=3.0):
     key = lambda p: (jsround(p["lat"] * 1e6), jsround(p["lon"] * 1e6))
@@ -228,6 +253,7 @@ def main():
     wl, pl = list(ways.values()), list(poi.values())
     if "--no-slim" not in sys.argv:
         wl, pl = slim(wl, pl, marked)
+        wl, pl = prune_far(wl, pl)
     pk = encode(wl, pl, marked, list(rels.values()))
     raw = json.dumps(pk, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     with gzip.open(OUT, "wb", compresslevel=9) as f:
