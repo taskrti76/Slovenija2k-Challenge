@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.13 — 2026-10-25
+- Installable app (PWA): manifest + service worker (sw.js, versioned by build hash). App files and trail data cached on install,
+  map tiles cached as viewed (max 4000), "Namesti aplikacijo" button (Android/desktop), iPhone hint (Share → Add to Home Screen),
+  "new version - reload" notice. "Prenesi to območje za brez signala": terrain tiles z8–14 for the visible area (max ~25 × 25 km)
+  -> relief, hillshade, 3D, trails, huts, peaks work offline. Satellite / OpenTopoMap only cached as viewed (their terms forbid bulk download).
+- Language SL / EN (switch at the top of the side panel and in the guide; defaults to the browser language). English applied to
+  the page as it renders (dictionary + patterns); peak names stay Slovene; MapLibre buttons now in Slovene in SL.
+- First-use guide (7 steps, highlights the element, phone + PC layouts); replay in Napredno → Vodič.
+- Peak list renders even if the map fails to load.
+
 ## web-v0.12 — 2026-10-24
 - 360: sunrise / sunset mode (button ☀ Dan → 🌅 Vzhod → 🌇 Zahod). Today's sun time and direction for that summit
   (low-precision NOAA formulas, horizon lowered by the dip from the summit height), view turns to the sun, sun disc on the horizon,

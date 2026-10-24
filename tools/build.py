@@ -14,7 +14,7 @@ pk = os.path.join(R, 'dvat-osm.json.gz')
 b64 = base64.b64encode(open(pk, 'rb').read()).decode() if single and os.path.exists(pk) else ''
 out = (S('dvatisocaki_template.html')
        .replace('__PEAKS__', json.dumps(P_ALL, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/'))
-       .replace('__PACKJS__', S('pack.js')).replace('__TRAILS__', S('trails.js')).replace('__V360__', S('v360.js'))
+       .replace('__PACKJS__', S('pack.js')).replace('__TRAILS__', S('trails.js')).replace('__V360__', S('v360.js')).replace('__EXTRAS__', S('extras.js'))
        .replace('__BORDER__', json.dumps(json.load(open(os.path.join(R, 'data', 'slovenia_border.json')))['coordinates'], separators=(',', ':')))
        .replace('__PACKSRC__', '' if single else ' data-src="dvat-osm.json.gz"')
        .replace('__OSMPACK__', b64))
@@ -22,6 +22,16 @@ dst = os.path.join(R, 'dist', 'dvatisocaki-single.html') if single else os.path.
 os.makedirs(os.path.dirname(dst), exist_ok=True)
 open(dst, 'w', encoding='utf8').write(out)
 print('built', os.path.relpath(dst, R), len(out) // 1024, 'KB')
+if not single:  # installable app: manifest + service worker (version = hash of the page + data, so phones pick up new builds)
+    import hashlib
+    ver = hashlib.sha1(out.encode('utf8') + (open(pk, 'rb').read() if os.path.exists(pk) else b'')).hexdigest()[:10]
+    open(os.path.join(R, 'sw.js'), 'w', encoding='utf8').write(S('sw_template.js').replace('__VER__', ver))
+    json.dump({"name": "Slovenski dvatisočaki", "short_name": "Dvatisočaki", "description": "3D karta slovenskih vrhov nad 2000 m - poti, 360° razgled, sneg.",
+               "start_url": "./", "scope": "./", "display": "standalone", "orientation": "any", "background_color": "#1b1f1e", "theme_color": "#1f3b57", "lang": "sl",
+               "icons": [{"src": "icon-192.png", "sizes": "192x192", "type": "image/png"}, {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+                         {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}]},
+              open(os.path.join(R, 'manifest.webmanifest'), 'w', encoding='utf8'), ensure_ascii=False, indent=1)
+    print('built sw.js', ver, '+ manifest.webmanifest')
 # helper tool: LiDAR analysis of OSM peaks >= 1500 m (runs in the browser, exports CSV)
 T = os.path.join(R, 'tools', 'src', 'peaks1500_template.html')
 if os.path.exists(T) and not single:

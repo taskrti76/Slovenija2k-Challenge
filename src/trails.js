@@ -574,7 +574,7 @@ async function build(poi,tr,src){
   STARTS_ALL=STARTS; STARTS=[];
   map.getSource('poi').setData({type:'FeatureCollection',features:pf});
   const nr=feats.filter(f=>f.properties.k==='r').length;
-  status(`Poti: ${(feats.length-nr).toLocaleString('sl')} odsekov${nr?` · ceste: ${nr.toLocaleString('sl')}`:''} · koče/bivaki: ${HUTS.length} · izhodišča: ${STARTS.length} · ${src}`);
+  status(`Poti: ${(feats.length-nr).toLocaleString('sl')} odsekov${nr?` · ceste: ${nr.toLocaleString('sl')}`:''} · koče/bivaki: ${HUTS.length} · izhodišča: ${STARTS_ALL.length} · ${src}`);
 }
 
 // ---------- routes per peak ----------
