@@ -30,7 +30,7 @@ function buildGraph(ways, marked){
   for (const w of ways){
     const g = (w.geometry||[]).filter(Boolean); if (g.length < 2) continue;
     const t = w.tags||{}, kind = wayKind(t, marked.has(w.id)), f = wayFactor(t, kind), wi = W.length;
-    W.push({id:w.id, kind, sac:SACN[t.sac_scale]||0, name:t.name||'', vis:/^(bad|horrible|no)$/.test(t.trail_visibility||'')});
+    W.push({id:w.id, kind, sac:SACN[t.sac_scale]||0, name:t.name||'', vis:/^(bad|horrible|no)$/.test(t.trail_visibility||''), rel:w.rel||null});
     let p = nid(g[0].lat, g[0].lon);
     for (let k=1;k<g.length;k++){ const c = nid(g[k].lat, g[k].lon); if (c===p) continue;
       const L = hav(LA[p],LO[p],LA[c],LO[c]); eu.push(p); ev.push(c); el.push(L); ew.push(L*f); ey.push(wi); p = c; }
@@ -115,11 +115,45 @@ function trace(g, pe, t){ const nodes=[t], edges=[]; let u=t, guard=0;
     let lo=0, hi=g.n; while(lo<hi){ const mid=(lo+hi)>>1; if(g.off[mid+1]<=q) lo=mid+1; else hi=mid; } u=lo; nodes.push(u); }
   return {nodes, edges};
 }
+// hiking relations: long-distance ones (SPP, E6/E7, Via Alpina …) are not used to name a route
+let RELS=[]; // [{name,ref,operator,network,from,to,'osmc:symbol'}]
+const LONGRE=/slovensk\w* planinsk\w* pot|\bSPP\b|via alpina|\bE ?[67]\b|alpe.adria|transverzal|koroška planinska|kamniško.savinjska planinska|razširjena|evropsk|pot kurirjev|pot prijateljstva|juliana trail|via dinarica|planinska pot\b.*\d/i;
+const relLong=r=>!!r&&(/^(nwn|iwn)$/.test(r.network||'')||LONGRE.test(r.name||''));
+const relPZS=r=>!!r&&(/red_round|white_dot|red:white|knafel/i.test(r['osmc:symbol']||'')||/\bPZS\b|planinsk\w* (zveza|društvo|drustvo)|^PD\b/i.test(r.operator||''));
+const relName=r=>r?(r.name||r.ref||''):'';
 function pathStats(g, edges){
-  let L=0, mk=0, rd=0, sac=0, fer=false; const names=new Map();
+  let L=0, mk=0, rd=0, sac=0, fer=false, pz=0; const names=new Map(), rc=new Map();
   for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m') mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac) sac=w.sac;
-    if(w.name) names.set(w.name,(names.get(w.name)||0)+l); }
-  return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0])};
+    if(w.name) names.set(w.name,(names.get(w.name)||0)+l);
+    if(w.rel){ let p=false; for(const ri of w.rel){ const R=RELS[ri]; if(relPZS(R)) p=true; if(!relLong(R)) rc.set(ri,(rc.get(ri)||0)+l); } if(p||w.kind==='m') pz+=l; } }
+  const top=[...rc].sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=0.35*L).slice(0,2).map(x=>x[0]);
+  return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]), rels:top, pzs:L?pz/L:0};
+}
+// Dijkstra restricted to edges accepted by ok(q)
+function searchF(g, src, maxCost, ok){
+  const dist=new Float64Array(g.n).fill(Infinity), pe=new Int32Array(g.n).fill(-1), done=new Uint8Array(g.n), h=new Heap(), seen=[];
+  dist[src]=0; h.push(0,src);
+  while(h.size){ const u=h.pop(); if(done[u]) continue; done[u]=1; seen.push(u); const du=dist[u]; if(du>maxCost) break;
+    for(let q=g.off[u];q<g.off[u+1];q++){ if(!ok(q)) continue; const v=g.adj[q], nd=du+g.len[q]; if(nd<dist[v]){ dist[v]=nd; pe[v]=q; h.push(nd,v); } } }
+  return {dist, pe, seen};
+}
+// official (named, non-long) hiking relations that reach the summit -> one route per relation branch, from its far end
+function relationRoutes(g, s){
+  if(!RELS.length) return [];
+  const near=new Set(); { const r0=searchF(g,s,250,()=>true); for(const u of r0.seen) for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]]; if(w.rel) for(const ri of w.rel) if(!relLong(RELS[ri])) near.add(ri); } }
+  const out=[];
+  for(const ri of near){
+    const ok=q=>{ const w=g.W[g.wy[q]]; return w.kind==='g'||(w.rel&&w.rel.includes(ri)); };
+    const ok2=q=>ok(q)||g.len[q]<30; // tolerate tiny gaps between members
+    const res=searchF(g,s,40000,ok2);
+    // dead ends of this relation, farthest first
+    const ends=res.seen.filter(u=>{ let k=0; for(let q=g.off[u];q<g.off[u+1];q++) if(ok(q)) k++; return k<=1 && res.dist[u]>800; }).sort((a,b)=>res.dist[b]-res.dist[a]);
+    const taken=[];
+    for(const e of ends){ if(taken.length>=2) break; const tr=trace(g,res.pe,e); const set=new Set(tr.nodes);
+      if(taken.some(t=>{ let k=0; for(const x of tr.nodes) if(x!==s&&t.has(x)&&res.dist[x]>300) k++; return k/tr.nodes.length>0.3; })) continue;
+      taken.push(set); out.push({ri, end:e, nodes:tr.nodes, edges:tr.edges, set}); }
+  }
+  return out;
 }
 // routes from starts to summit; starts: [{node,name,lat,lon}]
 function peakRoutes(g, la, lo, starts, opt={}){
@@ -135,6 +169,15 @@ function peakRoutes(g, la, lo, starts, opt={}){
     if (worst > 0.8) continue;
     acc.push({start:st, set, nodes:tr.nodes, edges:tr.edges, cost:dist[st.node],
       coords: tr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: pathStats(g, tr.edges)});
+  }
+  // add official relation routes not already covered
+  for (const rr of relationRoutes(g, s)){
+    if (acc.length >= (opt.max||7)+3) break;
+    const dup=acc.find(a=>{ let k=0; for(const x of rr.nodes) if(a.set.has(x)) k++; return k/rr.nodes.length>0.7; });
+    if (dup){ if(!dup.rel) dup.rel=rr.ri; continue; }
+    const R=RELS[rr.ri], la2=g.lat[rr.end], lo2=g.lon[rr.end];
+    acc.push({start:{node:rr.end, name:'', lat:la2, lon:lo2, kind:'rel'}, rel:rr.ri, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:Infinity,
+      coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: pathStats(g, rr.edges)});
   }
   return {summit:s, routes:acc};
 }
@@ -163,7 +206,7 @@ function toGPX(name, coords, ele, wpts=[]){
     wpts.map(w=>`<wpt lat="${w.lat.toFixed(6)}" lon="${w.lon.toFixed(6)}">${w.ele!=null?`<ele>${w.ele.toFixed(1)}</ele>`:''}<name>${x(w.name)}</name></wpt>`).join('\n')+
     `\n<trk><name>${x(name)}</name><trkseg>\n`+coords.map((c,i)=>`<trkpt lat="${c[1].toFixed(6)}" lon="${c[0].toFixed(6)}">${ele&&ele[i]!=null?`<ele>${ele[i].toFixed(1)}</ele>`:''}</trkpt>`).join('\n')+`\n</trkseg></trk>\n</gpx>\n`;
 }
-if (typeof module !== 'undefined') module.exports = {nearCands, wayKind, buildGraph, nearestNode, search, trace, peakRoutes, routeBetween, pathStats, walkTime, ascentOf, toGPX, hav, Heap};
+if (typeof module !== 'undefined') module.exports = {setRels:x=>{RELS=x;}, relationRoutes, relLong, relPZS, nearCands, wayKind, buildGraph, nearestNode, search, trace, peakRoutes, routeBetween, pathStats, walkTime, ascentOf, toGPX, hav, Heap};
 
 // ---------- browser part ----------
 if (typeof window !== 'undefined') (function(){
@@ -321,6 +364,7 @@ function profileSVG(P, w=300, h=86){
 }
 const fmtT=hh=>`${Math.floor(hh)}:${String(Math.round((hh%1)*60)).padStart(2,'0')} h`;
 const SACT=['','T1','T2','T3','T4','T5','T6'];
+const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function download(name, text, type='application/gpx+xml'){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
 const slug=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
@@ -466,7 +510,10 @@ async function build(poi,tr,src){
   if(!map.getSource('trails-v')||!map.getSource('poi')) addLayers();
   // relations -> marked way ids
   const marked=new Set(); REL=new Map();
-  for(const e of poi.elements) if(e.type==='relation'){ for(const m of e.members||[]) if(m.type==='way'){ marked.add(m.ref); if(!REL.has(m.ref)) REL.set(m.ref,e.tags||{}); } }
+  RELS=[]; const wr=new Map();
+  for(const e of poi.elements) if(e.type==='relation'){ const t=e.tags||{}, ri=(!t._pseudo&&(t.name||t.ref))?RELS.push(t)-1:-1;
+    for(const m of e.members||[]) if(m.type==='way'){ marked.add(m.ref); if(!REL.has(m.ref)) REL.set(m.ref,t); if(ri>=0){ let a=wr.get(m.ref); if(!a) wr.set(m.ref,a=[]); if(!a.includes(ri)) a.push(ri); } } }
+  for(const w of tr.elements) if(w.type==='way'&&wr.has(w.id)) w.rel=wr.get(w.id);
   const ways=tr.elements.filter(e=>e.type==='way');
   G=null; GRAPHSRC={ways,marked}; GBUILD=null; // routing network is built lazily on first use (keeps page load fast on phones)
   // trails layer
@@ -497,6 +544,14 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
+// start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
+function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
+  for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }
+  let best='', bd=2500; for(const x of [...HUTS,...PLACES,...STARTS]){ if(!x.name) continue; const d=hav(x.lat,x.lon,r.start.lat,r.start.lon); if(d<bd){ bd=d; best=x.name; } }
+  return best?('pri '+best):'konca poti'; }
+// height profiles: all routes, or only the selected one in varčni način
+async function routeProfiles(){ const cur=RT; if(!cur) return;
+  for(const [i,r] of cur.routes.entries()){ if(r.P||(window.LITE_ON&&i!==cur.sel)) continue; r.P=await profile(r.coords); if(RT===cur) renderRoutes(); } }
 function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.map((r,i)=>({type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:r.coords}}))}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push(h.name); break; } } } return out; }
 window.peakRoutesUI = async function(id){
@@ -508,17 +563,29 @@ window.peakRoutesUI = async function(id){
   if(!res||!res.routes.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
       <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
-  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); });
+  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); if(!r.start.name) r.start.name=relStartName(r,p); });
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
-  for(const r of res.routes){ r.P=await profile(r.coords); renderRoutes(); }
+  await routeProfiles();
 };
 // fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
-function fitRoutes(){ if(!RT) return; const b=new maplibregl.LngLatBounds(); RT.routes.forEach(r=>r.coords.forEach(x=>b.extend(x)));
-  const c=rcard(), W=innerWidth, H=innerHeight;
+function routePad(){ const c=rcard(), W=innerWidth, H=innerHeight;
   const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}
     :{top:56,left:24,right:24,bottom:Math.min(H*0.6,(c.offsetHeight||0)+70)};
-  if(pad.top+pad.bottom>H-120) pad.bottom=Math.max(40,H-120-pad.top);
-  map.fitBounds(b,{padding:pad,maxZoom:14,duration:900,...(DESK()?{}:{pitch:Math.min(map.getPitch(),45)})}); }
+  if(pad.top+pad.bottom>H-120) pad.bottom=Math.max(40,H-120-pad.top); return pad; }
+function fitRoutes(){ if(!RT) return; const b=new maplibregl.LngLatBounds(); RT.routes.forEach(r=>r.coords.forEach(x=>b.extend(x)));
+  map.fitBounds(b,{padding:routePad(),maxZoom:14,duration:900,...(DESK()?{}:{pitch:Math.min(map.getPitch(),45)})}); }
+// look at the selected route from the side: camera perpendicular to the route's main direction, on the lower (valley) side
+window.sideView=()=>{ if(!RT) return; const r=RT.routes[RT.sel], C=r.coords; if(!C||C.length<2) return;
+  const KX=76700, KY=111320; let mx=0,my=0; for(const [lo,la] of C){ mx+=lo; my+=la; } mx/=C.length; my/=C.length;
+  let sxx=0,syy=0,sxy=0; for(const [lo,la] of C){ const x=(lo-mx)*KX, y=(la-my)*KY; sxx+=x*x; syy+=y*y; sxy+=x*y; }
+  const ax=0.5*Math.atan2(2*sxy,sxx-syy), axisB=90-ax*180/Math.PI; // bearing of main direction
+  const b=new maplibregl.LngLatBounds(); C.forEach(x=>b.extend(x)); const ctr=b.getCenter();
+  const at=(brg,d)=>{ const t=brg*Math.PI/180; return {lng:ctr.lng+Math.sin(t)*d/KX, lat:ctr.lat+Math.cos(t)*d/KY}; };
+  const hSide=brg=>{ let h=0,n=0; for(const d of [1200,2500,4000]){ const e=map.queryTerrainElevation(at(brg,d)); if(e!=null){ h+=e; n++; } } return n?h/n:null; };
+  let side=axisB+90; const h1=hSide(axisB+90), h2=hSide(axisB-90); if(h1!=null&&h2!=null&&h2<h1) side=axisB-90;
+  const bearing=((side+180)%360+360)%360, flat=window.__dim&&window.__dim.d===2;
+  const cam=map.cameraForBounds(b,{padding:routePad(),bearing,maxZoom:15}); if(!cam) return;
+  map.easeTo({center:cam.center, zoom:cam.zoom-(flat?0:0.45), bearing, pitch:flat?0:Math.min(map.getMaxPitch(),window.LITE_ON?55:63), duration:window.LITE_ON?900:1600}); };
 window.routesMin=()=>{ if(!RT) return; RT.min=!RT.min; renderRoutes(); fitRoutes(); };
 function renderRoutes(){
   const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`;
@@ -527,12 +594,14 @@ function renderRoutes(){
     c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:''} · ${SACT[s.sac]||'T?'}</div>`; return; }
   c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
+      const ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null;
       return `<div class="ri${i===RT.sel?' on':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}</div>
+        ${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
         <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}</div>`:'')+
-    `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button></div>
+    `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
-  c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); if(!DESK()) fitRoutes(); });
+  c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };
 window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name} iz ${r.start.name.replace(/^pri /,'')}`;
@@ -684,7 +753,7 @@ class DimControl{ onAdd(m){ this.b=document.createElement('button'); this.b.clas
     this.b.onclick=()=>this.set(this.d===3?2:3); return this.c; }
   set(d,init){ if(!map.isStyleLoaded()){ map.once('load',()=>this.set(d,init)); return; } this.d=d; this.b.textContent=d===3?'2D':'3D';
     if(d===2){ map.setTerrain(null); map.setSky && map.setSky({'sky-color':'#9cc3e6'}); if(!init) map.easeTo({pitch:0,bearing:0,duration:700}); map.setMaxPitch(0); map.dragRotate.disable(); map.touchZoomRotate.disableRotation(); }
-    else { map.setMaxPitch(85); map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); map.setTerrain({source:'dem_terrain',exaggeration:+el('exag').value}); if(!init) map.easeTo({pitch:60,duration:700}); }
+    else { map.setMaxPitch(window.LITE_ON?70:85); map.dragRotate.enable(); map.touchZoomRotate.enableRotation(); map.setTerrain({source:'dem_terrain',exaggeration:+el('exag').value}); if(!init) map.easeTo({pitch:60,duration:700}); }
     el('exag').disabled=d===2; }
   onRemove(){ this.c.remove(); } }
 window.__dim=new DimControl(); map.addControl(window.__dim,'top-right');

@@ -172,14 +172,14 @@ const Q = [
   {n:'Srednja', pr:1.5, sat:[7.5,3.8],dem:[8,3.5]},
   {n:'Visoka',  pr:2.0, sat:[6,4.5],  dem:[7,4]} ];
 const MOBILE = matchMedia('(pointer:coarse)').matches;
-let qi = window.LITE_ON ? 0 : 1; try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
+let qi = window.LITE_ON ? 0 : 1; if(!window.LITE_ON) try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
 let movingPR=false;
 function setPR(pr){ if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(1,q.pr):q.pr));
   try{ map.setSourceTileLodParams(q.sat[0], q.sat[1], 'sat'); map.setSourceTileLodParams(q.dem[0], q.dem[1], 'dem_terrain'); }catch(_){}
   $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi)); }
-$$('v360q').innerHTML=Q.map((q,i)=>`<button data-i="${i}">${q.n}</button>`).join('');
+$$('v360q').innerHTML=(window.LITE_ON?Q.slice(0,1):Q).map((q,i)=>`<button data-i="${i}">${q.n}${window.LITE_ON?' (varčno)':''}</button>`).join('');
 $$('v360q').onclick = e => { const b=e.target.closest('button'); if(!b) return; qi=+b.dataset.i;
   if (MOBILE && qi===2) toastErr && toastErr('Visoka kakovost je na telefonu lahko prezahtevna — če slika izgine, izberi Srednjo.');
   try{ localStorage.setItem('dvat3d_q360', qi); }catch(_){}

@@ -32,8 +32,8 @@ Live: GitHub Pages (`https://<user>.github.io/<repo>/`).
 # code change
 edit src/... ; python tools/build.py ; git commit -am "..." ; git push
 # new OSM data (every few months)
-python tools/dvat_fetch.py ; node --max-old-space-size=6000 tools/slim_pack.js dvat-osm.json.gz dvat-osm.slim.gz 3
-mv dvat-osm.slim.gz dvat-osm.json.gz ; git commit -am "data: OSM YYYY-MM-DD" ; git push
+python tools/dvat_fetch.py          # downloads missing areas into osm_boxes/, builds + slims dvat-osm.json.gz (pack v2 with PZS relations)
+git commit -am "data: OSM YYYY-MM-DD" ; git push   # or upload dvat-osm.json.gz on github.com
 ```
 
 GitHub Pages: Settings → Pages → Source: *Deploy from a branch*, `main`, `/ (root)`.
