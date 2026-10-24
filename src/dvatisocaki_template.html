@@ -30,17 +30,18 @@
   #drawer{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:100%;background:var(--panel);backdrop-filter:blur(8px);
     border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s,visibility .25s;visibility:hidden;z-index:10}
   #drawer.open{transform:none;visibility:visible}
-  .pbig{display:flex!important;justify-content:space-between;align-items:center;gap:8px;padding:10px 12px!important;margin:10px 0 2px!important;font-size:1em!important;font-weight:700;background:#c62828!important;border-color:#c62828!important;color:#fff!important;border-radius:9px!important}
-  .pbig span,.pbig em{white-space:nowrap}.pbig em{font-style:normal;font-weight:500;font-size:.82em;opacity:.95}
-  #peaksFab{display:none}
+  /* peak list: red pull tab on the right edge (desktop) */
+  #ptab{display:none}
   @media (min-width:701px){
-    #peaksFab{display:flex;align-items:center;gap:8px;position:absolute;top:10px;right:56px;z-index:9;font:700 15px system-ui,sans-serif;padding:9px 14px;border-radius:22px;border:0;
-      background:#c62828;color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.25);cursor:pointer}
-    #peaksFab em{font-style:normal;font-weight:500;font-size:13px;background:rgba(255,255,255,.22);border-radius:10px;padding:1px 8px}
-    #peaksFab:hover{filter:brightness(1.08)}
-    body.dopen #peaksFab{display:none}
+    #ptab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:11;
+      writing-mode:vertical-rl;font:700 15px system-ui,sans-serif;letter-spacing:.02em;padding:16px 9px;border:0;border-radius:10px 0 0 10px;
+      background:#c62828;color:#fff;box-shadow:-3px 2px 12px rgba(0,0,0,.25);cursor:pointer;transition:right .25s}
+    #ptab em{font-style:normal;font-weight:500;font-size:13px;background:rgba(255,255,255,.22);border-radius:10px;padding:8px 2px}
+    #ptab:hover{filter:brightness(1.08)}
+    #ptab .chev{writing-mode:horizontal-tb;font-size:16px;line-height:1}
+    body.dopen #ptab{right:360px}
+    body.in360 #ptab{display:none}
     body.dopen .maplibregl-ctrl-top-right{right:362px;transition:right .25s}
-    body.in360 #peaksFab{display:none}
     body.dopen #snowleg{right:372px}
   }
   #dhead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
@@ -242,7 +243,7 @@
 <div class="card" id="rcard"></div>
 <div class="card" id="dcard"></div>
 <div id="dprof"></div>
-<button id="peaksFab" title="Seznam vseh vrhov in obiskanih">▲ Seznam vrhov <em id="vcount3"></em></button>
+<button id="ptab" title="Seznam vrhov (odpri / zapri)"><span class="chev" id="ptabChev">‹</span>▲ Seznam vrhov <em id="vcount3"></em></button>
 <div id="drawer">
   <div id="dhead">
     <h2>Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
@@ -259,7 +260,6 @@
   <button class="mclose" id="mclose" aria-label="Zapri">×</button>
   <h1>Dvatisočaki</h1>
   <div class="sub" id="subtitle"></div>
-  <button class="btn dsk pbig" id="openDrawer"><span>▲ Seznam vrhov</span><em><b id="vcount">0</b></em></button>
 
   <div class="grp"><b>Podlaga</b>
     <label><input type="radio" name="base" value="relief" checked> Relief (barvna višina)</label>
@@ -398,7 +398,7 @@ const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.
 const map = new maplibregl.Map({
   container:"map", style,
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
-  maxBounds:[[12.95,45.85],[15.30,46.90]],
+  maxBounds:[[12.9,45.3],[16.7,47.0]], // all of Slovenia (Snežnik, Pohorje …)
   maxTileCacheZoomLevels:LITE_ON?5:8,
   ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
   hash:true
@@ -738,10 +738,10 @@ function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh
 
 // --- drawer
 const $=id=>document.getElementById(id), drawer=$('drawer');
-$('openDrawer').onclick=$('peaksFab').onclick=()=>{ drawer.classList.add('open'); document.body.classList.remove('menu'); };
+$('ptab').onclick=()=>{ drawer.classList.toggle('open'); document.body.classList.remove('menu'); };
 // desktop: drawer state remembered, open by default on first visit (the list is the main point of the site)
-new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); if(innerWidth>700) try{ localStorage.setItem('dvat3d_drawer',o?'1':'0'); }catch(_){} }).observe(drawer,{attributes:true,attributeFilter:['class']});
-if(innerWidth>700){ let o='1'; try{ o=localStorage.getItem('dvat3d_drawer')??'1'; }catch(_){} if(o==='1') drawer.classList.add('open'); }
+new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); $('ptabChev').textContent=o?'›':'‹'; }).observe(drawer,{attributes:true,attributeFilter:['class']});
+if(innerWidth>700) drawer.classList.add('open'); // desktop: list open on load
 $('mclose').onclick=()=>document.body.classList.remove('menu');
 function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
   const st={layers:document.body.classList.contains('menu'),peaks:drawer.classList.contains('open'),draw:!!window.DRAW_ON};
@@ -784,7 +784,7 @@ $('dlist').onclick=e=>{const t=e.target;
   else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
   const TP=PEAKS.filter(inTier), R=TP.filter(isMain), nA=cntV(TP), nR=cntV(R);
-  $('vcount').textContent=`${nA} / ${TP.length}`; $('vcount3').textContent=`${nA} / ${TP.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
+  $('vcount3').textContent=`${nA} / ${TP.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
   $('tiers').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===TIER));
   $('chipRank').textContent=`${R.length} prominentnih`;
   const dOpen=!!$('progress').querySelector('details[open]');

@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.7 — 2026-10-24
+- One way to open the peak list on PC: red pull tab on the right edge (shows visited count, ‹ / ›); list open on every load.
+- Map bounds cover all of Slovenia (Snežnik, Pohorje were cut off).
+- tools/vrhovi-1500.html v2: terrain first - every LiDAR summit ≥1450 m with ≥30 m prominence is listed and named from the nearest
+  OSM peak (all OSM peaks, also those without height). Fixes wrong low prominence (e.g. Uršlja gora got 8 m from a knob next to the summit)
+  and finds peaks missing from the OSM height list. Status: ok / premaknjen / <30 m prom. / samo teren.
+
 ## web-v0.6 — 2026-10-24
 - New list: 265 peaks 1500–2000 m from OSM, checked on LiDAR (tools/vrhovi-1500.html -> tools/make_1500.py):
   88 main (prominence ≥100 m, ranked #1–88) + 177 named subpeaks (≥30 m). New ranges: Predalpe, Pohorje, Snežnik.
