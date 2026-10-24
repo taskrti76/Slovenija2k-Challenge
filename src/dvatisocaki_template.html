@@ -55,6 +55,10 @@
   .prow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;margin:4px 0}
   .prow .bar{grid-column:1/3;margin:0}
   #q{width:100%;box-sizing:border-box;font:inherit;font-size:1em;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);margin-top:2px}
+  #tiers{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin:0 0 8px}
+  #tiers button{flex:1;font:inherit;font-weight:600;font-size:.9em;padding:6px 4px;border:0;background:transparent;color:var(--ink);cursor:pointer}
+  #tiers button+button{border-left:1px solid var(--line)}#tiers button.on{background:var(--ink);color:var(--panel)}
+  .it .t15{flex:none;font-size:.68em;color:var(--mute)}
   #chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
   #chips::-webkit-scrollbar{display:none}
   #chips button{flex:none;font:inherit;font-size:0.893em;padding:5px 11px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
@@ -238,13 +242,14 @@
 <div class="card" id="rcard"></div>
 <div class="card" id="dcard"></div>
 <div id="dprof"></div>
-<button id="peaksFab" title="Seznam vseh vrhov in obiskanih">▲ Seznam vrhov <em id="vcount3">0 / 364</em></button>
+<button id="peaksFab" title="Seznam vseh vrhov in obiskanih">▲ Seznam vrhov <em id="vcount3"></em></button>
 <div id="drawer">
   <div id="dhead">
     <h2>Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
+    <div id="tiers"><button data-t="2000">2000+ m</button><button data-t="1500">1500–2000 m</button><button data-t="all">Vsi</button></div>
     <div id="progress"></div>
     <input id="q" type="search" placeholder="Išči vrh …" autocomplete="off">
-    <div id="chips"><button data-f="all" class="on">Vsi</button><button data-f="rank">98 prominentnih</button><button data-f="todo">Neobiskani</button><button data-f="done">Obiskani</button></div>
+    <div id="chips"><button data-f="all" class="on">Vsi</button><button data-f="rank" id="chipRank">prominentni</button><button data-f="todo">Neobiskani</button><button data-f="done">Obiskani</button></div>
   </div>
   <div id="dlist"></div>
   <div id="dfoot"><button id="vexp">Izvozi</button><button id="vimp">Uvozi</button><input type="file" id="vfile" accept=".json" hidden><span class="fnote">shranjeno v brskalniku</span></div>
@@ -253,8 +258,8 @@
   <div class="grab"></div>
   <button class="mclose" id="mclose" aria-label="Zapri">×</button>
   <h1>Dvatisočaki</h1>
-  <div class="sub">364 vrhov nad 2000 m · LiDAR teren</div>
-  <button class="btn dsk pbig" id="openDrawer"><span>▲ Seznam vrhov</span><em><b id="vcount">0</b> obiskanih</em></button>
+  <div class="sub" id="subtitle"></div>
+  <button class="btn dsk pbig" id="openDrawer"><span>▲ Seznam vrhov</span><em><b id="vcount">0</b></em></button>
 
   <div class="grp"><b>Podlaga</b>
     <label><input type="radio" name="base" value="relief" checked> Relief (barvna višina)</label>
@@ -268,6 +273,7 @@
     <label><input type="checkbox" id="trails"> Waymarked Trails (slika)</label>
     <label><input type="checkbox" id="peaks" checked> Vrhovi (<span id="npk"></span>)</label>
     <label><input type="checkbox" id="labels" checked> Imena vrhov</label>
+    <label><input type="checkbox" id="peaks15" checked> <span>Vrhovi 1500–2000&nbsp;m (<span id="npk15"></span>)</span></label>
     <label><input type="checkbox" id="border" checked> Državna meja</label>
     <label><input type="checkbox" id="snow"> Višina snega (model, dnevno)</label>
     <div id="snowopt" style="display:none;margin:2px 0 0 26px;font-size:.86em;color:var(--mute)">
@@ -330,7 +336,12 @@ window.toastErr=msg=>{ const t=document.getElementById('toast'); if(!t) return; 
 addEventListener('error',e=>toastErr((e.message||'napaka')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')));
 addEventListener('unhandledrejection',e=>toastErr(String(e.reason&&e.reason.message||e.reason)));
 const PEAKS = __PEAKS__;
-const RANGES = [["Julijske Alpe","#c0392b"],["Kamniško-Savinjske Alpe","#1f6fb2"],["Karavanke","#7b3fa0"]];
+const RANGES = [["Julijske Alpe","#c0392b"],["Kamniško-Savinjske Alpe","#1f6fb2"],["Karavanke","#7b3fa0"],["Predalpe","#e67e22"],["Pohorje","#00897b"],["Snežnik","#795548"]];
+// tiers: 2000 = Peakbagger list (+ OSM subpeaks), 1500 = OSM peaks 1500–2000 m with LiDAR prominence (main ≥100 m, subpeaks ≥30 m)
+const isMain=p=>p.tier==='1500'?p.is_sub==='no':p.rank!=null;
+let TIER='2000'; try{ TIER=localStorage.getItem('dvat3d_tier')||'2000'; }catch(_){}
+const inTier=p=>TIER==='all'||p.tier===TIER;
+const T2K=PEAKS.filter(p=>p.tier==='2000'), T15=PEAKS.filter(p=>p.tier==='1500');
 const RCOL = Object.fromEntries(RANGES);
 
 const DEM = {type:"raster-dem", url:"https://tiles.mapterhorn.com/tilejson.json", encoding:"terrarium",
@@ -457,7 +468,7 @@ map.on('click',e=>{
   dt.value=today; dt.min=iso(minD); dt.max=iso(maxD);
   // adaptive grid: 8 km cells, split to 4 / 2 / 1 km where the highest terrain in the cell exceeds 1000 / 1500 / 2000 m
   const LA0=46.05, LA1=46.73, LO0=13.24, LO1=15.02, D0LA=0.072, D0LO=0.104, SPLIT=[1000,1500,2000];
-  const PK=PEAKS.filter(p=>p.lat!=null); let cells=null; // [lat, lon, dLat, dLon]
+  const PK=PEAKS.filter(p=>p.lat!=null&&p.tier!=='1500'); let cells=null; // [lat, lon, dLat, dLon]
   async function demMaxFn(){ // max-elevation lookup from terrain tiles (z10 ≈ 110 m px)
     const Z=10, S=512, T={}, n=2**Z, tx=lo=>(lo+180)/360*n*S, ty=la=>{const r=la*Math.PI/180;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n*S;};
     const x0=Math.floor(tx(LO0)/S), x1=Math.floor(tx(LO1)/S), y0=Math.floor(ty(LA1)/S), y1=Math.floor(ty(LA0)/S), jobs=[];
@@ -665,26 +676,27 @@ try{ visited=new Set(JSON.parse(localStorage.getItem(VKEY)||'[]')); }catch(e){}
 const saveV=()=>{ try{ localStorage.setItem(VKEY,JSON.stringify([...visited])); }catch(e){} };
 const byId=Object.fromEntries(PEAKS.map(p=>[p.id,p]));
 const located=PEAKS.filter(p=>p.lat!=null);
-document.getElementById('npk').textContent=located.length;
+document.getElementById('npk').textContent=located.filter(p=>p.tier!=='1500').length;
 const ring=(c,fill='#fff',op=1)=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${fill};border:2px solid ${c};opacity:${op};vertical-align:-1px;margin-right:4px"></span>`;
 document.getElementById('legend').innerHTML=RANGES.map(([r,c])=>ring(c)+r).join('<br>')+'<br>'+ring('#fff','#2e7d32')+'obiskan<br>'+ring('#888','#fff',.55)+'približna lega'+'<br><span style="display:inline-block;width:18px;border-top:5px solid #6a655e;vertical-align:middle;margin-right:4px"></span>cesta<br><span style="display:inline-block;width:18px;border-top:3px solid #d42a1f;vertical-align:middle;margin-right:4px"></span>markirana pot<br><span style="display:inline-block;width:18px;border-top:2px dashed #9c2a1c;vertical-align:middle;margin-right:4px"></span>neoznačena / slaba pot<br><span style="display:inline-block;width:18px;border-top:2px dotted #111;vertical-align:middle;margin-right:4px"></span>ferata';
 
-const fc=()=>({type:"FeatureCollection",features:located.map(p=>({type:"Feature",id:PEAKS.indexOf(p),
+const SHOW15=()=>{ const c=document.getElementById('peaks15'); return !c||c.checked; };
+const fc=()=>({type:"FeatureCollection",features:located.filter(p=>p.tier!=='1500'||SHOW15()).map(p=>({type:"Feature",id:PEAKS.indexOf(p),
   properties:{id:p.id,name:p.name,elev:p.elev,label:`${p.name}\n${Math.round(p.elev)} m`,col:RCOL[p.range]||'#555',
-    major:p.rank!=null||p.is_sub==='no',v:visited.has(p.id),approx:p.coord_status!=='ok'},
+    major:p.rank!=null||p.is_sub==='no',t15:p.tier==='1500',v:visited.has(p.id),approx:p.coord_status!=='ok'},
   geometry:{type:"Point",coordinates:[p.lon,p.lat]}}))});
 
 map.on('load',()=>{
   map.addSource('peaks',{type:'geojson',data:fc()});
   map.addLayer({id:'pk',type:'circle',source:'peaks',paint:{
-    'circle-radius':['interpolate',['linear'],['zoom'],9,['case',['get','major'],4,2.5],13,['case',['get','major'],7,5]],
+    'circle-radius':['interpolate',['linear'],['zoom'],9,['case',['get','t15'],['case',['get','major'],3,1.6],['get','major'],4,2.5],13,['case',['get','t15'],['case',['get','major'],5.5,4],['get','major'],7,5]],
     'circle-color':['case',['get','v'],'#2e7d32','#ffffff'],
     'circle-stroke-color':['case',['get','v'],'#ffffff',['get','col']],
-    'circle-stroke-width':['case',['get','v'],2,2.5],
+    'circle-stroke-width':['case',['get','v'],2,['get','t15'],1.8,2.5],
     'circle-stroke-opacity':['case',['get','approx'],0.55,1],
     'circle-pitch-alignment':'viewport'}});
   map.addLayer({id:'pk-lbl',type:'symbol',source:'peaks',
-    filter:['any',['get','major'],['>=',['zoom'],12.5]],
+    filter:['any',['all',['get','major'],['any',['!',['get','t15']],['>=',['zoom'],10.5]]],['>=',['zoom'],12.5]],
     layout:{'text-field':['get','label'],'text-font':['Noto Sans Bold'],'text-size':labelSize(),
       'text-anchor':'left','text-offset':[0.8,0],'text-justify':'left','text-max-width':12,
       'symbol-sort-key':['-',0,['get','elev']],'text-optional':true},
@@ -706,7 +718,7 @@ function openPeak(id,fly){
   if(fly) map.flyTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),pitch:60,essential:true});
   const box=document.createElement('div');
   box.innerHTML=`<b>${p.name}</b> · ${p.elev.toFixed(p.elev%1?1:0)} m${p.rank?` · <span title="rang po prominenci">#${p.rank}</span>`:''}
-    <br><span style="color:#666">${p.range}${p.massif?' · '+p.massif:''}${p.is_sub==='yes'?' · podvrh':''}</span>
+    <br><span style="color:#666">${p.range}${p.massif?' · '+p.massif:''}${p.is_sub==='yes'?' · podvrh':''}${p.tier==='1500'?' · 1500–2000 m':''}${p.prom!=null?` · prominenca ${Math.round(p.prom)} m`:''}</span>
     ${p.prom!=null?`<br>Prominenca: ${Math.round(p.prom)} m`:''}
     ${p.dem_h!=null?`<br><span style="color:#666">LiDAR: ${p.dem_h.toFixed(1)} m</span>`:''}
     ${p.coord_status!=='ok'?'<br><span class="warn">Približna lega (±150 m)</span>':''}
@@ -753,16 +765,16 @@ const cntV=list=>list.filter(p=>visited.has(p.id)).length;
 const barH=(n,N)=>`<div class="bar"><i style="width:${N?100*n/N:0}%"></i></div>`;
 function renderList(){
   const q=norm($('q').value.trim()), f=FLT;
-  const ok=p=>(!q||norm(p.name+' '+(p.pb_name||'')).includes(q))&&(f==='all'||(f==='rank'&&p.rank)||(f==='todo'&&!visited.has(p.id))||(f==='done'&&visited.has(p.id)));
+  const ok=p=>inTier(p)&&(!q||norm(p.name+' '+(p.pb_name||'')).includes(q))&&(f==='all'||(f==='rank'&&isMain(p))||(f==='todo'&&!visited.has(p.id))||(f==='done'&&visited.has(p.id)));
   let h='';
   for(const [r,c] of RANGES){
-    const all=PEAKS.filter(p=>p.range===r), L=all.filter(ok).sort((a,b)=>b.elev-a.elev); if(!L.length) continue;
+    const all=PEAKS.filter(p=>p.range===r&&inTier(p)), L=all.filter(ok).sort((a,b)=>b.elev-a.elev); if(!L.length) continue;
     const closed=CLOSED.has(r)&&!q;
     h+=`<div class="rg${closed?' closed':''}" data-r="${r}" style="color:${c}"><span class="chev">▾</span>${r}<span class="cnt">${cntV(all)} / ${all.length}</span></div>`;
     if(closed) continue;
-    h+=L.map(p=>{const v=visited.has(p.id);return `<div class="it${p.rank?'':' sub'}${v?' done':''}"><input type="checkbox" data-id="${p.id}" ${v?'checked':''} aria-label="${p.name}">
+    h+=L.map(p=>{const v=visited.has(p.id);return `<div class="it${isMain(p)?'':' sub'}${v?' done':''}"><input type="checkbox" data-id="${p.id}" ${v?'checked':''} aria-label="${p.name}">
       <span class="nm${p.lat==null?' nc':''}" data-id="${p.id}" ${p.lat==null?'title="Lega še ni določena"':''}>${p.name}</span>
-      ${p.rank?`<span class="rk">#${p.rank}</span>`:''}<span class="el">${Math.round(p.elev)}</span></div>`;}).join('');
+      ${p.rank?`<span class="rk">#${p.rank}</span>`:p.rank15?`<span class="rk" title="rang po prominenci med 1500–2000 m">#${p.rank15}</span>`:''}${TIER==='all'&&p.tier==='1500'?'<span class="t15">1500</span>':''}<span class="el">${Math.round(p.elev)}</span></div>`;}).join('');
   }
   $('dlist').innerHTML=h||'<div class="empty">Ni zadetkov.</div>';
 }
@@ -771,12 +783,14 @@ $('dlist').onclick=e=>{const t=e.target;
   if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
   else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
-  $('vcount').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount3').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
-  const R=PEAKS.filter(p=>p.rank), nA=cntV(PEAKS), nR=cntV(R);
+  const TP=PEAKS.filter(inTier), R=TP.filter(isMain), nA=cntV(TP), nR=cntV(R);
+  $('vcount').textContent=`${nA} / ${TP.length}`; $('vcount3').textContent=`${nA} / ${TP.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
+  $('tiers').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===TIER));
+  $('chipRank').textContent=`${R.length} prominentnih`;
   const dOpen=!!$('progress').querySelector('details[open]');
-  $('progress').innerHTML=`<div class="pstat"><div>Vsi vrhovi<br><b>${nA}</b> / ${PEAKS.length}${barH(nA,PEAKS.length)}</div>
-    <div>98 prominentnih<br><b>${nR}</b> / ${R.length}${barH(nR,R.length)}</div></div>
-    <details${dOpen?' open':''}><summary>Po gorstvih</summary>${RANGES.map(([r,c])=>{const L=PEAKS.filter(p=>p.range===r),n=cntV(L);
+  $('progress').innerHTML=`<div class="pstat"><div>${TIER==='1500'?'Vrhovi 1500–2000 m':TIER==='all'?'Vsi vrhovi':'Vrhovi nad 2000 m'}<br><b>${nA}</b> / ${TP.length}${barH(nA,TP.length)}</div>
+    <div>${R.length} prominentnih${TIER==='2000'?'':' (≥100 m)'}<br><b>${nR}</b> / ${R.length}${barH(nR,R.length)}</div></div>
+    <details${dOpen?' open':''}><summary>Po gorstvih</summary>${RANGES.map(([r,c])=>{const L=TP.filter(p=>p.range===r),n=cntV(L); if(!L.length) return '';
       return `<div class="prow"><span style="color:${c}">${r}</span><span>${n} / ${L.length}</span>${barH(n,L.length)}</div>`;}).join('')}</details>`;
   renderList(); refreshMap();
 }
@@ -786,6 +800,10 @@ $('vexp').onclick=()=>{const a=document.createElement('a');
 $('vimp').onclick=()=>$('vfile').click();
 $('vfile').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text()); (j.visited||[]).forEach(id=>byId[id]&&visited.add(id)); saveV(); refresh();}catch(err){alert('Neveljavna datoteka.');}};
 document.getElementById('peaks').onchange=e=>['pk','pk-lbl'].forEach(id=>vis(id,e.target.checked));
+document.getElementById('peaks15').onchange=()=>refreshMap();
+$('tiers').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; TIER=b.dataset.t; try{ localStorage.setItem('dvat3d_tier',TIER); }catch(_){} refresh(); };
+$('npk15').textContent=T15.filter(p=>p.lat!=null).length;
+$('subtitle').textContent=`${T2K.length} vrhov nad 2000 m · ${T15.length} med 1500 in 2000 m · LiDAR teren`;
 document.getElementById('labels').onchange=e=>vis('pk-lbl',e.target.checked);
 
 map.on('error',e=>console.warn('map error',e.error&&e.error.message));

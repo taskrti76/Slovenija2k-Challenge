@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.6 — 2026-10-24
+- New list: 265 peaks 1500–2000 m from OSM, checked on LiDAR (tools/vrhovi-1500.html -> tools/make_1500.py):
+  88 main (prominence ≥100 m, ranked #1–88) + 177 named subpeaks (≥30 m). New ranges: Predalpe, Pohorje, Snežnik.
+- 13 extra 2000 m subpeaks from OSM (named, ≥30 m prominence) -> 2000 list now 377.
+- 20 approximate/missing 2000 m positions upgraded to LiDAR-snapped OSM positions.
+- Peak list: tier switch 2000+ / 1500–2000 / Vsi (remembered); counts, prominent chip and ranges follow the tier.
+- Map: 1500 peaks smaller, main ones labelled from zoom 10.5; layer toggle "Vrhovi 1500–2000 m". 360 view labels only main 1500 peaks.
+
 ## web-v0.5 — 2026-10-24
 - Peak list is now front and centre on PC: big red "▲ Seznam vrhov" button at the top of the sidebar and a floating button top-right
   (with visited count); the list opens by default on first visit and remembers open/closed; map controls and snow legend move aside.

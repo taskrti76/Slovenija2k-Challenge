@@ -32,7 +32,7 @@ function geo(a, b){ const φ1=a.lat*D2R, φ2=b.lat*D2R, Δλ=(b.lon-a.lon)*D2R;
 const topH = q => Math.max(q.elev, q.dem_h || 0);
 function buildLabels(){
   LBL.innerHTML=''; LB=[]; ready=false;
-  for (const q of PEAKS){ if (q===S.p || q.lat==null) continue; const {az,d}=geo(S.p,q); if (d<60 || d>70000) continue;
+  for (const q of PEAKS){ if (q===S.p || q.lat==null || (q.tier==='1500'&&q.is_sub==='yes')) continue; const {az,d}=geo(S.p,q); if (d<60 || d>70000) continue;
     const major = q.rank!=null || q.is_sub==='no'; if (!major && d>5000) continue;
     const el = Math.atan2(topH(q)-S.eye, d);
     const div=document.createElement('div'); div.className='pl'+(q.rank&&q.rank<=25?' big':'');
