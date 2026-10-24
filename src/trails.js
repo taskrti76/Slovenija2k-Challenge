@@ -570,6 +570,7 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
+window.__dbg=()=>({RT,STARTS,HUTS}); // for tests
 // start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
 function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
   for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }
@@ -578,7 +579,10 @@ function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().s
 const hutNear=st=>{ let best='', bd=700; for(const h of HUTS){ if(!h.name||/^Bivak \/|^Planinska koča$/.test(h.name)) continue; const d=hav(h.lat,h.lon,st.lat,st.lon); if(d<bd){ bd=d; best=h.name; } } return best?'pri '+best:''; };
 // height profiles: all routes, or only the selected one in varčni način
 async function routeProfiles(){ const cur=RT; if(!cur) return;
-  for(const [i,r] of cur.routes.entries()){ if(r.P||(window.LITE_ON&&i!==cur.sel)) continue; r.P=await profile(r.coords); if(RT===cur) renderRoutes(); } }
+  for(const r of [...cur.routes]){ if(r.P||(window.LITE_ON&&r!==cur.routes[cur.sel])) continue; r.P=await profile(r.coords);
+    // longer than 11 h of walking (DIN 33466) -> remove, unless it is the only way up
+    if(r.P&&walkTime(r.P.km,r.P.up,r.P.down)>11&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
+    if(RT===cur) renderRoutes(); } }
 function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.map((r,i)=>({type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:r.coords}}))}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start
 window.peakRoutesUI = async function(id){
@@ -587,12 +591,21 @@ window.peakRoutesUI = async function(id){
   if(!G){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
     if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(); if(!G) return; }
   // an extra (relation) route must end in the valley: at a parking, or at a hut ≥3 km away - never on another peak
-  const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:(STARTS.some(x=>hav(x.lat,x.lon,la,lo)<1000)||(hav(la,lo,p.lat,p.lon)>3000&&HUTS.some(x=>hav(x.lat,x.lon,la,lo)<400)))?1:0;
+  // every route starts at a parking/trailhead (≤300 m); relation routes that end elsewhere (also at a hut) are continued to the nearest parking
+  const nearStart=(la,lo)=>{ let b=null,bd=300; for(const x of STARTS){ const d=hav(x.lat,x.lon,la,lo); if(d<bd){ bd=d; b={...x}; } } for(const h of HUTS){ const d=hav(h.lat,h.lon,la,lo); if(d<bd){ bd=d; b={name:h.name,lat:h.lat,lon:h.lon,kind:'hut'}; } } return b; };
+  const nearPark=(la,lo)=>STARTS.some(x=>hav(x.lat,x.lon,la,lo)<300);
+  const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:nearPark(la,lo)?1:0; // routes ending at a hut are continued down to a parking
   const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
   if(!res||!res.routes.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
       <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
-  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=hutNear(r.start)||r.start.name||relStartName(r,p); });
+  const MAXKM=22; // > ~11 h walking: dropped (checked again with the height profile)
+  res.routes=res.routes.filter((r,i,a)=>r.stats.len/1000<=MAXKM||a.length===1);
+  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk];
+    if(r.start.kind==='rel'){ const ns=nearStart(r.start.lat,r.start.lon); if(ns) r.start={...ns,node:r.start.node}; }
+    // join the drawn line to the actual parking / hut point
+    const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
+    r.huts=hutsAlong(r.coords); if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=(r.start.kind==='hut'?r.start.name:'')||hutNear(r.start)||r.start.name||relStartName(r,p); });
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };

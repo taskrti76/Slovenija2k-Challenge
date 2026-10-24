@@ -50,15 +50,32 @@ for r in rows:
         if best.get('src') == 'osm': r['src'] = 'osm'
 P2k = json.load(open(os.path.join(R, 'src', 'peaks_final.json'), encoding='utf8'))
 loc2k = [p for p in P2k if p['lat'] is not None]
-def rng(la, lo):
-    best, bd = None, 15000
-    for p in loc2k:
-        d = hav(la, lo, p['lat'], p['lon'])
-        if d < bd: bd, best = d, p
-    if best: return best['range']
+# Ranges follow the usual Slovenian hiking division (PZS guides / hribi.net "gorovja"): groups separated by main valleys.
+# 1) Sava Dolinka (Rateče - Kranjska Gora - Jesenice - Radovljica) separates Julijske Alpe (south) from Karavanke (north).
+# 2) south of Baška grapa - Sorica, and Jelovica/Ratitovec east of Soriška planina -> Predalpe (Škofjeloško-Cerkljansko hribovje).
+# 3) Pohorje / Košenjak east of 15.0°, Snežnik south of 45.9°.
+# 4) otherwise: range of the nearest classified 2000 m peak on the same side of those valleys (max 15 km).
+# Per-peak exceptions: data/range_overrides.json  {"Peak name": "Range"}
+DOLINKA = [(13.70, 46.505), (13.785, 46.484), (13.84, 46.478), (13.94, 46.462), (14.02, 46.446), (14.06, 46.435), (14.14, 46.40), (14.18, 46.345), (14.36, 46.24)]
+def dolinka_lat(lo):
+    for (x1, y1), (x2, y2) in zip(DOLINKA, DOLINKA[1:]):
+        if x1 <= lo <= x2: return y1 + (y2 - y1) * (lo - x1) / (x2 - x1)
+    return None
+_ov = os.path.join(R, 'data', 'range_overrides.json')
+OVERRIDES = json.load(open(_ov, encoding='utf8')) if os.path.exists(_ov) else {}
+def rng(la, lo, name=''):
+    if name in OVERRIDES: return OVERRIDES[name]
     if la < 45.9: return 'Snežnik'
     if lo > 15.0: return 'Pohorje'
-    return 'Predalpe'
+    if 13.70 <= lo < 14.30 and (la < 46.21 or (lo > 14.03 and la < 46.30)): return 'Predalpe'
+    dl = dolinka_lat(lo)
+    allowed = ({'Karavanke'} if la > dl else {'Julijske Alpe', 'Kamniško-Savinjske Alpe'}) if dl is not None else None
+    best, bd = None, 15000
+    for p in loc2k:
+        if allowed and p['range'] not in allowed: continue
+        d = hav(la, lo, p['lat'], p['lon'])
+        if d < bd: bd, best = d, p
+    return best['range'] if best else None   # resolved below from neighbouring new peaks
 # 1) upgrade approximate / missing 2000 m coordinates: same name, height within 15 m, < 150 m away (or no position yet)
 def norm(x): return re.sub(r'\s+', ' ', re.sub(r'\(.*?\)', '', unicodedata.normalize('NFKD', x).encode('ascii', 'ignore').decode().lower())).strip()
 used, nfix = set(), 0
@@ -93,10 +110,22 @@ for r in rows:
     while pid in ids: pid += 'x'
     ids.add(pid)
     e = {'id': pid, 'name': name, 'pb_name': r['name'] if r['name'] != name else '', 'elev': round(h, 1), 'prom': round(pr), 'rank': None,
-         'range': rng(la, lo), 'massif': '', 'is_sub': 'no' if pr >= MAIN else 'yes', 'lat': la, 'lon': lo, 'dem_h': round(h, 1),
+         'range': rng(la, lo, name), 'massif': '', 'is_sub': 'no' if pr >= MAIN else 'yes', 'lat': la, 'lon': lo, 'dem_h': round(h, 1),
          'coord_status': 'ok', 'coord_src': 'osm-lidar', 'notes': f"OSM {r['osm_id']}" + (' · prominenca spodnja meja' if r['prom_lower_bound'] == '1' else '')}
     if h >= 2000: e['tier'] = '2000'; new2k.append(e)
     elif h >= 1500: e['tier'] = '1500'; new15.append(e)
+# peaks too far from any 2000 m peak (e.g. Spodnje Bohinjske gore): take the range of the nearest resolved new peak, chain-wise
+allp = new15 + new2k
+for _ in range(10):
+    todo = [p for p in allp if p['range'] is None]
+    if not todo: break
+    for p in todo:
+        dl = dolinka_lat(p['lon']); ok = None if dl is None else ({'Karavanke'} if p['lat'] > dl else {'Julijske Alpe', 'Kamniško-Savinjske Alpe'})
+        c = [(hav(p['lat'], p['lon'], q['lat'], q['lon']), q['range']) for q in allp if q['range'] and (not ok or q['range'] in ok)]
+        c = [x for x in c if x[0] < 6000]
+        if c: p['range'] = min(c)[1]
+for p in allp:
+    if p['range'] is None: p['range'] = 'Predalpe'
 main = sorted([p for p in new15 if p['is_sub'] == 'no'], key=lambda p: -p['prom'])
 for i, p in enumerate(main): p['rank15'] = i + 1
 json.dump(new15 + new2k, open(os.path.join(R, 'src', 'peaks_extra.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=0)

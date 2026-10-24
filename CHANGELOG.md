@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.9 — 2026-10-24
+- The 98 prominent 2000 m peaks are the main view: default filter, big red counter at the top of the list, count on the red tab.
+- Ranges for new peaks by valley boundaries (tools/make_1500.py, data/range_overrides.json): Sava Dolinka splits Julijske/Karavanke,
+  Baška grapa–Sorica + Ratitovec/Jelovica -> Predalpe, Pohorje east of 15°, Snežnik south of 45.9°, else nearest 2000 m peak on the same side.
+  Fixes e.g. Trupejevo poldne, Visoki Kurji vrh, Bele peči (now Karavanke), Spodnje Bohinjske gore (Julijske).
+- Routes always start at a parking/trailhead (≤300 m; line joined to the parking point); relation routes ending at a hut or mid-slope
+  are continued to the nearest parking. Routes over 22 km or over 11 h walking (DIN 33466, from the height profile) are dropped.
+
 ## web-v0.8 — 2026-10-24
 - 1500–2000 m list rebuilt from the terrain-first analysis: 302 peaks (98 main ≥100 m, 204 named subpeaks ≥30 m); Uršlja gora (499 m),
   Golica (351 m) etc. now included. Peaks outside Slovenia dropped (OSM Slovenia area, or Natural Earth border ±1 km for terrain-only peaks);
