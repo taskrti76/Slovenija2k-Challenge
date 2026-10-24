@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.8 — 2026-10-24
+- 1500–2000 m list rebuilt from the terrain-first analysis: 302 peaks (98 main ≥100 m, 204 named subpeaks ≥30 m); Uršlja gora (499 m),
+  Golica (351 m) etc. now included. Peaks outside Slovenia dropped (OSM Slovenia area, or Natural Earth border ±1 km for terrain-only peaks);
+  duplicates of 2000-list peaks skipped; unnamed terrain summits take the name of a nearby unmatched OSM node.
+- 2000 list: 14 more named OSM subpeaks (now 378).
+- Text size slider now scales all UI text (every CSS font size, popups, legends, tab bar, 360 labels, hut and contour labels, profile).
+- tools/dvat_fetch.py: +44 download areas = trails/roads/huts 20 km around the 1500–2000 m peaks (Pohorje, Snežnik, Prealps …).
+
 ## web-v0.7 — 2026-10-24
 - One way to open the peak list on PC: red pull tab on the right edge (shows visited count, ‹ / ›); list open on every load.
 - Map bounds cover all of Slovenia (Snežnik, Pohorje were cut off).

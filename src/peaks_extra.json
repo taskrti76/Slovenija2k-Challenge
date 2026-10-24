@@ -16,7 +16,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 26862589 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 12
+"rank15": 13
 },
 {
 "id": "crni-vrh-1544",
@@ -35,7 +35,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 26862749 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 16
+"rank15": 17
 },
 {
 "id": "govca-olseva-1929",
@@ -73,7 +73,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 26863275 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 10
+"rank15": 11
 },
 {
 "id": "porezen-1630",
@@ -92,7 +92,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 26864352 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 7
+"rank15": 8
 },
 {
 "id": "veliki-sneznik-1796",
@@ -130,7 +130,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 26864799 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 5
+"rank15": 6
 },
 {
 "id": "vivodnik-1508",
@@ -187,7 +187,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 206177219",
 "tier": "1500",
-"rank15": 65
+"rank15": 71
 },
 {
 "id": "vrtaski-vrh-1898",
@@ -260,7 +260,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 260052041",
 "tier": "1500",
-"rank15": 35
+"rank15": 36
 },
 {
 "id": "rogla-1517",
@@ -388,7 +388,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 471631473",
 "tier": "1500",
-"rank15": 42
+"rank15": 43
 },
 {
 "id": "matajur-1642",
@@ -407,7 +407,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 474844098 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 6
+"rank15": 7
 },
 {
 "id": "skutnik-1720",
@@ -444,7 +444,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 474848187",
 "tier": "1500",
-"rank15": 30
+"rank15": 31
 },
 {
 "id": "petelinjek-1546",
@@ -463,7 +463,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 474852815 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 15
+"rank15": 16
 },
 {
 "id": "kamnati-vrh-1648",
@@ -482,7 +482,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 474853269",
 "tier": "1500",
-"rank15": 79
+"rank15": 86
 },
 {
 "id": "vosca-1732",
@@ -555,25 +555,6 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 618840827",
 "tier": "1500"
-},
-{
-"id": "gradisce-njivica-1667",
-"name": "Gradišče (Njivica)",
-"pb_name": "",
-"elev": 1667.4,
-"prom": 342,
-"rank": null,
-"range": "Kamniško-Savinjske Alpe",
-"massif": "",
-"is_sub": "no",
-"lat": 46.298893,
-"lon": 14.64307,
-"dem_h": 1667.4,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 784221368",
-"tier": "1500",
-"rank15": 17
 },
 {
 "id": "strelovec-1763",
@@ -664,7 +645,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 889389926",
 "tier": "1500",
-"rank15": 62
+"rank15": 67
 },
 {
 "id": "slemenova-spica-1910",
@@ -701,26 +682,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 1313910553",
 "tier": "1500",
-"rank15": 72
-},
-{
-"id": "golica-1827",
-"name": "Golica",
-"pb_name": "Golica / Kahlkogel",
-"elev": 1826.9,
-"prom": 351,
-"rank": null,
-"range": "Karavanke",
-"massif": "",
-"is_sub": "no",
-"lat": 46.49156,
-"lon": 14.053177,
-"dem_h": 1826.9,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 1330277036",
-"tier": "1500",
-"rank15": 14
+"rank15": 79
 },
 {
 "id": "komen-1684",
@@ -776,7 +738,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 1369757864",
 "tier": "1500",
-"rank15": 58
+"rank15": 63
 },
 {
 "id": "lucka-kopa-1754",
@@ -813,7 +775,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 1369926555",
 "tier": "1500",
-"rank15": 80
+"rank15": 88
 },
 {
 "id": "vogel-1922",
@@ -832,7 +794,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 1369927682",
 "tier": "1500",
-"rank15": 68
+"rank15": 75
 },
 {
 "id": "veliki-vrh-1939",
@@ -851,7 +813,44 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 1423339767",
 "tier": "1500",
-"rank15": 34
+"rank15": 35
+},
+{
+"id": "medvedjak-1572",
+"name": "Medvedjak",
+"pb_name": "",
+"elev": 1572.4,
+"prom": 93,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.366232,
+"lon": 14.888781,
+"dem_h": 1572.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 1595044284",
+"tier": "1500"
+},
+{
+"id": "urslja-gora-1699",
+"name": "Uršlja gora",
+"pb_name": "",
+"elev": 1699.3,
+"prom": 499,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "no",
+"lat": 46.485119,
+"lon": 14.964033,
+"dem_h": 1699.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 1595061509 · prominenca spodnja meja",
+"tier": "1500",
+"rank15": 4
 },
 {
 "id": "mali-smohor-1942",
@@ -978,7 +977,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 1748365058",
 "tier": "1500",
-"rank15": 45
+"rank15": 47
 },
 {
 "id": "trupejevo-poldne-1908",
@@ -1015,7 +1014,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2018641182",
 "tier": "1500",
-"rank15": 83
+"rank15": 91
 },
 {
 "id": "sentanski-vrh-1636",
@@ -1034,7 +1033,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2276767430",
 "tier": "1500",
-"rank15": 8
+"rank15": 9
 },
 {
 "id": "koroska-mala-kepa-1795",
@@ -1089,7 +1088,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2364404010",
 "tier": "1500",
-"rank15": 69
+"rank15": 76
 },
 {
 "id": "kacji-rob-ovharn-1552",
@@ -1126,7 +1125,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2365859085",
 "tier": "1500",
-"rank15": 64
+"rank15": 70
 },
 {
 "id": "debeli-vrh-1959",
@@ -1181,7 +1180,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2417993899",
 "tier": "1500",
-"rank15": 60
+"rank15": 65
 },
 {
 "id": "visoki-kurjek-1957",
@@ -1218,7 +1217,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2417993901",
 "tier": "1500",
-"rank15": 46
+"rank15": 49
 },
 {
 "id": "ciprnik-1746",
@@ -1279,15 +1278,15 @@
 "id": "pozgana-mlinarica-1870",
 "name": "Požgana Mlinarica",
 "pb_name": "",
-"elev": 1870.5,
-"prom": 33,
+"elev": 1870.1,
+"prom": 82,
 "rank": null,
 "range": "Julijske Alpe",
 "massif": "",
 "is_sub": "yes",
-"lat": 46.407867,
-"lon": 13.879455,
-"dem_h": 1870.5,
+"lat": 46.406121,
+"lon": 13.878597,
+"dem_h": 1870.1,
 "coord_status": "ok",
 "coord_src": "osm-lidar",
 "notes": "OSM 2418090665",
@@ -1328,7 +1327,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2418090670",
 "tier": "1500",
-"rank15": 55
+"rank15": 60
 },
 {
 "id": "velika-ticarica-1893",
@@ -1347,7 +1346,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2418090678",
 "tier": "1500",
-"rank15": 77
+"rank15": 84
 },
 {
 "id": "veliki-kumleh-1679",
@@ -1456,7 +1455,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2525474443",
 "tier": "1500",
-"rank15": 37
+"rank15": 38
 },
 {
 "id": "torre-guarda-1890",
@@ -1477,6 +1476,24 @@
 "tier": "1500"
 },
 {
+"id": "veliki-hlebec-1804",
+"name": "Veliki Hlebec",
+"pb_name": "Veliki Hlebec / Grande Hlebeg",
+"elev": 1804.4,
+"prom": 48,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.432126,
+"lon": 13.588425,
+"dem_h": 1804.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2525474490",
+"tier": "1500"
+},
+{
 "id": "mala-rusa-1922",
 "name": "Mala Ruša",
 "pb_name": "Mala Ruša / Punta dei Camosci",
@@ -1493,7 +1510,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2525474503",
 "tier": "1500",
-"rank15": 43
+"rank15": 45
 },
 {
 "id": "mesnovec-1538",
@@ -1512,7 +1529,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526253547",
 "tier": "1500",
-"rank15": 48
+"rank15": 51
 },
 {
 "id": "vosni-vrh-1621",
@@ -1549,7 +1566,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526459374",
 "tier": "1500",
-"rank15": 82
+"rank15": 90
 },
 {
 "id": "grusnica-1570",
@@ -1731,7 +1748,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526907682",
 "tier": "1500",
-"rank15": 39
+"rank15": 40
 },
 {
 "id": "planja-1552",
@@ -1750,7 +1767,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526907687",
 "tier": "1500",
-"rank15": 70
+"rank15": 77
 },
 {
 "id": "ruseva-glava-1610",
@@ -1787,7 +1804,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526907692",
 "tier": "1500",
-"rank15": 57
+"rank15": 62
 },
 {
 "id": "vrsic-1897",
@@ -1824,7 +1841,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526907705",
 "tier": "1500",
-"rank15": 29
+"rank15": 30
 },
 {
 "id": "pirhovec-1661",
@@ -1843,7 +1860,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2526969312",
 "tier": "1500",
-"rank15": 59
+"rank15": 64
 },
 {
 "id": "veliki-koteh-1578",
@@ -1988,7 +2005,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2914618272",
 "tier": "1500",
-"rank15": 67
+"rank15": 74
 },
 {
 "id": "rusnata-glava-1899",
@@ -2115,7 +2132,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2914618325",
 "tier": "1500",
-"rank15": 84
+"rank15": 92
 },
 {
 "id": "gornji-visevnik-1722",
@@ -2152,7 +2169,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2959781373",
 "tier": "1500",
-"rank15": 36
+"rank15": 37
 },
 {
 "id": "goli-vrh-1787",
@@ -2171,7 +2188,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2959800071",
 "tier": "1500",
-"rank15": 27
+"rank15": 28
 },
 {
 "id": "crna-prst-1843",
@@ -2190,7 +2207,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 2967854491",
 "tier": "1500",
-"rank15": 61
+"rank15": 66
 },
 {
 "id": "boskovec-1587",
@@ -2209,7 +2226,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3020913304",
 "tier": "1500",
-"rank15": 28
+"rank15": 29
 },
 {
 "id": "smrekovec-1559",
@@ -2246,7 +2263,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3028197907 · prominenca spodnja meja",
 "tier": "1500",
-"rank15": 13
+"rank15": 14
 },
 {
 "id": "vrh-planje-1863",
@@ -2356,7 +2373,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3792054783",
 "tier": "1500",
-"rank15": 4
+"rank15": 5
 },
 {
 "id": "srednji-vrh-1836",
@@ -2411,7 +2428,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3827598634",
 "tier": "1500",
-"rank15": 73
+"rank15": 80
 },
 {
 "id": "jerebicje-1743",
@@ -2430,7 +2447,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3832725482",
 "tier": "1500",
-"rank15": 66
+"rank15": 73
 },
 {
 "id": "matkova-kopa-1940",
@@ -2449,7 +2466,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3849351506",
 "tier": "1500",
-"rank15": 54
+"rank15": 59
 },
 {
 "id": "krizevnik-1910",
@@ -2468,6 +2485,25 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 3849417530",
 "tier": "1500"
+},
+{
+"id": "kravja-crna-gora-1540",
+"name": "Kravja Črna gora",
+"pb_name": "",
+"elev": 1540.1,
+"prom": 170,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.241194,
+"lon": 13.961896,
+"dem_h": 1540.1,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 3850321607",
+"tier": "1500",
+"rank15": 53
 },
 {
 "id": "veliki-vrh-kriz-1743",
@@ -2613,7 +2649,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4210522905",
 "tier": "1500",
-"rank15": 71
+"rank15": 78
 },
 {
 "id": "krzisce-1657",
@@ -2632,7 +2668,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4210588368",
 "tier": "1500",
-"rank15": 63
+"rank15": 68
 },
 {
 "id": "turn-v-skednju-1564",
@@ -2651,25 +2687,6 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4226791218",
 "tier": "1500"
-},
-{
-"id": "krasji-vrh-1777",
-"name": "Krasji vrh",
-"pb_name": "",
-"elev": 1777.4,
-"prom": 516,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "no",
-"lat": 46.289286,
-"lon": 13.59233,
-"dem_h": 1777.4,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 4228270420",
-"tier": "1500",
-"rank15": 3
 },
 {
 "id": "mojstrovica-1816",
@@ -2706,7 +2723,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4230535193",
 "tier": "1500",
-"rank15": 85
+"rank15": 93
 },
 {
 "id": "slatnik-1606",
@@ -2780,7 +2797,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4245909101",
 "tier": "1500",
-"rank15": 9
+"rank15": 10
 },
 {
 "id": "gladki-vrh-1667",
@@ -2835,7 +2852,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4331454519",
 "tier": "1500",
-"rank15": 11
+"rank15": 12
 },
 {
 "id": "vrh-skrli-1924",
@@ -2872,7 +2889,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4361355282",
 "tier": "1500",
-"rank15": 49
+"rank15": 52
 },
 {
 "id": "razor-1703",
@@ -2909,7 +2926,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4405899259",
 "tier": "1500",
-"rank15": 53
+"rank15": 58
 },
 {
 "id": "plesivec-1798",
@@ -2928,7 +2945,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4421506711",
 "tier": "1500",
-"rank15": 51
+"rank15": 56
 },
 {
 "id": "mali-raskovec-1946",
@@ -2967,8 +2984,8 @@
 "tier": "1500"
 },
 {
-"id": "vrh-1667-m-1667",
-"name": "Vrh 1667 m",
+"id": "gradisce-njivica-1667",
+"name": "Gradišče (Njivica)",
 "pb_name": "",
 "elev": 1667.4,
 "prom": 342,
@@ -3020,7 +3037,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4481643065",
 "tier": "1500",
-"rank15": 74
+"rank15": 81
 },
 {
 "id": "poljanski-rob-1570",
@@ -3111,7 +3128,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4493800716",
 "tier": "1500",
-"rank15": 87
+"rank15": 97
 },
 {
 "id": "poljanski-vrh-1896",
@@ -3148,7 +3165,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4584529215",
 "tier": "1500",
-"rank15": 38
+"rank15": 39
 },
 {
 "id": "zeleni-vrh-1610",
@@ -3167,6 +3184,43 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 4699601775",
 "tier": "1500"
+},
+{
+"id": "obel-kamen-1914",
+"name": "Obel kamen",
+"pb_name": "",
+"elev": 1914.1,
+"prom": 50,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.450299,
+"lon": 14.676372,
+"dem_h": 1914.1,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 4797299696",
+"tier": "1500"
+},
+{
+"id": "veliki-javornik-zeniklovec-1716",
+"name": "Veliki Javornik (Ženiklovec)",
+"pb_name": "",
+"elev": 1716.3,
+"prom": 243,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.376003,
+"lon": 14.403688,
+"dem_h": 1716.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 4865174089",
+"tier": "1500",
+"rank15": 34
 },
 {
 "id": "kamniski-dedec-1582",
@@ -3202,24 +3256,6 @@
 "coord_status": "ok",
 "coord_src": "osm-lidar",
 "notes": "OSM 4881520886",
-"tier": "1500"
-},
-{
-"id": "oltar-1643",
-"name": "Oltar",
-"pb_name": "",
-"elev": 1642.9,
-"prom": 47,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "yes",
-"lat": 46.231591,
-"lon": 13.94709,
-"dem_h": 1642.9,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 5418661697",
 "tier": "1500"
 },
 {
@@ -3331,24 +3367,6 @@
 "tier": "1500"
 },
 {
-"id": "mali-turn-1994",
-"name": "Mali Turn",
-"pb_name": "",
-"elev": 1994.0,
-"prom": 72,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "yes",
-"lat": 46.412676,
-"lon": 13.669792,
-"dem_h": 1994.0,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 5520481605",
-"tier": "1500"
-},
-{
 "id": "mali-babanski-skedenj-1959",
 "name": "Mali Babanski skedenj",
 "pb_name": "",
@@ -3437,7 +3455,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 5601913891",
 "tier": "1500",
-"rank15": 86
+"rank15": 94
 },
 {
 "id": "mali-grintovec-1813",
@@ -3456,7 +3474,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 5601914308",
 "tier": "1500",
-"rank15": 88
+"rank15": 98
 },
 {
 "id": "presecnikov-vrh-1572",
@@ -3493,7 +3511,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 5758097522",
 "tier": "1500",
-"rank15": 40
+"rank15": 41
 },
 {
 "id": "maljevec-1504",
@@ -3548,7 +3566,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 5758119121",
 "tier": "1500",
-"rank15": 75
+"rank15": 82
 },
 {
 "id": "plese-1648",
@@ -3584,6 +3602,24 @@
 "coord_status": "ok",
 "coord_src": "osm-lidar",
 "notes": "OSM 5924637519",
+"tier": "1500"
+},
+{
+"id": "lepa-plevelnica-1948",
+"name": "Lepa Plevelnica",
+"pb_name": "",
+"elev": 1947.7,
+"prom": 33,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.498902,
+"lon": 13.97668,
+"dem_h": 1947.7,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 6172808947",
 "tier": "1500"
 },
 {
@@ -3693,7 +3729,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 7482860303",
 "tier": "1500",
-"rank15": 47
+"rank15": 50
 },
 {
 "id": "rus-1614",
@@ -3712,7 +3748,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 7504118991",
 "tier": "1500",
-"rank15": 76
+"rank15": 83
 },
 {
 "id": "gradovec-1693",
@@ -3983,7 +4019,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 9048949275",
 "tier": "1500",
-"rank15": 41
+"rank15": 42
 },
 {
 "id": "ruseva-glava-1785",
@@ -4004,44 +4040,6 @@
 "tier": "1500"
 },
 {
-"id": "vrh-1958-m-1958",
-"name": "Vrh 1958 m",
-"pb_name": "",
-"elev": 1957.9,
-"prom": 249,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "no",
-"lat": 46.389769,
-"lon": 13.540832,
-"dem_h": 1957.9,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 9217134846",
-"tier": "1500",
-"rank15": 31
-},
-{
-"id": "vrh-1966-m-1966",
-"name": "Vrh 1966 m",
-"pb_name": "",
-"elev": 1965.9,
-"prom": 249,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "no",
-"lat": 46.390154,
-"lon": 13.541325,
-"dem_h": 1965.9,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 9217150667",
-"tier": "1500",
-"rank15": 32
-},
-{
 "id": "ruseva-glava-1519",
 "name": "Ruševa glava",
 "pb_name": "",
@@ -4058,7 +4056,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 9225354287",
 "tier": "1500",
-"rank15": 52
+"rank15": 57
 },
 {
 "id": "visoka-bavha-1646",
@@ -4131,7 +4129,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 9592659114",
 "tier": "1500",
-"rank15": 50
+"rank15": 55
 },
 {
 "id": "kozljak-1587",
@@ -4186,7 +4184,25 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 9762451358",
 "tier": "1500",
-"rank15": 44
+"rank15": 46
+},
+{
+"id": "greben-1549",
+"name": "Greben",
+"pb_name": "",
+"elev": 1549.3,
+"prom": 87,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.43081,
+"lon": 14.774219,
+"dem_h": 1549.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 9768049955",
+"tier": "1500"
 },
 {
 "id": "javorec-1514",
@@ -4367,7 +4383,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 9779893750",
 "tier": "1500",
-"rank15": 81
+"rank15": 89
 },
 {
 "id": "somaska-grica-1501",
@@ -4460,6 +4476,24 @@
 "tier": "1500"
 },
 {
+"id": "stresenica-1808",
+"name": "Stresenica",
+"pb_name": "",
+"elev": 1807.8,
+"prom": 46,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.401372,
+"lon": 13.943356,
+"dem_h": 1807.8,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 10043381129",
+"tier": "1500"
+},
+{
 "id": "veliki-vrsic-1563",
 "name": "Veliki Vršič",
 "pb_name": "",
@@ -4548,7 +4582,7 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 10095904878",
 "tier": "1500",
-"rank15": 78
+"rank15": 85
 },
 {
 "id": "pri-banderi-1975",
@@ -4839,8 +4873,8 @@
 "tier": "1500"
 },
 {
-"id": "vrh-1539-m-1539",
-"name": "Vrh 1539 m",
+"id": "veliki-vrh-1539",
+"name": "Veliki vrh",
 "pb_name": "",
 "elev": 1539.1,
 "prom": 150,
@@ -4855,7 +4889,649 @@
 "coord_src": "osm-lidar",
 "notes": "OSM 13114907630",
 "tier": "1500",
-"rank15": 56
+"rank15": 61
+},
+{
+"id": "krasji-vrh-1777",
+"name": "Krasji vrh",
+"pb_name": "",
+"elev": 1777.4,
+"prom": 516,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.289286,
+"lon": 13.59233,
+"dem_h": 1777.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2526907681",
+"tier": "1500",
+"rank15": 3
+},
+{
+"id": "golica-1827",
+"name": "Golica",
+"pb_name": "Golica / Kahlkogel",
+"elev": 1826.9,
+"prom": 351,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "no",
+"lat": 46.49156,
+"lon": 14.053177,
+"dem_h": 1826.9,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 5648267967",
+"tier": "1500",
+"rank15": 15
+},
+{
+"id": "dovska-baba-1874",
+"name": "Dovška baba",
+"pb_name": "Dovška Baba / Frauenkogel",
+"elev": 1874.4,
+"prom": 296,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "no",
+"lat": 46.487468,
+"lon": 13.99419,
+"dem_h": 1874.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 739472716",
+"tier": "1500",
+"rank15": 27
+},
+{
+"id": "kosutica-1947",
+"name": "Košutica",
+"pb_name": "Košutica / Loibler Baba",
+"elev": 1946.7,
+"prom": 247,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "no",
+"lat": 46.439047,
+"lon": 14.298867,
+"dem_h": 1946.7,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 474858905",
+"tier": "1500",
+"rank15": 32
+},
+{
+"id": "bohinca-1943",
+"name": "Bohinca",
+"pb_name": "Mogenza piccola / Bohinca",
+"elev": 1943.3,
+"prom": 192,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.390095,
+"lon": 13.525532,
+"dem_h": 1943.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 1614820959",
+"tier": "1500",
+"rank15": 44
+},
+{
+"id": "veliki-vrh-1623",
+"name": "Veliki vrh",
+"pb_name": "Sadonikhöhe / Veliki vrh (Sadovnikov vrh)",
+"elev": 1622.6,
+"prom": 186,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.436874,
+"lon": 14.595369,
+"dem_h": 1622.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 474861282",
+"tier": "1500",
+"rank15": 48
+},
+{
+"id": "pavliceve-stene-1654",
+"name": "Pavličeve stene",
+"pb_name": "Paulitschwand / Pavličeve stene",
+"elev": 1653.7,
+"prom": 133,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.418164,
+"lon": 14.581336,
+"dem_h": 1653.7,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2463520781",
+"tier": "1500",
+"rank15": 69
+},
+{
+"id": "nemske-glave-1598",
+"name": "Nemške glave",
+"pb_name": "Cima dei Mughi / Nemške glave",
+"elev": 1597.5,
+"prom": 131,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.408548,
+"lon": 13.574735,
+"dem_h": 1597.5,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2525474414",
+"tier": "1500",
+"rank15": 72
+},
+{
+"id": "lanzevica-1624",
+"name": "Lanževica",
+"pb_name": "Punta Lausciovizza / Lanževica",
+"elev": 1624.0,
+"prom": 117,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.287203,
+"lon": 13.354783,
+"dem_h": 1624.0,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 876291961",
+"tier": "1500",
+"rank15": 87
+},
+{
+"id": "blekova-1736",
+"name": "Blekova",
+"pb_name": "Blekowa / Blekova (Zajčnik)",
+"elev": 1735.8,
+"prom": 103,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "no",
+"lat": 46.515324,
+"lon": 13.829437,
+"dem_h": 1735.8,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 4421498469",
+"tier": "1500",
+"rank15": 95
+},
+{
+"id": "svacica-1958",
+"name": "Svačica",
+"pb_name": "Bielschitza / Svačica",
+"elev": 1957.6,
+"prom": 102,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "no",
+"lat": 46.444341,
+"lon": 14.191064,
+"dem_h": 1957.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 3936027823",
+"tier": "1500",
+"rank15": 96
+},
+{
+"id": "velika-bavha-1980",
+"name": "Velika Bavha",
+"pb_name": "Monte Robon alto",
+"elev": 1980.4,
+"prom": 99,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.385832,
+"lon": 13.51283,
+"dem_h": 1980.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2513074853",
+"tier": "1500"
+},
+{
+"id": "visoka-spica-1866",
+"name": "Visoka špica",
+"pb_name": "",
+"elev": 1866.4,
+"prom": 94,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.433886,
+"lon": 13.590034,
+"dem_h": 1866.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2525474471",
+"tier": "1500"
+},
+{
+"id": "mala-ponca-1925",
+"name": "Mala Ponca",
+"pb_name": "Ponza Piccola / Mala Ponca",
+"elev": 1924.6,
+"prom": 87,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.467889,
+"lon": 13.69361,
+"dem_h": 1924.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 1845695900",
+"tier": "1500"
+},
+{
+"id": "ojstri-vrh-1586",
+"name": "Ojstri vrh",
+"pb_name": "",
+"elev": 1586.2,
+"prom": 87,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.380903,
+"lon": 14.896871,
+"dem_h": 1586.2,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4638093_1489695",
+"tier": "1500"
+},
+{
+"id": "zabiski-kuk-1881",
+"name": "Žabiški Kuk",
+"pb_name": "",
+"elev": 1881.3,
+"prom": 77,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.232244,
+"lon": 13.806392,
+"dem_h": 1881.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4623222_1380621",
+"tier": "1500"
+},
+{
+"id": "mala-baba-1977",
+"name": "Mala Baba",
+"pb_name": "Baba piccola / Mala Baba",
+"elev": 1976.8,
+"prom": 76,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.330654,
+"lon": 13.445431,
+"dem_h": 1976.8,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2510476372",
+"tier": "1500"
+},
+{
+"id": "spicasti-vrh-1550",
+"name": "Špičasti vrh",
+"pb_name": "Spitzberg / Špičasti vrh",
+"elev": 1549.9,
+"prom": 76,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.47383,
+"lon": 14.685234,
+"dem_h": 1549.9,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 9049037269",
+"tier": "1500"
+},
+{
+"id": "vrsic-1917",
+"name": "Vršič",
+"pb_name": "Ursic di Raibl / Vršič",
+"elev": 1916.9,
+"prom": 74,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.43782,
+"lon": 13.600334,
+"dem_h": 1916.9,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2525474531",
+"tier": "1500"
+},
+{
+"id": "lokovnikov-grintovec-1808",
+"name": "Lokovnikov Grintovec",
+"pb_name": "Grintoutz / Lokovnikov Grintovec",
+"elev": 1807.8,
+"prom": 73,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.445169,
+"lon": 14.300305,
+"dem_h": 1807.8,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2463816228",
+"tier": "1500"
+},
+{
+"id": "ostri-vrh-1851",
+"name": "Ostri vrh",
+"pb_name": "",
+"elev": 1850.6,
+"prom": 63,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.518972,
+"lon": 13.871945,
+"dem_h": 1850.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 474854065",
+"tier": "1500"
+},
+{
+"id": "mali-snezni-vrh-1895",
+"name": "Mali Snežni vrh",
+"pb_name": "",
+"elev": 1895.3,
+"prom": 60,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.392078,
+"lon": 13.544544,
+"dem_h": 1895.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 10159970258",
+"tier": "1500"
+},
+{
+"id": "na-baneri-1614",
+"name": "Na Baneri",
+"pb_name": "Monte Banera",
+"elev": 1613.8,
+"prom": 50,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.323838,
+"lon": 13.409575,
+"dem_h": 1613.8,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 1654890642",
+"tier": "1500"
+},
+{
+"id": "krsteniski-stog-1875",
+"name": "Krsteniški Stog",
+"pb_name": "",
+"elev": 1875.3,
+"prom": 49,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.333573,
+"lon": 13.849715,
+"dem_h": 1875.3,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4633354_1384981",
+"tier": "1500"
+},
+{
+"id": "vrh-planje-1663",
+"name": "Vrh Planje",
+"pb_name": "Monte Plagne / Vrh Planje",
+"elev": 1663.4,
+"prom": 49,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.322519,
+"lon": 13.425497,
+"dem_h": 1663.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 3050748460",
+"tier": "1500"
+},
+{
+"id": "odenicni-hriber-1857",
+"name": "Odenični hriber",
+"pb_name": "",
+"elev": 1856.8,
+"prom": 45,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.449028,
+"lon": 14.70579,
+"dem_h": 1856.8,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4644933_1470640",
+"tier": "1500"
+},
+{
+"id": "zgornji-plot-1742",
+"name": "Zgornji Plot",
+"pb_name": "",
+"elev": 1742.4,
+"prom": 41,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.434818,
+"lon": 14.23561,
+"dem_h": 1742.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 10646880392",
+"tier": "1500"
+},
+{
+"id": "predelske-glave-1621",
+"name": "Predelske glave",
+"pb_name": "Cima Predil / Predelske glave",
+"elev": 1620.6,
+"prom": 40,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.425989,
+"lon": 13.57879,
+"dem_h": 1620.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2525474421",
+"tier": "1500"
+},
+{
+"id": "plevnikov-turn-1790",
+"name": "Plevnikov turn",
+"pb_name": "Pleuniggturm / Plevnikov turn",
+"elev": 1790.0,
+"prom": 36,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.434079,
+"lon": 14.316827,
+"dem_h": 1790.0,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 5548044503",
+"tier": "1500"
+},
+{
+"id": "spica-nad-belim-potokom-1984",
+"name": "Špica nad Belim potokom",
+"pb_name": "",
+"elev": 1984.4,
+"prom": 35,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.442803,
+"lon": 13.621856,
+"dem_h": 1984.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 11006103906",
+"tier": "1500"
+},
+{
+"id": "slanice-1572",
+"name": "Slanice",
+"pb_name": "",
+"elev": 1571.9,
+"prom": 35,
+"rank": null,
+"range": "Kamniško-Savinjske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.372865,
+"lon": 14.704074,
+"dem_h": 1571.9,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4637311_1470331",
+"tier": "1500"
+},
+{
+"id": "kalisce-1899",
+"name": "Kališče",
+"pb_name": "",
+"elev": 1899.2,
+"prom": 33,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.42627,
+"lon": 13.841304,
+"dem_h": 1899.2,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4642638_1384089",
+"tier": "1500"
+},
+{
+"id": "na-mozeh-1754",
+"name": "Na Možeh",
+"pb_name": "Na Možeh / Selenitzazähne",
+"elev": 1754.1,
+"prom": 33,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.433428,
+"lon": 14.233164,
+"dem_h": 1754.1,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 7187312054",
+"tier": "1500"
+},
+{
+"id": "pamzev-spic-1578",
+"name": "Pamžev špic",
+"pb_name": "",
+"elev": 1578.0,
+"prom": 33,
+"rank": null,
+"range": "Karavanke",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.437953,
+"lon": 14.240009,
+"dem_h": 1578.0,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 12546104976",
+"tier": "1500"
+},
+{
+"id": "vrh-1541-m-1541",
+"name": "Vrh 1541 m",
+"pb_name": "",
+"elev": 1541.1,
+"prom": 169,
+"rank": null,
+"range": "Pohorje",
+"massif": "",
+"is_sub": "no",
+"lat": 46.506951,
+"lon": 15.198158,
+"dem_h": 1541.1,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM dem4650702_1519838",
+"tier": "1500",
+"rank15": 54
 },
 {
 "id": "goriski-rob-2320",
@@ -4873,6 +5549,24 @@
 "coord_status": "ok",
 "coord_src": "osm-lidar",
 "notes": "OSM 471603763",
+"tier": "2000"
+},
+{
+"id": "kuk-2031",
+"name": "Kuk",
+"pb_name": "",
+"elev": 2030.6,
+"prom": 37,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.329469,
+"lon": 13.724488,
+"dem_h": 2030.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2418090663",
 "tier": "2000"
 },
 {
@@ -4948,24 +5642,6 @@
 "tier": "2000"
 },
 {
-"id": "planja-2448",
-"name": "Planja",
-"pb_name": "",
-"elev": 2447.7,
-"prom": 91,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "yes",
-"lat": 46.406476,
-"lon": 13.785642,
-"dem_h": 2447.7,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 5510746556",
-"tier": "2000"
-},
-{
 "id": "glava-nad-lastom-2136",
 "name": "Glava nad Laštom",
 "pb_name": "",
@@ -4999,6 +5675,24 @@
 "coord_status": "ok",
 "coord_src": "osm-lidar",
 "notes": "OSM 5543122340",
+"tier": "2000"
+},
+{
+"id": "vrh-skrbinice-2233",
+"name": "Vrh Škrbinice",
+"pb_name": "",
+"elev": 2233.4,
+"prom": 34,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.36139,
+"lon": 13.484956,
+"dem_h": 2233.4,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 5543122369",
 "tier": "2000"
 },
 {
@@ -5038,24 +5732,6 @@
 "tier": "2000"
 },
 {
-"id": "vrsaki-juzni-vrh-2431",
-"name": "Vršaki (Južni vrh)",
-"pb_name": "",
-"elev": 2431.3,
-"prom": 52,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "yes",
-"lat": 46.347542,
-"lon": 13.802444,
-"dem_h": 2431.3,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 9998136303",
-"tier": "2000"
-},
-{
 "id": "glava-nad-dolicem-2345",
 "name": "Glava nad Doličem",
 "pb_name": "",
@@ -5074,21 +5750,39 @@
 "tier": "2000"
 },
 {
-"id": "rjavceve-glave-juzni-vrh-2361",
-"name": "Rjavčeve glave (južni vrh)",
+"id": "monte-bucher-piccolo-2014",
+"name": "Monte Bucher piccolo",
 "pb_name": "",
-"elev": 2361.4,
-"prom": 47,
+"elev": 2014.3,
+"prom": 87,
 "rank": null,
 "range": "Julijske Alpe",
 "massif": "",
 "is_sub": "yes",
-"lat": 46.394047,
-"lon": 13.853856,
-"dem_h": 2361.4,
+"lat": 46.446292,
+"lon": 13.620869,
+"dem_h": 2014.3,
 "coord_status": "ok",
 "coord_src": "osm-lidar",
-"notes": "OSM 10200229903",
+"notes": "OSM 2525474462",
+"tier": "2000"
+},
+{
+"id": "vrh-bukovnika-2073",
+"name": "Vrh Bukovnika",
+"pb_name": "Monte Buconig / Vrh Bukovnika",
+"elev": 2072.6,
+"prom": 81,
+"rank": null,
+"range": "Julijske Alpe",
+"massif": "",
+"is_sub": "yes",
+"lat": 46.45021,
+"lon": 13.639237,
+"dem_h": 2072.6,
+"coord_status": "ok",
+"coord_src": "osm-lidar",
+"notes": "OSM 2525474466",
 "tier": "2000"
 }
 ]

@@ -8,18 +8,46 @@ def f(x):
     except: return None
 def hav(a, b, c, d):
     return 2*6371000*math.asin(math.sqrt(math.sin(math.radians(c-a)/2)**2+math.cos(math.radians(a))*math.cos(math.radians(c))*math.sin(math.radians(d-b)/2)**2))
+# Slovenia polygon (Natural Earth 1:10m via world-atlas); peaks kept if inside or within 600 m of the border (border summits)
+BORDER = json.load(open(os.path.join(R, 'data', 'slovenia_border.json')))['coordinates'][0]
+def in_si(la, lo, tol=1000):
+    ins = False; j = len(BORDER) - 1
+    for i in range(len(BORDER)):
+        xi, yi = BORDER[i]; xj, yj = BORDER[j]
+        if (yi > la) != (yj > la) and lo < (xj - xi) * (la - yi) / (yj - yi) + xi: ins = not ins
+        j = i
+    if ins: return True
+    kx, ky = 111320 * math.cos(math.radians(la)), 111320
+    for i in range(len(BORDER) - 1):
+        (x1, y1), (x2, y2) = BORDER[i], BORDER[i + 1]
+        ax, ay, bx, by, px, py = x1 * kx, y1 * ky, x2 * kx, y2 * ky, lo * kx, la * ky
+        dx, dy = bx - ax, by - ay; L2 = dx * dx + dy * dy
+        t = 0 if not L2 else max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / L2))
+        if math.hypot(ax + t * dx - px, ay + t * dy - py) < tol: return True
+    return False
 def slug(s):
     s = unicodedata.normalize('NFKD', s).encode('ascii', 'ignore').decode().lower()
     return re.sub(r'[^a-z0-9]+', '-', s).strip('-')
 def si_name(r):
-    if r['name_sl']: return r['name_sl'].strip()
-    n = r['name'].strip()
+    if r['name_sl']: return r['name_sl'].split(';')[0].strip()
+    n = r['name'].split(';')[0].strip()
     if ' / ' in n:
         parts = [x.strip() for x in n.split(' / ')]
         sl = [x for x in parts if re.search(r'[čšžČŠŽ]', x)]
         return sl[0] if sl else parts[0]
     return n
 rows = list(csv.DictReader(open(sys.argv[1], encoding='utf-8-sig'), delimiter=';'))
+# unnamed terrain summits: borrow the name of a named OSM peak within 250 m that was not matched itself (duplicate nodes, e.g. Golica)
+named = [r for r in rows if r['name'] and not f(r['prom'])]
+for r in rows:
+    if r['name'] or not f(r['prom']) or not f(r['lat']): continue
+    best, bd = None, 250
+    for x in named:
+        d = hav(f(r['lat']), f(r['lon']), f(x['osm_lat']), f(x['osm_lon']))
+        if d < bd: bd, best = d, x
+    if best:
+        r['name'], r['name_sl'] = best['name'], best['name_sl']; named.remove(best)
+        if best.get('src') == 'osm': r['src'] = 'osm'
 P2k = json.load(open(os.path.join(R, 'src', 'peaks_final.json'), encoding='utf8'))
 loc2k = [p for p in P2k if p['lat'] is not None]
 def rng(la, lo):
@@ -56,7 +84,9 @@ for r in rows:
     if r['osm_id'] in used: continue
     h, pr, la, lo = f(r['lidar_h']), f(r['prom']), f(r['lat']), f(r['lon'])
     if r['in_2000_list'] or h is None or pr is None or la is None: continue
+    if r.get('src', 'osm') != 'osm' and not in_si(la, lo, 1000): nout = globals().get('nout', 0) + 1; globals()['nout'] = nout; continue
     name = si_name(r)
+    if name and any(norm(name) == norm(q['name']) and q['lat'] is not None and hav(la, lo, q['lat'], q['lon']) < 1500 for q in P2k): continue  # already in the 2000 list
     if pr < MAIN and (pr < SUB or not name): continue
     if not name: name = f'Vrh {round(h)} m'
     pid = f'{slug(name)}-{round(h)}'
@@ -71,6 +101,7 @@ main = sorted([p for p in new15 if p['is_sub'] == 'no'], key=lambda p: -p['prom'
 for i, p in enumerate(main): p['rank15'] = i + 1
 json.dump(new15 + new2k, open(os.path.join(R, 'src', 'peaks_extra.json'), 'w', encoding='utf8'), ensure_ascii=False, indent=0)
 from collections import Counter
+print(f'outside Slovenia skipped: {globals().get("nout",0)}')
 print(f'1500–2000: {len(new15)} ({len(main)} main ≥{MAIN} m, {len(new15)-len(main)} subpeaks ≥{SUB} m) · new 2000+ subpeaks: {len(new2k)}')
 print(' ranges 1500:', dict(Counter(p['range'] for p in new15)))
 print(' new 2000+:', ', '.join(f"{p['name']} {p['elev']:.0f} ({p['prom']})" for p in new2k))

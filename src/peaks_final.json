@@ -3276,8 +3276,8 @@
 "lat": 46.439683,
 "lon": 14.212993,
 "dem_h": 2176.1,
-"coord_status": "approx",
-"coord_src": "lidar-fp",
+"coord_status": "ok",
+"coord_src": "osm-lidar",
 "notes": "other sources 2180"
 },
 {
@@ -4262,8 +4262,8 @@
 "lat": 46.442818,
 "lon": 14.150637,
 "dem_h": 2092.6,
-"coord_status": "approx",
-"coord_src": "lidar-fp",
+"coord_status": "ok",
+"coord_src": "osm-lidar",
 "notes": ""
 },
 {
@@ -4976,8 +4976,8 @@
 "lat": 46.44715,
 "lon": 14.430188,
 "dem_h": 2043.7,
-"coord_status": "approx",
-"coord_src": "lidar-fp",
+"coord_status": "ok",
+"coord_src": "osm-lidar",
 "notes": ""
 },
 {
