@@ -2,6 +2,11 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.2 — 2026-10-24
+- Varčni način (low-effort mode) for older devices: offered automatically (weak GPU/RAM guess or measured < ~22 fps while moving), toggle in Napredno. Pixel ratio 1, no hillshade, fewer trail lines when zoomed out, 360 starts on Nizka.
+- Routes card: ▾ hides the route list (one summary line stays); on phone picking a route hides it automatically.
+- Phone: route zoom now fits the visible map above the card (was zooming far out because of desktop sidebar padding).
+
 ## web-v0.1 — 2026-10-24 (first public push)
 - 3D LiDAR terrain (Mapterhorn), relief / satellite / OpenTopoMap bases, hillshade, border, 2D/3D toggle.
 - 364 peaks with ranges, labels, visited checklist (stored in the browser).

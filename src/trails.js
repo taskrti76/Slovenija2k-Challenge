@@ -367,7 +367,7 @@ function addLayers(){
   for(const k of ['hut','biv','park','th','spring']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
-  if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:0.5,attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
+  if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:0.5,attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
   // roads: thick grey, width by class (h: 3 main, 2 local, 1 service)
   add({id:'tr-road-c',type:'line',source:'trails-v',minzoom:9,filter:['==',['get','k'],'r'],layout:{'line-join':'round','line-cap':'round'},
     paint:{'line-color':'rgba(255,255,255,.55)','line-width':['interpolate',['linear'],['zoom'],9,['match',['get','h'],3,2.5,2,1.6,0.8],13,['match',['get','h'],3,7,2,5.5,3.5],16,['match',['get','h'],3,12,2,9,6]]}});
@@ -404,6 +404,7 @@ function addLayers(){
     'circle-stroke-color':['case',['get','sel'],'#ffb300',['==',['get','r'],'m'],DCOL,'#ffffff'],'circle-stroke-width':2.5,'circle-pitch-alignment':'viewport'}});
   // POIs
   if(!map.getSource('poi')) map.addSource('poi',{type:'geojson',data:EMPTY});
+  if(window.LITE_ON) for(const [id,z] of [['tr-road-c',11],['tr-road',11],['tr-track',13],['tr-path',12.5],['tr-mark-c',11],['tr-mark',11],['tr-ferr',12]]) if(map.getLayer(id)) map.setLayerZoomRange(id,z,24);
   add({id:'poi-spring',type:'symbol',source:'poi',minzoom:13,filter:['==',['get','t'],'spring'],layout:{'icon-image':'i-spring','icon-size':.55,'icon-allow-overlap':true}});
   add({id:'poi-park',type:'symbol',source:'poi',minzoom:11,filter:['any',['==',['get','t'],'park'],['==',['get','t'],'th']],
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':.6,'icon-allow-overlap':['step',['zoom'],false,13,true]}});
@@ -508,20 +509,30 @@ window.peakRoutesUI = async function(id){
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
       <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
   res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); });
-  RT={peak:p, routes:res.routes, sel:0}; setRoutesLayer(); renderRoutes();
-  const b=new maplibregl.LngLatBounds(); res.routes.forEach(r=>r.coords.forEach(x=>b.extend(x))); map.fitBounds(b,{padding:{top:60,bottom:60,left:300,right:60},maxZoom:14,duration:900});
+  RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   for(const r of res.routes){ r.P=await profile(r.coords); renderRoutes(); }
 };
+// fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
+function fitRoutes(){ if(!RT) return; const b=new maplibregl.LngLatBounds(); RT.routes.forEach(r=>r.coords.forEach(x=>b.extend(x)));
+  const c=rcard(), W=innerWidth, H=innerHeight;
+  const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}
+    :{top:56,left:24,right:24,bottom:Math.min(H*0.6,(c.offsetHeight||0)+70)};
+  if(pad.top+pad.bottom>H-120) pad.bottom=Math.max(40,H-120-pad.top);
+  map.fitBounds(b,{padding:pad,maxZoom:14,duration:900,...(DESK()?{}:{pitch:Math.min(map.getPitch(),45)})}); }
+window.routesMin=()=>{ if(!RT) return; RT.min=!RT.min; renderRoutes(); fitRoutes(); };
 function renderRoutes(){
-  const c=rcard(), p=RT.peak;
-  c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x" onclick="closeRoutes()">×</button></div>`+
+  const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`;
+  c.classList.toggle('rmin',!!RT.min);
+  if(RT.min){ const r=RT.routes[RT.sel], s=r.stats, P=r.P;
+    c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:''} · ${SACT[s.sac]||'T?'}</div>`; return; }
+  c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       return `<div class="ri${i===RT.sel?' on':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}</div>
         <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
-  c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); renderRoutes(); });
+  c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); if(!DESK()) fitRoutes(); });
 }
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };
 window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name} iz ${r.start.name.replace(/^pri /,'')}`;

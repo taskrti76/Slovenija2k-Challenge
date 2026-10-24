@@ -72,6 +72,13 @@
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.2);display:none;z-index:6;font-size:calc(13px * var(--ui,1))}
   .card .rh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.card .rh b{font-size:1.08em}
   .card.mini{max-height:none!important;padding:6px 10px!important}.card.mini .rh{margin:0;gap:4px}.card.mini .rh b{font-size:1.08em;white-space:nowrap}
+  .card .rh .mn{margin-left:auto;font-size:1.2em;padding:0 6px}.card .rh .mn+.x{margin-left:2px}
+  .card.rmin .rh{margin-bottom:2px}.card.rmin .rs{color:var(--mute)}
+  #litebar{display:none;position:absolute;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:14;max-width:calc(100% - 24px);width:max-content;
+    background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:8px 10px 8px 14px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:14px;color:var(--ink);
+    align-items:center;gap:10px;flex-wrap:wrap}
+  #litebar.on{display:flex}#litebar button{font:inherit;font-weight:600;border-radius:8px;padding:6px 12px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  #litebar button.p{background:#1565c0;border-color:#1565c0;color:#fff}
   .card .x{margin-left:auto;border:0;background:none;font-size:1.54em;line-height:1;cursor:pointer;color:var(--ink)}
   .ri{padding:6px 8px;border-radius:7px;cursor:pointer;border:1px solid transparent}
   .ri:hover{background:rgba(127,127,127,.1)}.ri.on{border-color:#1565c0;background:rgba(21,101,192,.08)}
@@ -190,6 +197,7 @@
     .btn{padding:12px 10px;font-size:15px;border-radius:10px}
     .row{font-size:13px}
     .card{max-height:50dvh;padding:14px 16px 16px;font-size:15px}
+    #rcard{max-height:40dvh}
     .rb button,.my button,.lnk{padding:9px 13px;font-size:14px}
     .rs{font-size:13.5px}
     #drawer{top:auto;left:0;right:0;bottom:var(--tab);height:calc(100dvh - var(--tab) - 48px);width:auto;border:0;border-radius:18px 18px 0 0;
@@ -284,6 +292,7 @@
     <button class="btn btn2" onclick="reloadRoads()">Naloži ceste</button>
     <button class="btn btn2" id="extBtn" onclick="extDownload()" title="Poti, ceste, koče in parkirišča do 20 km od vrhov. Na računalniku, ~10–20 min.">Razširi na 20 km (PC)</button>
     <button class="btn btn2" id="exportPack">Izvozi paket podatkov</button>
+    <label title="Manjša ločljivost, manj poti pri oddaljenem pogledu, brez senčenja. Stran se ponovno naloži."><input type="checkbox" id="liteChk"> Varčni način (starejše naprave)</label>
     <div id="tstatus"></div>
   </details>
 </div>
@@ -296,6 +305,7 @@
 <div id="v360lbl"></div>
 
 <div id="toast"></div>
+<div id="litebar"><span>Naprava je videti počasna. Vklopim varčni način?</span><button class="p" id="liteYes">Vklopi</button><button id="liteNo">Ne</button></div>
 <div id="snowleg"><div class="lh"><b>❄ Višina snega</b> <span id="snowlegdate"></span><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
   <div class="lb"><div id="snowlegbar"></div><div class="sl"><span>1</span><span>20</span><span>50</span><span>100</span><span>200+ cm</span></div>
   <div class="sl3" id="snowlegnote"></div></div></div>
@@ -350,13 +360,39 @@ const style = {
   sky:{"sky-color":"#9cc3e6","horizon-color":"#e8eef3","fog-color":"#e8eef3","sky-horizon-blend":0.6,"horizon-fog-blend":0.6,"fog-ground-blend":0.85}
 };
 
+// --- low-effort mode ("varčni način"): stored choice, else hardware guess + measured frame rate -> offer
+const LITE_PREF=(()=>{ try{ const v=localStorage.getItem('dvat3d_lite'); return v==='1'?true:v==='0'?false:null; }catch(_){ return null; } })();
+window.LITE_ON = LITE_PREF===true;
+const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.hardwareConcurrency||8;
+  if(mem&&mem<=2) s+=2; else if(mem&&mem<=4) s+=1; if(cores<=4) s+=1;
+  try{ const gl=document.createElement('canvas').getContext('webgl'); if(!gl) s+=3; else {
+      const ext=gl.getExtension('WEBGL_debug_renderer_info'), r=ext?String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)):'';
+      if(/Mali-(4|T[67])|Mali-G(31|51|52|57)\b|Adreno \(TM\) [345]\d\d|PowerVR|SwiftShader|llvmpipe|Intel\(R\) HD Graphics( [2-5]\d\d\d)?$/i.test(r)) s+=2;
+      if(gl.getParameter(gl.MAX_TEXTURE_SIZE)<8192) s+=1; const lc=gl.getExtension('WEBGL_lose_context'); if(lc) lc.loseContext(); } }catch(_){}
+  return s>=3; })();
 const map = new maplibregl.Map({
   container:"map", style,
-  center:[13.84,46.33], zoom:11.3, pitch:68, bearing:-10, maxPitch:85,
+  center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:85,
   maxBounds:[[12.95,45.85],[15.30,46.90]],
-  maxTileCacheZoomLevels:8,
+  maxTileCacheZoomLevels:LITE_ON?5:8,
+  ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
   hash:true
 });
+(function(){
+  const setLite=v=>{ try{ localStorage.setItem('dvat3d_lite',v?'1':'0'); }catch(_){} };
+  const chk=$id('liteChk'); chk.checked=LITE_ON; chk.onchange=()=>{ setLite(chk.checked); location.reload(); };
+  const bar=$id('litebar'), offer=()=>{ if(LITE_PREF===null&&!LITE_ON&&!bar.classList.contains('on')) bar.classList.add('on'); };
+  $id('liteYes').onclick=()=>{ setLite(true); location.reload(); };
+  $id('liteNo').onclick=()=>{ setLite(false); bar.classList.remove('on'); };
+  if(LITE_ON) map.once('load',()=>{ const h=$id('hs'); if(h&&h.checked){ h.checked=false; map.setLayoutProperty('hs','visibility','none'); } });
+  if(LITE_PREF!==null) return;
+  if(WEAK_HW) map.once('load',()=>setTimeout(offer,1500));
+  // measured: frame intervals while the user moves the map; median > 45 ms (< ~22 fps) over 90 frames -> offer
+  let last=0, iv=[];
+  const onRender=()=>{ const t=performance.now(); if(map.isMoving()&&last&&t-last<1000) iv.push(t-last); last=t;
+    if(iv.length>=90){ iv.sort((a,b)=>a-b); if(iv[45]>45) offer(); map.off('render',onRender); } };
+  map.on('render',onRender);
+})();
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
 map.addControl(new maplibregl.ScaleControl({unit:"metric"}),"bottom-right");
 map.addControl(new maplibregl.FullscreenControl(),"top-right");
@@ -1143,7 +1179,7 @@ function addLayers(){
   for(const k of ['hut','biv','park','th','spring']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
-  if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:0.5,attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
+  if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:0.5,attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
   // roads: thick grey, width by class (h: 3 main, 2 local, 1 service)
   add({id:'tr-road-c',type:'line',source:'trails-v',minzoom:9,filter:['==',['get','k'],'r'],layout:{'line-join':'round','line-cap':'round'},
     paint:{'line-color':'rgba(255,255,255,.55)','line-width':['interpolate',['linear'],['zoom'],9,['match',['get','h'],3,2.5,2,1.6,0.8],13,['match',['get','h'],3,7,2,5.5,3.5],16,['match',['get','h'],3,12,2,9,6]]}});
@@ -1180,6 +1216,7 @@ function addLayers(){
     'circle-stroke-color':['case',['get','sel'],'#ffb300',['==',['get','r'],'m'],DCOL,'#ffffff'],'circle-stroke-width':2.5,'circle-pitch-alignment':'viewport'}});
   // POIs
   if(!map.getSource('poi')) map.addSource('poi',{type:'geojson',data:EMPTY});
+  if(window.LITE_ON) for(const [id,z] of [['tr-road-c',11],['tr-road',11],['tr-track',13],['tr-path',12.5],['tr-mark-c',11],['tr-mark',11],['tr-ferr',12]]) if(map.getLayer(id)) map.setLayerZoomRange(id,z,24);
   add({id:'poi-spring',type:'symbol',source:'poi',minzoom:13,filter:['==',['get','t'],'spring'],layout:{'icon-image':'i-spring','icon-size':.55,'icon-allow-overlap':true}});
   add({id:'poi-park',type:'symbol',source:'poi',minzoom:11,filter:['any',['==',['get','t'],'park'],['==',['get','t'],'th']],
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':.6,'icon-allow-overlap':['step',['zoom'],false,13,true]}});
@@ -1284,20 +1321,30 @@ window.peakRoutesUI = async function(id){
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
       <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
   res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk]; r.huts=hutsAlong(r.coords); });
-  RT={peak:p, routes:res.routes, sel:0}; setRoutesLayer(); renderRoutes();
-  const b=new maplibregl.LngLatBounds(); res.routes.forEach(r=>r.coords.forEach(x=>b.extend(x))); map.fitBounds(b,{padding:{top:60,bottom:60,left:300,right:60},maxZoom:14,duration:900});
+  RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   for(const r of res.routes){ r.P=await profile(r.coords); renderRoutes(); }
 };
+// fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
+function fitRoutes(){ if(!RT) return; const b=new maplibregl.LngLatBounds(); RT.routes.forEach(r=>r.coords.forEach(x=>b.extend(x)));
+  const c=rcard(), W=innerWidth, H=innerHeight;
+  const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}
+    :{top:56,left:24,right:24,bottom:Math.min(H*0.6,(c.offsetHeight||0)+70)};
+  if(pad.top+pad.bottom>H-120) pad.bottom=Math.max(40,H-120-pad.top);
+  map.fitBounds(b,{padding:pad,maxZoom:14,duration:900,...(DESK()?{}:{pitch:Math.min(map.getPitch(),45)})}); }
+window.routesMin=()=>{ if(!RT) return; RT.min=!RT.min; renderRoutes(); fitRoutes(); };
 function renderRoutes(){
-  const c=rcard(), p=RT.peak;
-  c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x" onclick="closeRoutes()">×</button></div>`+
+  const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`;
+  c.classList.toggle('rmin',!!RT.min);
+  if(RT.min){ const r=RT.routes[RT.sel], s=r.stats, P=r.P;
+    c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:''} · ${SACT[s.sac]||'T?'}</div>`; return; }
+  c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       return `<div class="ri${i===RT.sel?' on':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}</div>
         <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
-  c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); renderRoutes(); });
+  c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); if(!DESK()) fitRoutes(); });
 }
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };
 window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name} iz ${r.start.name.replace(/^pri /,'')}`;
@@ -1648,7 +1695,7 @@ const Q = [
   {n:'Srednja', pr:1.5, sat:[7.5,3.8],dem:[8,3.5]},
   {n:'Visoka',  pr:2.0, sat:[6,4.5],  dem:[7,4]} ];
 const MOBILE = matchMedia('(pointer:coarse)').matches;
-let qi = 1; try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
+let qi = window.LITE_ON ? 0 : 1; try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
 let movingPR=false;
 function setPR(pr){ if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];

@@ -172,7 +172,7 @@ const Q = [
   {n:'Srednja', pr:1.5, sat:[7.5,3.8],dem:[8,3.5]},
   {n:'Visoka',  pr:2.0, sat:[6,4.5],  dem:[7,4]} ];
 const MOBILE = matchMedia('(pointer:coarse)').matches;
-let qi = 1; try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
+let qi = window.LITE_ON ? 0 : 1; try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
 let movingPR=false;
 function setPR(pr){ if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];

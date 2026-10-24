@@ -72,6 +72,13 @@
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.2);display:none;z-index:6;font-size:calc(13px * var(--ui,1))}
   .card .rh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.card .rh b{font-size:1.08em}
   .card.mini{max-height:none!important;padding:6px 10px!important}.card.mini .rh{margin:0;gap:4px}.card.mini .rh b{font-size:1.08em;white-space:nowrap}
+  .card .rh .mn{margin-left:auto;font-size:1.2em;padding:0 6px}.card .rh .mn+.x{margin-left:2px}
+  .card.rmin .rh{margin-bottom:2px}.card.rmin .rs{color:var(--mute)}
+  #litebar{display:none;position:absolute;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:14;max-width:calc(100% - 24px);width:max-content;
+    background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:8px 10px 8px 14px;box-shadow:0 6px 20px rgba(0,0,0,.25);font-size:14px;color:var(--ink);
+    align-items:center;gap:10px;flex-wrap:wrap}
+  #litebar.on{display:flex}#litebar button{font:inherit;font-weight:600;border-radius:8px;padding:6px 12px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  #litebar button.p{background:#1565c0;border-color:#1565c0;color:#fff}
   .card .x{margin-left:auto;border:0;background:none;font-size:1.54em;line-height:1;cursor:pointer;color:var(--ink)}
   .ri{padding:6px 8px;border-radius:7px;cursor:pointer;border:1px solid transparent}
   .ri:hover{background:rgba(127,127,127,.1)}.ri.on{border-color:#1565c0;background:rgba(21,101,192,.08)}
@@ -190,6 +197,7 @@
     .btn{padding:12px 10px;font-size:15px;border-radius:10px}
     .row{font-size:13px}
     .card{max-height:50dvh;padding:14px 16px 16px;font-size:15px}
+    #rcard{max-height:40dvh}
     .rb button,.my button,.lnk{padding:9px 13px;font-size:14px}
     .rs{font-size:13.5px}
     #drawer{top:auto;left:0;right:0;bottom:var(--tab);height:calc(100dvh - var(--tab) - 48px);width:auto;border:0;border-radius:18px 18px 0 0;
@@ -284,6 +292,7 @@
     <button class="btn btn2" onclick="reloadRoads()">Naloži ceste</button>
     <button class="btn btn2" id="extBtn" onclick="extDownload()" title="Poti, ceste, koče in parkirišča do 20 km od vrhov. Na računalniku, ~10–20 min.">Razširi na 20 km (PC)</button>
     <button class="btn btn2" id="exportPack">Izvozi paket podatkov</button>
+    <label title="Manjša ločljivost, manj poti pri oddaljenem pogledu, brez senčenja. Stran se ponovno naloži."><input type="checkbox" id="liteChk"> Varčni način (starejše naprave)</label>
     <div id="tstatus"></div>
   </details>
 </div>
@@ -296,6 +305,7 @@
 <div id="v360lbl"></div>
 
 <div id="toast"></div>
+<div id="litebar"><span>Naprava je videti počasna. Vklopim varčni način?</span><button class="p" id="liteYes">Vklopi</button><button id="liteNo">Ne</button></div>
 <div id="snowleg"><div class="lh"><b>❄ Višina snega</b> <span id="snowlegdate"></span><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
   <div class="lb"><div id="snowlegbar"></div><div class="sl"><span>1</span><span>20</span><span>50</span><span>100</span><span>200+ cm</span></div>
   <div class="sl3" id="snowlegnote"></div></div></div>
@@ -350,13 +360,39 @@ const style = {
   sky:{"sky-color":"#9cc3e6","horizon-color":"#e8eef3","fog-color":"#e8eef3","sky-horizon-blend":0.6,"horizon-fog-blend":0.6,"fog-ground-blend":0.85}
 };
 
+// --- low-effort mode ("varčni način"): stored choice, else hardware guess + measured frame rate -> offer
+const LITE_PREF=(()=>{ try{ const v=localStorage.getItem('dvat3d_lite'); return v==='1'?true:v==='0'?false:null; }catch(_){ return null; } })();
+window.LITE_ON = LITE_PREF===true;
+const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.hardwareConcurrency||8;
+  if(mem&&mem<=2) s+=2; else if(mem&&mem<=4) s+=1; if(cores<=4) s+=1;
+  try{ const gl=document.createElement('canvas').getContext('webgl'); if(!gl) s+=3; else {
+      const ext=gl.getExtension('WEBGL_debug_renderer_info'), r=ext?String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)):'';
+      if(/Mali-(4|T[67])|Mali-G(31|51|52|57)\b|Adreno \(TM\) [345]\d\d|PowerVR|SwiftShader|llvmpipe|Intel\(R\) HD Graphics( [2-5]\d\d\d)?$/i.test(r)) s+=2;
+      if(gl.getParameter(gl.MAX_TEXTURE_SIZE)<8192) s+=1; const lc=gl.getExtension('WEBGL_lose_context'); if(lc) lc.loseContext(); } }catch(_){}
+  return s>=3; })();
 const map = new maplibregl.Map({
   container:"map", style,
-  center:[13.84,46.33], zoom:11.3, pitch:68, bearing:-10, maxPitch:85,
+  center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:85,
   maxBounds:[[12.95,45.85],[15.30,46.90]],
-  maxTileCacheZoomLevels:8,
+  maxTileCacheZoomLevels:LITE_ON?5:8,
+  ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
   hash:true
 });
+(function(){
+  const setLite=v=>{ try{ localStorage.setItem('dvat3d_lite',v?'1':'0'); }catch(_){} };
+  const chk=$id('liteChk'); chk.checked=LITE_ON; chk.onchange=()=>{ setLite(chk.checked); location.reload(); };
+  const bar=$id('litebar'), offer=()=>{ if(LITE_PREF===null&&!LITE_ON&&!bar.classList.contains('on')) bar.classList.add('on'); };
+  $id('liteYes').onclick=()=>{ setLite(true); location.reload(); };
+  $id('liteNo').onclick=()=>{ setLite(false); bar.classList.remove('on'); };
+  if(LITE_ON) map.once('load',()=>{ const h=$id('hs'); if(h&&h.checked){ h.checked=false; map.setLayoutProperty('hs','visibility','none'); } });
+  if(LITE_PREF!==null) return;
+  if(WEAK_HW) map.once('load',()=>setTimeout(offer,1500));
+  // measured: frame intervals while the user moves the map; median > 45 ms (< ~22 fps) over 90 frames -> offer
+  let last=0, iv=[];
+  const onRender=()=>{ const t=performance.now(); if(map.isMoving()&&last&&t-last<1000) iv.push(t-last); last=t;
+    if(iv.length>=90){ iv.sort((a,b)=>a-b); if(iv[45]>45) offer(); map.off('render',onRender); } };
+  map.on('render',onRender);
+})();
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
 map.addControl(new maplibregl.ScaleControl({unit:"metric"}),"bottom-right");
 map.addControl(new maplibregl.FullscreenControl(),"top-right");
