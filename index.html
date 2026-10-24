@@ -1804,7 +1804,7 @@ function goTo(p){
   S.flying = true;
   map.flyTo(Object.assign(cam(), {duration:1600, essential:true}));
   const done = () => { if (!S.flying || S.p !== p) return; S.flying = false; if (!S.on) return; ready = true; apply();
-    if (!window.LITE_ON) setTimeout(()=>{ if (S.on && S.p === p && !S.auto) setAuto(true, true); }, 400); };
+};
   map.once('moveend', done); setTimeout(done, 2200);
 }
 window.enter360 = id => { try { enter360_(id); } catch (err) { console.error(err); window.toastErr && toastErr('360: ' + err.message); try { exit360(); } catch(_){} } };
@@ -1888,7 +1888,7 @@ let qi = window.LITE_ON ? 0 : 1; if(!window.LITE_ON) try{ const r=localStorage.g
 let movingPR=false;
 function setPR(pr){ if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];
-  setPR(Math.min(devicePixelRatio, movingPR?Math.min(1,q.pr):q.pr));
+  setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
   try{ map.setSourceTileLodParams(q.sat[0], q.sat[1], 'sat'); map.setSourceTileLodParams(q.dem[0], q.dem[1], 'dem_terrain'); }catch(_){}
   $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi)); }
 $$('v360q').innerHTML=(window.LITE_ON?Q.slice(0,1):Q).map((q,i)=>`<button data-i="${i}">${q.n}${window.LITE_ON?' (varčno)':''}</button>`).join('');
@@ -1900,8 +1900,10 @@ $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i=
 applyQuality.restore = ()=>{};
 // adaptive resolution: render lighter while turning, full sharpness ~0.35 s after you stop
 let still=0;
-window.__v360moving = () => { if (!S.on || qi===0 || !window.LITE_ON) return; clearTimeout(still);
-  if (!movingPR){ movingPR=true; setPR(Math.min(devicePixelRatio,1)); }
+// while turning: Visoka renders at Srednja's resolution (pixel ratio only - the loaded tiles stay, nothing reloads);
+// ~0.35 s after you stop it switches back to full Visoka sharpness. Varčni način: drops to 1×.
+window.__v360moving = () => { if (!S.on) return; const lo = window.LITE_ON ? 1 : (qi===2 ? Q[1].pr : 0); if (!lo) return; clearTimeout(still);
+  if (!movingPR){ movingPR=true; setPR(Math.min(devicePixelRatio, lo)); }
   still=setTimeout(()=>{ if (!S.on || S.auto) return; movingPR=false; setPR(Math.min(devicePixelRatio,Q[qi].pr)); }, 350); };
 $$('v360in').onclick = () => zoomBy(1/1.35); $$('v360out').onclick = () => zoomBy(1.35);
 $$('v360auto').onclick = () => { setAuto(!S.auto); if (!S.auto && window.__v360moving) window.__v360moving(); };
