@@ -2,6 +2,11 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.12 — 2026-10-24
+- 360: sunrise / sunset mode (button ☀ Dan → 🌅 Vzhod → 🌇 Zahod). Today's sun time and direction for that summit
+  (low-precision NOAA formulas, horizon lowered by the dip from the summit height), view turns to the sun, sun disc on the horizon,
+  warm sky, slopes lit from the sun's direction (hillshade), satellite toned down. Back to normal with ☀ Dan, another peak or exit.
+
 ## web-v0.11 — 2026-10-24
 - 360: warm-up turn removed (tiles were dropped while spinning). Instead Visoka renders at Srednja's resolution while you turn
   and returns to full sharpness ~0.35 s after you stop; only the pixel ratio changes, loaded tiles stay (no reloading).
