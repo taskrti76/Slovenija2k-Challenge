@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<title>Dvatisočaki 3D</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1f3b57">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<style>
+  :root{--bg:#f6f4ef;--panel:rgba(255,255,255,.92);--ink:#1d2321;--mute:#5d6662;--line:#d9d5cc;--acc:#b5482d}
+  @media (prefers-color-scheme:dark){:root{--panel:rgba(24,27,26,.9);--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d;--acc:#e07a5f}}
+  html,body{margin:0;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%;background:#1b1f1e;font:calc(14px * var(--ui,1))/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+  #map{position:absolute;inset:0}
+  .panel{position:absolute;top:12px;left:12px;width:250px;max-width:calc(100% - 24px);max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;background:var(--panel);backdrop-filter:blur(6px);
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;box-shadow:0 4px 18px rgba(0,0,0,.18)}
+  .panel,#drawer{font-size:calc(14px * var(--ui,1))}
+  .panel h1{font-size:1.07em;margin:0 0 2px}
+  .panel .sub{color:var(--mute);font-size:0.857em;margin-bottom:10px}
+  .grp{border-top:1px solid var(--line);padding-top:8px;margin-top:8px}
+  .grp b{display:block;font-size:0.786em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin-bottom:4px}
+  label{display:flex;align-items:center;gap:6px;cursor:pointer;padding:1px 0}
+  input[type=range]{width:100%}
+  .row{display:flex;justify-content:space-between;font-size:0.857em;color:var(--mute)}
+  #readout{font-variant-numeric:tabular-nums;font-size:0.857em;color:var(--mute);min-height:1.4em}
+  .btn{font:inherit;font-size:0.929em;padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--ink);color:var(--panel);cursor:pointer;width:100%;margin-top:4px}
+  #drawer{position:absolute;top:0;right:0;bottom:0;width:360px;max-width:100%;background:var(--panel);backdrop-filter:blur(8px);
+    border-left:1px solid var(--line);box-shadow:-4px 0 18px rgba(0,0,0,.18);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s,visibility .25s;visibility:hidden;z-index:10}
+  #drawer.open{transform:none;visibility:visible}
+  #dhead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
+  #dhead h2{font-size:1.07em;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
+  #dhead h2 button{border:0;background:none;font-size:1.43em;cursor:pointer;color:var(--ink);line-height:1}
+  .pstat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 6px}
+  .pstat div{font-size:0.857em;color:var(--mute)}.pstat b{font-size:1.21em;color:var(--ink);font-variant-numeric:tabular-nums}
+  .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;background:#2e7d32}
+  #progress details{font-size:0.857em;color:var(--mute);margin-bottom:6px}
+  #progress summary{cursor:pointer;padding:2px 0}
+  .prow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:2px 8px;margin:4px 0}
+  .prow .bar{grid-column:1/3;margin:0}
+  #q{width:100%;box-sizing:border-box;font:inherit;font-size:1em;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);margin-top:2px}
+  #chips{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px;scrollbar-width:none}
+  #chips::-webkit-scrollbar{display:none}
+  #chips button{flex:none;font:inherit;font-size:0.893em;padding:5px 11px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;white-space:nowrap}
+  #chips button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+  #dlist{overflow:auto;flex:1;padding:0 0 12px;overscroll-behavior:contain}
+  .rg{display:flex;align-items:center;gap:8px;font-size:0.821em;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:9px 14px 7px;
+    position:sticky;top:0;background:var(--panel);cursor:pointer;border-bottom:1px solid var(--line);z-index:1;user-select:none}
+  .rg .cnt{margin-left:auto;font-weight:500;color:var(--mute);letter-spacing:0;text-transform:none;font-variant-numeric:tabular-nums}
+  .rg .chev{transition:transform .2s;color:var(--mute)}.rg.closed .chev{transform:rotate(-90deg)}
+  .it{display:flex;align-items:center;gap:10px;padding:4px 14px;font-size:0.964em;min-height:30px}
+  .it:hover{background:rgba(127,127,127,.1)}
+  .it input{flex:none;width:17px;height:17px;margin:0;accent-color:#2e7d32;cursor:pointer}
+  .it .nm{flex:1;cursor:pointer;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .it .nm.nc{cursor:default;color:var(--mute)}
+  .it.done .nm{color:#2e7d32;font-weight:600}
+  .it .el{flex:none;font-variant-numeric:tabular-nums;color:var(--mute);font-size:0.857em;width:38px;text-align:right}
+  .it .rk{flex:none;font-size:0.714em;padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--mute);font-variant-numeric:tabular-nums}
+  .it.sub .nm{font-size:0.893em;color:var(--mute)}
+  .it.sub.done .nm{color:#2e7d32}
+  .empty{padding:16px 14px;color:var(--mute);font-size:0.929em}
+  #dfoot{padding:8px 14px calc(8px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:6px;font-size:0.857em;align-items:center}
+  #dfoot .fnote{margin-left:auto;color:var(--mute)}
+  #dfoot button{font:inherit;font-size:0.857em;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  .ok{color:#2e7d32}.warn{color:#b26a00}
+  .maplibregl-popup-content{font:calc(13px * var(--ui,1))/1.4 system-ui,sans-serif;color:#1d2321;padding:10px 12px}
+  .maplibregl-popup-content button{margin-top:6px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;cursor:pointer}
+  .card{position:absolute;left:12px;bottom:34px;width:330px;max-width:calc(100% - 24px);max-height:55vh;overflow:auto;background:var(--panel);backdrop-filter:blur(6px);
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.2);display:none;z-index:6;font-size:calc(13px * var(--ui,1))}
+  .card .rh{display:flex;align-items:center;gap:6px;margin-bottom:6px}.card .rh b{font-size:1.08em}
+  .card.mini{max-height:none!important;padding:6px 10px!important}.card.mini .rh{margin:0;gap:4px}.card.mini .rh b{font-size:1.08em;white-space:nowrap}
+  .card .x{margin-left:auto;border:0;background:none;font-size:1.54em;line-height:1;cursor:pointer;color:var(--ink)}
+  .ri{padding:6px 8px;border-radius:7px;cursor:pointer;border:1px solid transparent}
+  .ri:hover{background:rgba(127,127,127,.1)}.ri.on{border-color:#1565c0;background:rgba(21,101,192,.08)}
+  .ri .via{color:var(--mute);font-size:0.857em}.rs{font-size:0.857em;color:var(--mute);font-variant-numeric:tabular-nums}
+  .prof{margin:6px 0;color:var(--mute)}
+  .rb{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .rb button,.my button,.lnk{font:inherit;font-size:0.857em;padding:3px 9px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  .rb button:disabled{opacity:.45;cursor:default}
+  .rnote{font-size:0.786em;color:var(--mute);margin-top:6px}.rm{font-size:0.929em;color:var(--mute)}
+  .chk{font-size:0.857em;margin:2px 0 4px}
+  .rg2{font-size:0.786em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:10px 0 4px}
+  .my{display:flex;align-items:center;gap:4px;font-size:0.857em;padding:2px 0}.my span{flex:1}
+  #tstatus{font-size:0.821em;color:var(--mute);margin-top:4px}
+  .dimbtn{font:700 12px system-ui,sans-serif!important;width:29px;height:29px}
+  .btn2{background:transparent!important;color:var(--ink)!important}
+  @media (max-width:600px){.panel{width:auto;right:12px;font-size:0.929em}}
+  #toast{position:fixed;left:50%;top:14px;transform:translate(-50%,-150%);max-width:calc(100% - 32px);background:#b3261e;color:#fff;padding:9px 14px;border-radius:10px;font-size:13px;z-index:50;transition:transform .25s,visibility .25s;visibility:hidden;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+  #toast.on{transform:translate(-50%,0);visibility:visible}
+  #v360 .seg{display:flex;border-radius:24px;overflow:hidden;background:rgba(20,22,22,.78);backdrop-filter:blur(6px)}
+  #v360 .vb .seg button{border-radius:0;background:transparent;padding:11px 12px;min-width:0;font-weight:600;color:#cfd3d1}
+  #v360 .vb .seg button.on{background:#1565c0;color:#fff}
+  #snowleg{display:none;position:absolute;right:12px;bottom:118px;width:200px;background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
+    border-radius:10px;padding:8px 10px;font-size:12px;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5}
+  #snowleg #snowlegdate{color:var(--mute);font-size:11px}
+  #snowlegbar{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
+  #snowleg .sl{display:flex;justify-content:space-between;font-size:11px;color:var(--mute)}
+  #snowleg .sl2{font-size:11px;color:var(--mute);margin-top:4px;display:flex;align-items:center;gap:6px}
+  #snowleg .sl2 i{display:inline-block;width:14px;height:10px;background:rgba(190,195,205,.45);border:1px solid var(--line)}
+  #snowleg .sl3{font-size:10.5px;color:var(--mute);margin-top:4px;line-height:1.3}
+  #snowleg .lh{display:flex;align-items:center;gap:6px;cursor:move;user-select:none}
+  #snowleg .lh b{white-space:nowrap}
+  #snowleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:15px;line-height:1;padding:2px 4px;cursor:pointer}
+  #snowleg.min{width:auto;padding:5px 8px}
+  #snowleg.min .lb,#snowleg.min #snowlegdate{display:none}
+  #snowleg.dragging{opacity:.85}
+  @media (max-width:700px){#snowleg{bottom:132px;right:8px}}
+  /* 360 view */
+  #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
+  body.in360 #v360{display:block}
+  body.in360 .panel,body.in360 #drawer,body.in360 .card,body.in360 .maplibregl-ctrl-top-right,body.in360 #menuBtn{display:none!important}
+  #v360 .vt{margin:calc(12px + env(safe-area-inset-top)) auto 0;width:max-content;max-width:calc(100% - 24px);background:rgba(20,22,22,.72);color:#fff;border-radius:22px;padding:7px 16px;
+    font-size:14px;display:flex;gap:12px;align-items:center;backdrop-filter:blur(6px)}
+  #v360dir{font-variant-numeric:tabular-nums;font-weight:700;min-width:62px;text-align:right}
+  #v360 .vb{position:fixed;left:50%;bottom:calc(52px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;flex-wrap:wrap;justify-content:center;gap:8px;width:max-content;max-width:calc(100% - 16px);pointer-events:auto}
+  #v360 .vb button{font:600 15px system-ui,sans-serif;padding:11px 16px;min-width:48px;white-space:nowrap;border-radius:24px;border:0;background:rgba(20,22,22,.78);color:#fff;cursor:pointer;backdrop-filter:blur(6px)}
+  #v360 .vb button.on{background:#1565c0}
+  #v360 .vh{position:fixed;left:50%;bottom:calc(112px + env(safe-area-inset-bottom));max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;transform:translateX(-50%);color:#fff;font-size:12px;text-shadow:0 1px 3px #000;white-space:nowrap}
+  .pbtns{display:flex;gap:6px;margin-top:8px}.pbtns button{flex:1;margin:0!important;padding:6px 8px!important}
+  .adv summary{cursor:pointer;font-size:0.786em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);font-weight:700}
+  .btn2{background:transparent!important;color:var(--ink)!important}
+  .grab,.mclose,#tabbar{display:none}
+  /* 360 labels */
+  #v360lbl{position:absolute;inset:0;pointer-events:none;z-index:9;display:none;overflow:hidden}
+  body.in360 #v360lbl{display:block}
+  #v360pad{position:absolute;inset:0;z-index:8;display:none;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+  body.in360 #v360pad{display:block}
+  #v360pad:active{cursor:grabbing}
+  .pl{position:absolute;left:0;top:0;transform:translate(-50%,-100%);text-align:center;white-space:nowrap;color:#fff;
+    font:600 12px/1.15 system-ui,sans-serif;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 2px #000;will-change:transform}
+  .pl small{display:block;font-weight:500;font-size:10.5px;opacity:.85}
+  .pl::after{content:"";display:block;width:1px;height:14px;margin:2px auto 0;background:rgba(255,255,255,.85);box-shadow:0 0 2px #000}
+  .pl.big{font-size:14px}
+  .pl{pointer-events:auto;cursor:pointer}
+  /* phone */
+  /* drawing tools: panel next to the sidebar + profile strip at the bottom (gpx.studio-like) */
+  @media (min-width:701px){
+    #dcard,#rcard{left:274px;top:12px;bottom:auto;width:340px;max-height:calc(100vh - 60px)}
+    #dcard .rh,#rcard .rh{cursor:move;user-select:none}
+    .card.dragging{opacity:.85;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+    #dprof .ps{cursor:move;user-select:none}
+    #dprof{display:none;position:absolute;left:274px;top:auto;bottom:30px;width:min(520px,calc(100vw - 300px));max-height:104px;background:var(--panel);backdrop-filter:blur(6px);
+      border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 18px rgba(0,0,0,.18);padding:6px 12px;z-index:6;color:var(--mute);overflow:hidden}
+  }
+  #dprof .pw{padding:18px 0;text-align:center}
+  .card .pw{padding:14px 0;text-align:center;color:var(--mute);font-size:.9em}
+  .phd{margin:2px 0 0}.phd .pt{padding:2px 0!important;border:0!important;color:var(--mute)!important;font-size:.85em!important}
+  #dprof.min{padding:4px 12px}#dprof.min .ps{margin:0}
+  .ps .pt{padding:0 6px!important;margin-right:-6px}
+  .ps{display:flex;gap:16px;flex-wrap:wrap;font-size:.92em;color:var(--mute);margin:2px 0 4px}.ps b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .tbar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 8px}
+  .tb{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);cursor:pointer;font:inherit}
+  .tb span{font-size:1.25em;line-height:1}.tb em{font-style:normal;font-size:.78em;color:var(--mute);white-space:nowrap}
+  .tb:hover:not(:disabled){background:rgba(127,127,127,.12)}.tb:disabled{opacity:.35;cursor:default}
+  .sw{display:flex;align-items:center;gap:8px;font-size:.92em;cursor:pointer;margin:2px 0 6px}
+  .sw input{display:none}.sw i{width:34px;height:18px;border-radius:9px;background:var(--line);position:relative;transition:background .2s;flex:none}
+  .sw i::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.3)}
+  .sw input:checked+i{background:var(--dcol,#2979ff)}.sw input:checked+i::after{left:18px}
+  .cols{display:flex;align-items:center;gap:6px;font-size:.88em;color:var(--mute);margin:0 0 6px;flex-wrap:wrap}
+  .cs{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);cursor:pointer;padding:0}
+  .cs.on{box-shadow:0 0 0 2px var(--ink)}
+  .hlp{font-size:.82em;color:var(--mute);margin-top:6px}.hlp summary{cursor:pointer}
+  @media (max-width:700px){
+    #dprof{display:none!important}
+    :root{--tab:calc(58px + env(safe-area-inset-bottom))}
+    .dsk{display:none!important}
+    .panel,#drawer,.card,.maplibregl-popup-content{zoom:1!important}
+    #tabbar{display:flex;position:absolute;left:0;right:0;bottom:0;height:var(--tab);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box;
+      background:var(--panel);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:12}
+    #tabbar button{flex:1;border:0;background:none;color:var(--mute);font:600 11.5px system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+    #tabbar .ic{font-size:20px;line-height:1}
+    #tabbar button.on{color:var(--ink)}#tabbar button.on .ic{color:#d42a1f}
+    #tabbar em{font-style:normal;font-weight:500;font-size:10.5px}
+    .maplibregl-ctrl-bottom-left,.maplibregl-ctrl-bottom-right{bottom:var(--tab)}
+    .maplibregl-ctrl-zoom-in,.maplibregl-ctrl-zoom-out,.maplibregl-ctrl-fullscreen,.maplibregl-ctrl-scale{display:none!important}
+    .maplibregl-ctrl-attrib{font-size:10px}
+    .grab{display:block;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-4px auto 10px}
+    /* sheets */
+    .panel,.card{position:absolute;left:0!important;right:0!important;top:auto!important;bottom:var(--tab)!important;width:auto!important;max-width:none!important;
+      border-radius:18px 18px 0 0;border-width:1px 0 0;box-shadow:0 -6px 24px rgba(0,0,0,.25);z-index:11}
+    .panel{display:block;max-height:68dvh;overflow:auto;padding:12px 18px 16px;transform:translateY(110%);visibility:hidden;transition:transform .25s,visibility .25s;font-size:15px}
+    body.menu .panel{transform:none;visibility:visible}
+    .panel h1{font-size:18px}.panel .sub{font-size:13px}
+    .mclose{display:block;position:absolute;top:10px;right:12px;border:0;background:none;font-size:28px;color:var(--mute);line-height:1;cursor:pointer}
+    .grp{padding-top:12px;margin-top:12px}.grp b,.adv summary{font-size:12px}
+    label{padding:7px 0;gap:10px} input[type=checkbox],input[type=radio]{width:20px;height:20px;margin:0}
+    .btn{padding:12px 10px;font-size:15px;border-radius:10px}
+    .row{font-size:13px}
+    .card{max-height:50dvh;padding:14px 16px 16px;font-size:15px}
+    .rb button,.my button,.lnk{padding:9px 13px;font-size:14px}
+    .rs{font-size:13.5px}
+    #drawer{top:auto;left:0;right:0;bottom:var(--tab);height:calc(100dvh - var(--tab) - 48px);width:auto;border:0;border-radius:18px 18px 0 0;
+      transform:translateY(105%);box-shadow:0 -6px 24px rgba(0,0,0,.25);z-index:11}
+    #drawer.open{transform:none}
+    #dhead{padding:12px 16px 8px}#dhead h2{font-size:19px}#dhead h2 button{font-size:30px;padding:0 4px;color:var(--mute)}
+    #q{font-size:16px;padding:10px 12px}
+    #chips button{font-size:14px;padding:8px 14px}
+    .rg{padding:12px 16px 10px;font-size:12.5px}
+    .it{padding:6px 16px;min-height:46px;font-size:16px;gap:12px}
+    .it input{width:24px;height:24px}
+    .it.sub .nm{font-size:15px}
+    .it .el{font-size:14px;width:44px}.it .rk{font-size:11px}
+    #dfoot button{padding:8px 14px;font-size:14px}
+    .maplibregl-popup-content{font-size:15px;padding:12px 14px}.pbtns button{padding:10px 8px!important;font-size:14px}
+    #v360 .vh{display:none}
+    body.in360 #tabbar{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="v360"><div class="vt"><b id="v360name"></b><span id="v360dir"></span></div><div class="vh">Vleci = obrni se / poglej gor-dol · kolešček ali +/− = približaj · presledek = vrti · klik na ime = skoči na vrh</div><div class="vb"><div id="v360q" class="seg" title="Kakovost slike"></div><button id="v360out" aria-label="Oddalji">−</button><button id="v360auto">⟳ Vrti</button><button id="v360exit">✕ Izhod</button><button id="v360in" aria-label="Približaj">+</button></div></div>
+<div class="card" id="rcard"></div>
+<div class="card" id="dcard"></div>
+<div id="dprof"></div>
+<div id="drawer">
+  <div id="dhead">
+    <h2>Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
+    <div id="progress"></div>
+    <input id="q" type="search" placeholder="Išči vrh …" autocomplete="off">
+    <div id="chips"><button data-f="all" class="on">Vsi</button><button data-f="rank">98 prominentnih</button><button data-f="todo">Neobiskani</button><button data-f="done">Obiskani</button></div>
+  </div>
+  <div id="dlist"></div>
+  <div id="dfoot"><button id="vexp">Izvozi</button><button id="vimp">Uvozi</button><input type="file" id="vfile" accept=".json" hidden><span class="fnote">shranjeno v brskalniku</span></div>
+</div>
+<div class="panel">
+  <div class="grab"></div>
+  <button class="mclose" id="mclose" aria-label="Zapri">×</button>
+  <h1>Dvatisočaki</h1>
+  <div class="sub">364 vrhov nad 2000 m · LiDAR teren</div>
+
+  <div class="grp"><b>Podlaga</b>
+    <label><input type="radio" name="base" value="relief" checked> Relief (barvna višina)</label>
+    <label><input type="radio" name="base" value="sat"> Satelit (Esri)</label>
+    <label><input type="radio" name="base" value="topo"> OpenTopoMap</label>
+    <label><input type="radio" name="base" value="snow"> Snežna karta (sneg + izohipse)</label>
+  </div>
+
+  <div class="grp"><b>Sloji</b>
+    <label><input type="checkbox" id="hs" checked> Senčenje reliefa</label>
+    <label><input type="checkbox" id="trails"> Waymarked Trails (slika)</label>
+    <label><input type="checkbox" id="peaks" checked> Vrhovi (<span id="npk"></span>)</label>
+    <label><input type="checkbox" id="labels" checked> Imena vrhov</label>
+    <label><input type="checkbox" id="border" checked> Državna meja</label>
+    <label><input type="checkbox" id="snow"> Višina snega (model, dnevno)</label>
+    <div id="snowopt" style="display:none;margin:2px 0 0 26px;font-size:.86em;color:var(--mute)">
+      <div style="display:flex;gap:6px;align-items:center;margin-top:4px"><input type="date" id="snowdate" style="font:inherit;flex:1;min-width:0">
+        <button class="lnk" id="snowprev" title="Dan prej">◀</button><button class="lnk" id="snownext" title="Dan pozneje">▶</button></div>
+      <div id="snowinfo" style="margin-top:3px"></div><div style="margin-top:2px">Model ICON-D2 (DWD, mreža ~2 km) prek Open-Meteo. Ocena, ne meritev; ostri grebeni so zglajeni.</div>
+    </div>
+    <div id="legend" style="font-size:.86em;color:var(--mute);margin-top:4px;line-height:1.6"></div>
+  </div>
+
+  <div class="grp"><b>Poti in koče (OSM)</b>
+    <label><input type="checkbox" id="trv" checked> Poti (markirane + neoznačene)</label>
+    <label><input type="checkbox" id="huts" checked> Koče, bivaki, izviri</label>
+    <label><input type="checkbox" id="parks" checked> Parkirišča / izhodišča</label>
+    <button class="btn dsk" id="drawBtn">Riši pot</button>
+  </div>
+
+  <div class="grp dsk"><b>Moji vrhovi</b>
+    <button class="btn" id="openDrawer">Obiskani: <span id="vcount">0</span></button>
+  </div>
+
+  <div class="grp"><b>Velikost besedila</b>
+    <input type="range" id="tscale" min="0.8" max="1.8" step="0.1" value="1.2">
+    <div class="row"><span>karta + meniji</span><span id="tscalev">1.2×</span></div>
+  </div>
+
+  <div class="grp"><b>Pretiravanje višin</b>
+    <input type="range" id="exag" min="1" max="2" step="0.1" value="1">
+    <div class="row"><span>1.0 = realno</span><span id="exagv">1.0×</span></div>
+  </div>
+
+  <div class="grp dsk"><b>Klik na teren</b>
+    <div id="readout">Klikni kamorkoli za višino DEM.</div>
+  </div>
+
+  <details class="grp adv"><summary>Napredno</summary>
+    <button class="btn btn2" id="reload">Osveži podatke OSM</button>
+    <button class="btn btn2" onclick="reloadRoads()">Naloži ceste</button>
+    <button class="btn btn2" id="extBtn" onclick="extDownload()" title="Poti, ceste, koče in parkirišča do 20 km od vrhov. Na računalniku, ~10–20 min.">Razširi na 20 km (PC)</button>
+    <button class="btn btn2" id="exportPack">Izvozi paket podatkov</button>
+    <div id="tstatus"></div>
+  </details>
+</div>
+<nav id="tabbar">
+  <button data-t="layers"><span class="ic">◧</span>Karta</button>
+  <button data-t="peaks"><span class="ic">▲</span>Vrhovi <em id="vcount2"></em></button>
+  <button data-t="draw"><span class="ic">✎</span>Riši</button>
+</nav>
+<div id="v360pad"></div>
+<div id="v360lbl"></div>
+
+<div id="toast"></div>
+<div id="snowleg"><div class="lh"><b>❄ Višina snega</b> <span id="snowlegdate"></span><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
+  <div class="lb"><div id="snowlegbar"></div><div class="sl"><span>1</span><span>20</span><span>50</span><span>100</span><span>200+ cm</span></div>
+  <div class="sl3" id="snowlegnote"></div></div></div>
+<script>
+const $id=id=>document.getElementById(id);
+// visible error reporting (helps debugging on devices without dev tools)
+window.toastErr=msg=>{ const t=document.getElementById('toast'); if(!t) return; t.textContent='⚠ '+msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),9000); };
+addEventListener('error',e=>toastErr((e.message||'napaka')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')));
+addEventListener('unhandledrejection',e=>toastErr(String(e.reason&&e.reason.message||e.reason)));
+const PEAKS = __PEAKS__;
+const RANGES = [["Julijske Alpe","#c0392b"],["Kamniško-Savinjske Alpe","#1f6fb2"],["Karavanke","#7b3fa0"]];
+const RCOL = Object.fromEntries(RANGES);
+
+const DEM = {type:"raster-dem", url:"https://tiles.mapterhorn.com/tilejson.json", encoding:"terrarium",
+  attribution:'<a href="https://mapterhorn.com/attribution" target="_blank">Mapterhorn</a> (ARSO/GURS LiDAR, CC BY 4.0)'};
+
+const style = {
+  version:8,
+  glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
+  sources:{
+    dem_terrain:DEM, dem_hs:DEM, dem_relief:DEM,
+    sat:{type:"raster",tileSize:256,maxzoom:19,
+      tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+      attribution:"Esri, Maxar, Earthstar Geographics"},
+    topo:{type:"raster",tileSize:256,maxzoom:17,
+      tiles:["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
+      attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>, SRTM | © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'},
+    border:{type:"geojson",data:{type:"Feature",properties:{},geometry:{type:"MultiLineString",coordinates:[[[15.00315,46.63737],[14.96715,46.60022],[14.94915,46.6188],[14.93475,46.62049],[14.92035,46.61542],[14.89875,46.60529],[14.89515,46.60529],[14.87715,46.6036],[14.86275,46.60529],[14.85195,46.60191],[14.83395,46.58503],[14.82315,46.56814],[14.81595,46.55126],[14.80875,46.53606],[14.79795,46.51917],[14.78715,46.50735],[14.78355,46.50398],[14.76195,46.49553],[14.73675,46.49384],[14.72595,46.49722],[14.70795,46.49216],[14.70435,46.48709],[14.69715,46.48033],[14.68635,46.47189],[14.67915,46.45838],[14.67195,46.46007],[14.66835,46.46007],[14.66115,46.46007],[14.64315,46.44487],[14.63235,46.43981],[14.62155,46.43812],[14.59995,46.43643],[14.58915,46.43474],[14.57475,46.41955],[14.56755,46.40097],[14.56035,46.39253],[14.55675,46.38409],[14.53875,46.37902],[14.52795,46.38746],[14.51715,46.40604],[14.50275,46.41786],[14.46674,46.41279],[14.45234,46.41448],[14.43794,46.41955],[14.41994,46.42461],[14.41274,46.42968],[14.41274,46.43474],[14.40554,46.43981],[14.39474,46.4415],[14.36234,46.43643],[14.24354,46.43812],[14.14994,46.43981],[14.14634,46.43981],[14.13554,46.44319],[14.08154,46.47527],[14.06714,46.48033],[14.04914,46.48371],[14.03114,46.4854],[14.01314,46.48202],[13.99874,46.48033],[13.98074,46.48202],[13.89074,46.51242],[13.86194,46.5158],[13.79714,46.50735],[13.78274,46.50735],[13.71434,46.51917],[13.69994,46.51917],[13.69994,46.51242],[13.69994,46.50566],[13.69634,46.49891],[13.68914,46.49384],[13.68914,46.46851],[13.68554,46.46345],[13.67834,46.45163],[13.66034,46.44487],[13.63514,46.44487],[13.59914,46.44319],[13.57394,46.4263],[13.55594,46.40604],[13.53074,46.38915],[13.48393,46.37058],[13.45873,46.35876],[13.44793,46.35538],[13.43353,46.35369],[13.42273,46.34525],[13.40833,46.3233],[13.39393,46.30641],[13.39033,46.30135],[13.36513,46.28953],[13.37233,46.28108],[13.37953,46.26757],[13.38313,46.24393],[13.39753,46.23043],[13.40113,46.21692],[13.40833,46.20847],[13.43713,46.21016],[13.42273,46.22874],[13.43713,46.22536],[13.46953,46.22367],[13.48393,46.21861],[13.50914,46.21354],[13.53074,46.2051],[13.55954,46.18483],[13.58474,46.18146],[13.61354,46.18315],[13.62794,46.18146],[13.63874,46.17977],[13.64234,46.17133],[13.64594,46.16119],[13.61714,46.12573],[13.52354,46.07508]]]}}},
+    trails:{type:"raster",tileSize:256,maxzoom:18,
+      tiles:["https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png"],
+      attribution:'<a href="https://hiking.waymarkedtrails.org">Waymarked Trails</a> (CC-BY-SA)'}
+  },
+  layers:[
+    {id:"bg",type:"background",paint:{"background-color":"#e9e4d8"}},
+    {id:"relief",type:"color-relief",source:"dem_relief",paint:{
+      "color-relief-color":["interpolate",["linear"],["elevation"],
+        0,"#7fae6a", 400,"#a9c483", 800,"#d8d89c", 1200,"#e4cf98", 1600,"#d2b07f",
+        1900,"#bfa38a", 2200,"#c9c3bb", 2500,"#e6e3df", 2900,"#ffffff"],
+      "color-relief-opacity":1}},
+    {id:"sat",type:"raster",source:"sat",layout:{visibility:"none"}},
+    {id:"topo",type:"raster",source:"topo",layout:{visibility:"none"}},
+    {id:"snowbase",type:"color-relief",source:"dem_relief",layout:{visibility:"none"},paint:{
+      "color-relief-color":["interpolate",["linear"],["elevation"],0,"#eef1e6",600,"#e9ecdc",1200,"#e6e1cf",1800,"#ddd8cb",2400,"#d4d2cf",2900,"#cfcfd3"],"color-relief-opacity":1}},
+    {id:"hs",type:"hillshade",source:"dem_hs",paint:{
+      "hillshade-method":"igor","hillshade-exaggeration":0.55,
+      "hillshade-shadow-color":"rgba(40,35,30,0.65)","hillshade-highlight-color":"rgba(255,255,255,0.35)"}},
+    {id:"trails",type:"raster",source:"trails",layout:{visibility:"none"},paint:{"raster-opacity":0.95}},
+    {id:"border-casing",type:"line",source:"border",layout:{"line-join":"round"},paint:{"line-color":"rgba(255,255,255,.75)","line-width":["interpolate",["linear"],["zoom"],8,3,14,6]}},
+    {id:"border",type:"line",source:"border",layout:{"line-join":"round"},paint:{"line-color":"#3d2a55","line-width":["interpolate",["linear"],["zoom"],8,1.4,14,2.6],"line-dasharray":[4,2]}}
+  ],
+  terrain:{source:"dem_terrain",exaggeration:1},
+  sky:{"sky-color":"#9cc3e6","horizon-color":"#e8eef3","fog-color":"#e8eef3","sky-horizon-blend":0.6,"horizon-fog-blend":0.6,"fog-ground-blend":0.85}
+};
+
+const map = new maplibregl.Map({
+  container:"map", style,
+  center:[13.84,46.33], zoom:11.3, pitch:68, bearing:-10, maxPitch:85,
+  maxBounds:[[12.95,45.85],[15.30,46.90]],
+  maxTileCacheZoomLevels:8,
+  hash:true
+});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),"top-right");
+map.addControl(new maplibregl.ScaleControl({unit:"metric"}),"bottom-right");
+map.addControl(new maplibregl.FullscreenControl(),"top-right");
+
+// --- base switch
+document.querySelectorAll('input[name=base]').forEach(r=>r.addEventListener('change',e=>{
+  const v=e.target.value;
+  map.setLayoutProperty('relief','visibility',v==='relief'?'visible':'none');
+  map.setLayoutProperty('sat','visibility',v==='sat'?'visible':'none');
+  map.setLayoutProperty('topo','visibility',v==='topo'?'visible':'none');
+  map.setLayoutProperty('snowbase','visibility',v==='snow'?'visible':'none');
+  // satellite already has shading baked in -> soften hillshade
+  map.setPaintProperty('hs','hillshade-exaggeration',v==='sat'?0.25:v==='snow'?0.45:0.55);
+  if(window.snowMapOn) window.snowMapOn(v==='snow');
+}));
+const vis=(id,on)=>map.setLayoutProperty(id,'visibility',on?'visible':'none');
+document.getElementById('hs').onchange=e=>vis('hs',e.target.checked);
+document.getElementById('trails').onchange=e=>vis('trails',e.target.checked);
+
+// --- exaggeration
+const ex=document.getElementById('exag'), exv=document.getElementById('exagv');
+ex.oninput=()=>{const k=+ex.value; exv.textContent=k.toFixed(1)+'×'; map.setTerrain({source:'dem_terrain',exaggeration:k});};
+const curEx=()=>+ex.value;
+
+// --- click elevation
+const ro=document.getElementById('readout');
+map.on('click',e=>{
+  if(e.defaultPrevented) return;
+  const h=map.queryTerrainElevation(e.lngLat);
+  if(h==null){ro.textContent='Teren še ni naložen.';return;}
+  const sn=window.snowPx?snowPx(e.lngLat.lat,e.lngLat.lng,h/curEx()):null;
+  ro.textContent=`${(h/curEx()).toFixed(1)} m · ${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)} · z${map.getZoom().toFixed(1)}${sn!=null?` · ❄ ~${sn} cm`:''}`;
+});
+
+// --- snow depth (model): DWD ICON-D2 via Open-Meteo on an elevation-adaptive grid, purple scale in cm, by day (-7 .. +2)
+//     two views: (a) model cells (Sloji → Višina snega), (b) Snežna karta (Podlaga): depth painted per DEM pixel from local
+//     depth-vs-elevation fits of the model points + slope correction, with contour lines (isohipse)
+(function(){
+  const cb=$id('snow'), dt=$id('snowdate'), opt=$id('snowopt'), info=$id('snowinfo'), leg=$id('snowleg');
+  const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10), today=iso(new Date());
+  const minD=new Date(Date.now()-7*864e5), maxD=new Date(Date.now()+2*864e5);
+  dt.value=today; dt.min=iso(minD); dt.max=iso(maxD);
+  // adaptive grid: 8 km cells, split to 4 / 2 / 1 km where the highest terrain in the cell exceeds 1000 / 1500 / 2000 m
+  const LA0=46.05, LA1=46.73, LO0=13.24, LO1=15.02, D0LA=0.072, D0LO=0.104, SPLIT=[1000,1500,2000];
+  const PK=PEAKS.filter(p=>p.lat!=null); let cells=null; // [lat, lon, dLat, dLon]
+  async function demMaxFn(){ // max-elevation lookup from terrain tiles (z10 ≈ 110 m px)
+    const Z=10, S=512, T={}, n=2**Z, tx=lo=>(lo+180)/360*n*S, ty=la=>{const r=la*Math.PI/180;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n*S;};
+    const x0=Math.floor(tx(LO0)/S), x1=Math.floor(tx(LO1)/S), y0=Math.floor(ty(LA1)/S), y1=Math.floor(ty(LA0)/S), jobs=[];
+    for(let y=y0;y<=y1;y++) for(let x=x0;x<=x1;x++) jobs.push((async()=>{ try{ const r=await fetch(`https://tiles.mapterhorn.com/${Z}/${x}/${y}.webp`); if(r.ok) T[x+','+y]=await decodeTerrarium(await r.blob(),S); }catch(_){} })());
+    await Promise.all(jobs);
+    return (la0,lo0,la1,lo1)=>{ let m=-1e9; const X0=Math.floor(tx(lo0)),X1=Math.ceil(tx(lo1)),Y0=Math.floor(ty(la1)),Y1=Math.ceil(ty(la0));
+      const st=Math.max(1,Math.floor((X1-X0)/12));
+      for(let Y=Y0;Y<=Y1;Y+=st) for(let X=X0;X<=X1;X+=st){ const tl=T[Math.floor(X/S)+','+Math.floor(Y/S)]; if(!tl) continue; const v=tl[(Y%S)*S+(X%S)]; if(v>m) m=v; }
+      return m; };
+  }
+  async function buildCells(){
+    if(cells) return cells; info.textContent='Pripravljam mrežo po nadmorski višini …';
+    const maxH=await demMaxFn(), out=[];
+    const near=(la,lo)=>PK.some(p=>Math.hypot((p.lat-la)*111.3,(p.lon-lo)*76.7)<14);
+    const visit=(la,lo,dla,dlo,lvl)=>{ const h=maxH(la,lo,la+dla,lo+dlo);
+      if(lvl<3 && h>=SPLIT[lvl]) for(let i=0;i<2;i++) for(let j=0;j<2;j++) visit(la+i*dla/2,lo+j*dlo/2,dla/2,dlo/2,lvl+1);
+      else out.push([+(la+dla/2).toFixed(4),+(lo+dlo/2).toFixed(4),dla,dlo]); };
+    for(let la=LA0; la<LA1-1e-9; la+=D0LA) for(let lo=LO0; lo<LO1-1e-9; lo+=D0LO) if(near(la+D0LA/2,lo+D0LO/2)) visit(la,lo,D0LA,D0LO,0);
+    cells=out; return cells;
+  }
+  // purple scale (cm)
+  const STOPS=[[1,'#efe3ff'],[10,'#d9c2ff'],[20,'#bd98f7'],[50,'#9a66e8'],[100,'#7438cf'],[150,'#5a1fae'],[200,'#3d0f80']];
+  $id('snowlegbar').style.background='linear-gradient(90deg,'+STOPS.map(([v,c],i)=>`${c} ${(i/(STOPS.length-1)*100).toFixed(0)}%`).join(',')+')';
+  const RGB=STOPS.map(([v,c])=>[v,parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)]);
+  let DATA=null; // {times:[...], depth:[cellIdx][hour] in m, elev:[cellIdx] model grid-cell height}
+  const CK='dvat_snow_v4', SNOWJSON=location.protocol.startsWith('http')?'snow.json':''; // snow.json: refreshed daily by GitHub Action
+  async function load(){
+    try{ const c=JSON.parse(localStorage.getItem(CK)||'null'); if(c&&c.cells&&Date.now()-c.t<3*3600e3){ cells=c.cells; return c.d; } }catch(_){}
+    if(SNOWJSON) try{ info.textContent='Nalagam dnevne podatke o snegu …'; const r=await fetch(SNOWJSON,{cache:'no-cache'});
+      if(r.ok){ const j=await r.json(); if(j&&j.cells&&j.d&&Date.now()-Date.parse(j.t)<36*3600e3){ cells=j.cells; try{ localStorage.setItem(CK,JSON.stringify({t:Date.now(),cells,d:j.d})); }catch(_){} return j.d; } } }catch(_){ /* fall back to live API */ }
+    await buildCells();
+    const out={times:null, depth:new Array(cells.length), elev:new Array(cells.length)}; let fails=0, lastErr='';
+    for(let i=0;i<cells.length;i+=50){
+      const part=cells.slice(i,i+50);
+      // elevation=nan -> no downscaling; returned elevation = model grid-cell height (what the snow depth belongs to)
+      const q=`latitude=${part.map(c=>c[0]).join(',')}&longitude=${part.map(c=>c[1]).join(',')}&elevation=${part.map(()=>'nan').join(',')}&hourly=snow_depth&past_days=7&forecast_days=3&timezone=Europe%2FLjubljana`;
+      info.textContent=`Nalagam model … ${Math.min(i+50,cells.length)}/${cells.length} točk`;
+      let arr=null;
+      for(let a=0;a<4&&!arr;a++){
+        for(const m of ['&models=icon_d2','&models=icon_seamless','']){
+          try{ const r=await fetch('https://api.open-meteo.com/v1/forecast?'+q+m);
+            if(r.status===429){ lastErr='preveč zahtev (429)'; await new Promise(s=>setTimeout(s,20000)); break; }
+            if(!r.ok){ let msg=''; try{ msg=(await r.json()).reason||''; }catch(_){} lastErr=`HTTP ${r.status} ${msg}`.trim(); continue; }
+            const j=await r.json(), x=Array.isArray(j)?j:[j];
+            if(x[0]&&x[0].hourly&&Array.isArray(x[0].hourly.snow_depth)&&x[0].hourly.snow_depth.some(v=>v!=null)){ arr=x; break; }
+            lastErr='model brez podatkov o snegu';
+          }catch(e){ lastErr='ni povezave ('+e.message+')'; }
+        }
+        if(!arr) await new Promise(s=>setTimeout(s,3000*(a+1)));
+      }
+      if(arr) arr.forEach((x,k)=>{ out.depth[i+k]=x.hourly.snow_depth; out.elev[i+k]=x.elevation; if(!out.times) out.times=x.hourly.time; }); else fails++;
+      if(i+50<cells.length) await new Promise(s=>setTimeout(s,5500)); // stay under ~600 points/minute
+    }
+    if(!out.times) throw new Error(lastErr||'ni odgovora');
+    out.partial=fails>0;
+    if(!fails) try{ localStorage.setItem(CK,JSON.stringify({t:Date.now(),cells,d:out})); }catch(_){}
+    return out;
+  }
+  function depthAt(ci, day){ const T=DATA.times, s=DATA.depth[ci]; if(!s) return null; let idx=T.indexOf(day+'T12:00'); if(idx<0) idx=T.findIndex(t=>t.startsWith(day)); if(idx<0) return null; return s[idx]; }
+
+  // ---------- (a) model cells
+  function renderCells(){ const day=dt.value; const f=[];
+    cells.forEach(([la,lo,dla,dlo],ci)=>{ const d=depthAt(ci,day); if(d==null||d<0.01) return; const cm=Math.round(d*100);
+      f.push({type:'Feature',properties:{cm},geometry:{type:'Polygon',coordinates:[[[lo-dlo/2,la-dla/2],[lo+dlo/2,la-dla/2],[lo+dlo/2,la+dla/2],[lo-dlo/2,la+dla/2],[lo-dlo/2,la-dla/2]]]}}); });
+    const fc={type:'FeatureCollection',features:f};
+    if(map.getSource('snowd')) map.getSource('snowd').setData(fc);
+    else { map.addSource('snowd',{type:'geojson',data:fc,attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0)'});
+      map.addLayer({id:'snowd',type:'fill',source:'snowd',paint:{'fill-antialias':false,'fill-opacity':0.6,
+        'fill-color':['interpolate',['linear'],['get','cm'],...STOPS.flatMap(([v,c])=>[v,c])]}}, map.getLayer('hs')?'hs':undefined); }
+    return f;
+  }
+
+  // ---------- (b) snow map: local fits  depth(h) = a + b·h  on a 0.03° grid (Gaussian-weighted regression, σ 7 km)
+  let FIT=null, FITDAY='';
+  const FS=0.03, FLA=LA0-0.09, FLO=LO0-0.12, FNY=Math.ceil((LA1-LA0+0.18)/FS)+1, FNX=Math.ceil((LO1-LO0+0.24)/FS)+1;
+  function wfit(Q){ let sw=0,sh=0,sd=0; for(const [h,d,w] of Q){ sw+=w; sh+=w*h; sd+=w*d; } if(sw<=0) return null;
+    const mh=sh/sw, md=sd/sw; let vhh=0,vhd=0; for(const [h,d,w] of Q){ vhh+=w*(h-mh)**2; vhd+=w*(h-mh)*(d-md); }
+    return {mh, md, b: vhh/sw>150**2 ? vhd/vhh : null}; }
+  function buildFit(day){
+    const P=[]; cells.forEach(([la,lo],ci)=>{ const d=depthAt(ci,day), e=DATA.elev&&DATA.elev[ci]; if(d==null||e==null||!isFinite(e)) return; P.push([la,lo,e,Math.max(0,d*100)]); });
+    if(P.length<8) return null;
+    const g=wfit(P.map(p=>[p[2],p[3],1])), gb=Math.min(0.3,Math.max(0,g&&g.b!=null?g.b:0));
+    const A=new Float32Array(FNX*FNY), B=new Float32Array(FNX*FNY), M=new Float32Array(FNX*FNY), L=new Float32Array(FNX*FNY), SIG=7;
+    for(let j=0;j<FNY;j++) for(let i=0;i<FNX;i++){ const la=FLA+j*FS, lo=FLO+i*FS, Q=[]; let mx=0, nd=1e9, nv=0, zMax=-1e4, sMin=1e4, sD=0, sH=0, sW=0;
+      for(const p of P){ const dk=Math.hypot((p[0]-la)*111.3,(p[1]-lo)*77); if(dk<nd){ nd=dk; nv=p[3]; } if(dk>3*SIG) continue;
+        const w=Math.exp(-dk*dk/(2*SIG*SIG)); if(p[3]>=1){ Q.push([p[2],p[3],w]); sH+=w*p[2]; sD+=w*p[3]; sW+=w; if(w>0.1&&p[2]<sMin) sMin=p[2]; } else if(w>0.1&&p[2]>zMax) zMax=p[2]; if(dk<12&&p[3]>mx) mx=p[3]; }
+      const k=j*FNX+i;
+      // local snowline: midway between highest bare and lowest snowy model point nearby
+      L[k]=!sW?1e4:zMax<-1e3?-1e4:sMin>=1e4?zMax:Math.min(sH/sW,(sMin+zMax)/2);
+      if(Q.length<3){ if(sW){ B[k]=gb; A[k]=sD/sW-gb*sH/sW; M[k]=Math.max(mx,sD/sW); } else { A[k]=0; B[k]=0; M[k]=0; } continue; }
+      const f=wfit(Q); let b=f.b==null?gb:Math.min(0.3,Math.max(0,f.b)); if(f.b==null||Q.length<6) b=Math.max(b,gb*0.5);
+      A[k]=f.md-b*f.mh; B[k]=b; M[k]=Math.max(mx,nv); }
+    return {A,B,M,L};
+  }
+  function fitAt(la,lo){ if(!FIT) return null; const fy=(la-FLA)/FS, fx=(lo-FLO)/FS; const j=Math.max(0,Math.min(FNY-2,Math.floor(fy))), i=Math.max(0,Math.min(FNX-2,Math.floor(fx)));
+    const ty=Math.max(0,Math.min(1,fy-j)), tx=Math.max(0,Math.min(1,fx-i)), k=j*FNX+i;
+    const L=(X)=>(X[k]*(1-tx)+X[k+1]*tx)*(1-ty)+(X[k+FNX]*(1-tx)+X[k+FNX+1]*tx)*ty;
+    return [L(FIT.A),L(FIT.B),L(FIT.M),L(FIT.L)]; }
+  const depthPx=(f,h,slopeF)=>{ if(h<f[3]) return 0; const cap=Math.max(f[2]*1.5,f[2]+30); return Math.max(0,Math.min(cap,f[0]+f[1]*h))*slopeF; };
+  const slopeFac=deg=>deg<35?1:deg>60?0.15:1-0.85*(deg-35)/25; // steep rock walls hold little snow
+  window.snowPx=(la,lo,h)=>{ if(!SNOWMAP||!FIT||h==null) return null; const f=fitAt(la,lo); return Math.round(depthPx(f,h,1)); };
+  let protoOK=false;
+  function setupProto(){ if(protoOK) return; protoOK=true;
+    maplibregl.addProtocol('snowpx', async (params)=>{
+      const m=params.url.match(/^snowpx:\/\/(\d+)\/(\d+)\/(\d+)/); const z=+m[1], x=+m[2], y=+m[3], S=512;
+      const r=await fetch(`https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`); if(!r.ok) throw new Error('dem '+r.status);
+      const H=await decodeTerrarium(await r.blob(),S), ctx=mkCtx(S,S), img=ctx.createImageData(S,S), px=img.data, n=2**z;
+      const latOf=Y=>{ const t=Math.PI*(1-2*(y+Y/S)/n); return Math.atan(Math.sinh(t))*180/Math.PI; };
+      for(let Y=0;Y<S;Y++){ const la=latOf(Y+.5), mpp=40075016*Math.cos(la*Math.PI/180)/(n*S);
+        for(let X=0;X<S;X++){ const o=Y*S+X, h=H[o]; const lo=(x+(X+.5)/S)/n*360-180; const f=fitAt(la,lo); if(!f) continue;
+          const hx=H[Y*S+Math.min(S-1,X+1)]-H[Y*S+Math.max(0,X-1)], hy=H[Math.min(S-1,Y+1)*S+X]-H[Math.max(0,Y-1)*S+X];
+          const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI, d=depthPx(f,h,slopeFac(deg));
+          if(d<1) continue; let s=RGB.length-1; for(let q=1;q<RGB.length;q++) if(d<RGB[q][0]){ s=q; break; }
+          const c0=RGB[Math.max(0,s-1)], c1=RGB[s], t=s===0||d>=c1[0]?1:(d-c0[0])/(c1[0]-c0[0]), p4=o*4;
+          px[p4]=c0[1]+(c1[1]-c0[1])*t; px[p4+1]=c0[2]+(c1[2]-c0[2])*t; px[p4+2]=c0[3]+(c1[3]-c0[3])*t; px[p4+3]=Math.min(255,60+d*25); } }
+      ctx.putImageData(img,0,0);
+      const cv=ctx.canvas, blob=cv.convertToBlob?await cv.convertToBlob({type:'image/png'}):await new Promise(res=>cv.toBlob(res,'image/png'));
+      return {data: await blob.arrayBuffer()}; });
+  }
+  let CONT=null;
+  function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=()=>rej(new Error('ni knjižnice za izohipse')); document.head.appendChild(s); }); }
+  async function addContours(){
+    if(map.getSource('contours')) return;
+    if(!window.mlcontour) await loadScript('https://cdn.jsdelivr.net/npm/maplibre-contour@0.1.0/dist/index.min.js');
+    if(!CONT){ CONT=new mlcontour.DemSource({url:'https://tiles.mapterhorn.com/{z}/{x}/{y}.webp', encoding:'terrarium', maxzoom:12, worker:true, cacheSize:60}); CONT.setupMaplibre(maplibregl); }
+    map.addSource('contours',{type:'vector',maxzoom:15,tiles:[CONT.contourProtocolUrl({multiplier:1,
+      thresholds:{9:[200,1000],10:[100,500],11:[100,500],12:[50,250],13:[20,100],14:[20,100],15:[10,50]},
+      contourLayer:'contours',elevationKey:'ele',levelKey:'level',extent:4096,buffer:1})]});
+    const before=map.getLayer('trails')?'trails':undefined, k=+$id('tscale').value||1;
+    map.addLayer({id:'cont-line',type:'line',source:'contours','source-layer':'contours',layout:{'line-join':'round'},
+      paint:{'line-color':'rgba(92,64,40,0.55)','line-width':['match',['get','level'],1,1.1,0.5]}},before);
+    map.addLayer({id:'cont-lbl',type:'symbol',source:'contours','source-layer':'contours',filter:['>',['get','level'],0],
+      layout:{'symbol-placement':'line','text-size':10.5*k,'text-field':['concat',['number-format',['get','ele'],{}],''],'text-font':['Noto Sans Bold'],'symbol-spacing':320},
+      paint:{'text-color':'#6b4b30','text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.3}},before);
+  }
+  function renderMap(){ const day=dt.value;
+    if(FITDAY!==day){ FIT=buildFit(day); FITDAY=day; }
+    setupProto();
+    const url=`snowpx://{z}/{x}/{y}?d=${day}&t=${DATA.times?DATA.times[0]:''}`;
+    if(!map.getSource('snowpx')){ map.addSource('snowpx',{type:'raster',tiles:[url],tileSize:512,minzoom:7,maxzoom:12,bounds:[LO0-0.15,LA0-0.1,LO1+0.15,LA1+0.1],
+        attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0), razporejeno po višini'});
+      map.addLayer({id:'snowpx',type:'raster',source:'snowpx',paint:{'raster-opacity':0.82,'raster-fade-duration':0}},'hs'); }
+    else map.getSource('snowpx').setTiles([url]);
+  }
+  window.snowAt=(lat,lon)=>{ if(!DATA||!cells) return null; let bi=-1,bd=1e9; cells.forEach(([la,lo],i)=>{ const d=(la-lat)**2+((lo-lon)*0.69)**2; if(d<bd){bd=d;bi=i;} }); const v=depthAt(bi,dt.value); return v==null?null:Math.round(v*100); };
+  window.snowDay=()=>dt.value;
+  let SNOWMAP=false;
+  const setVis=(id,on)=>{ if(map.getLayer(id)) map.setLayoutProperty(id,'visibility',on?'visible':'none'); };
+  async function update(){ const any=cb.checked||SNOWMAP; opt.style.display=any?'block':'none';
+    setVis('snowd',cb.checked&&!SNOWMAP); setVis('snowpx',SNOWMAP); setVis('cont-line',SNOWMAP); setVis('cont-lbl',SNOWMAP);
+    if(!any){ leg.style.display='none'; return; }
+    leg.style.display='block'; $id('snowlegdate').textContent=dt.value;
+    if(SNOWMAP) addContours().then(()=>{ setVis('cont-line',SNOWMAP); setVis('cont-lbl',SNOWMAP); }).catch(e=>toastErr('Izohipse: '+e.message));
+    try{ if(!DATA) DATA=await load(); }
+    catch(e){ info.textContent='Model ni dosegljiv: '+e.message; toastErr('Višina snega (Open-Meteo): '+e.message+'. Poskusi čez nekaj minut.'); return; }
+    const day=dt.value, tag=`${day}${day>today?' (napoved)':day===today?' (danes)':''}`, part=DATA.partial?' · delno (strežnik zaseden, poskusi znova kasneje)':'';
+    if(SNOWMAP){ renderMap(); setVis('snowd',false);
+      const ok=DATA.elev&&DATA.elev.some(e=>e!=null);
+      info.textContent=`${tag} · snežna karta${FIT?'':' — premalo točk za razporeditev'}${part}`;
+      $id('snowlegnote').textContent='Snežna karta: model ICON-D2 razporejen po višini terena (lokalna odvisnost sneg–višina), strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
+    else { const f=renderCells(); setVis('snowd',true); const max=f.reduce((m,x)=>Math.max(m,x.properties.cm),0);
+      info.textContent=`${tag} · ${f.length} celic s snegom${f.length?', največ '+max+' cm':''}${part}`;
+      $id('snowlegnote').textContent='Model ICON-D2 (DWD) · Open-Meteo. Celice: 8 km pod 1000 m, 4 km do 1500 m, 2 km do 2000 m, 1 km nad 2000 m.'; }
+    $id('snowlegdate').textContent=day;
+  }
+  window.snowMapOn=on=>{ SNOWMAP=on; if(map.getLayer('hs')) update(); else map.once('load',update); };
+  const shift=k=>{ const x=new Date(dt.value+'T12:00:00Z'); x.setUTCDate(x.getUTCDate()+k); if(x>=minD&&x<=maxD){ dt.value=iso(x); update(); } };
+  cb.onchange=update; dt.onchange=update; $id('snowprev').onclick=()=>shift(-1); $id('snownext').onclick=()=>shift(1);
+  // legend: collapse to a pill (remembered); drag on desktop via makeMovable (trails.js)
+  const lx=$id('snowlegx'), setMin=v=>{ leg.classList.toggle('min',v); lx.textContent=v?'▸':'–'; lx.title=v?'Pokaži legendo':'Skrij legendo'; try{ localStorage.setItem('dvat3d_snowlegmin',v?'1':'0'); }catch(_){} };
+  try{ setMin(localStorage.getItem('dvat3d_snowlegmin')==='1'); }catch(_){}
+  lx.onclick=e=>{ e.stopPropagation(); setMin(!leg.classList.contains('min')); };
+})();
+
+// --- text scale (map labels + UI), persisted
+const tsc=document.getElementById('tscale'), tscv=document.getElementById('tscalev');
+try{ const s=localStorage.getItem('dvat3d_tscale'); if(s) tsc.value=s; }catch(e){}
+const labelSize=()=>{const k=+tsc.value; return ['interpolate',['linear'],['zoom'],9,11*k,14,14.5*k];};
+function applyScale(){ const k=+tsc.value; tscv.textContent=k.toFixed(1)+'×';
+  document.documentElement.style.setProperty('--ui',Math.min(1.35,0.75+k*0.25));
+  if(map.getLayer('pk-lbl')) map.setLayoutProperty('pk-lbl','text-size',labelSize());
+  try{ localStorage.setItem('dvat3d_tscale',tsc.value); }catch(e){} }
+tsc.oninput=applyScale; applyScale();
+
+// --- border: Natural Earth fallback embedded; upgrade to precise OSM boundary (cached)
+const BKEY='dvat3d_border_osm_v1';
+function setBorder(lines){ const s=map.getSource('border'); if(s) s.setData({type:"Feature",properties:{},geometry:{type:"MultiLineString",coordinates:lines}}); }
+async function loadOsmBorder(){
+  try{ const c=localStorage.getItem(BKEY); if(c){ setBorder(JSON.parse(c)); return; } }catch(e){}
+  const q='[out:json][timeout:60];rel["ISO3166-1"="SI"]["admin_level"="2"];way(r)(46.10,13.25,46.72,15.05);out geom;';
+  for(const u of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter']){
+    try{ const r=await fetch(u,{method:'POST',body:'data='+encodeURIComponent(q)}); if(!r.ok) continue;
+      const j=await r.json(); const lines=j.elements.filter(e=>e.geometry).map(e=>e.geometry.map(g=>[+g.lon.toFixed(6),+g.lat.toFixed(6)]));
+      if(!lines.length) continue; setBorder(lines); try{ localStorage.setItem(BKEY,JSON.stringify(lines)); }catch(e){} return;
+    }catch(e){}
+  }
+}
+map.on('load',loadOsmBorder);
+document.getElementById('border').onchange=e=>['border','border-casing'].forEach(id=>vis(id,e.target.checked));
+
+// --- visited state (localStorage, per browser)
+const VKEY='dvat3d_visited_v1';
+let visited=new Set();
+try{ visited=new Set(JSON.parse(localStorage.getItem(VKEY)||'[]')); }catch(e){}
+const saveV=()=>{ try{ localStorage.setItem(VKEY,JSON.stringify([...visited])); }catch(e){} };
+const byId=Object.fromEntries(PEAKS.map(p=>[p.id,p]));
+const located=PEAKS.filter(p=>p.lat!=null);
+document.getElementById('npk').textContent=located.length;
+const ring=(c,fill='#fff',op=1)=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${fill};border:2px solid ${c};opacity:${op};vertical-align:-1px;margin-right:4px"></span>`;
+document.getElementById('legend').innerHTML=RANGES.map(([r,c])=>ring(c)+r).join('<br>')+'<br>'+ring('#fff','#2e7d32')+'obiskan<br>'+ring('#888','#fff',.55)+'približna lega'+'<br><span style="display:inline-block;width:18px;border-top:5px solid #6a655e;vertical-align:middle;margin-right:4px"></span>cesta<br><span style="display:inline-block;width:18px;border-top:3px solid #d42a1f;vertical-align:middle;margin-right:4px"></span>markirana pot<br><span style="display:inline-block;width:18px;border-top:2px dashed #9c2a1c;vertical-align:middle;margin-right:4px"></span>neoznačena / slaba pot<br><span style="display:inline-block;width:18px;border-top:2px dotted #111;vertical-align:middle;margin-right:4px"></span>ferata';
+
+const fc=()=>({type:"FeatureCollection",features:located.map(p=>({type:"Feature",id:PEAKS.indexOf(p),
+  properties:{id:p.id,name:p.name,elev:p.elev,label:`${p.name}\n${Math.round(p.elev)} m`,col:RCOL[p.range]||'#555',
+    major:p.rank!=null||p.is_sub==='no',v:visited.has(p.id),approx:p.coord_status!=='ok'},
+  geometry:{type:"Point",coordinates:[p.lon,p.lat]}}))});
+
+map.on('load',()=>{
+  map.addSource('peaks',{type:'geojson',data:fc()});
+  map.addLayer({id:'pk',type:'circle',source:'peaks',paint:{
+    'circle-radius':['interpolate',['linear'],['zoom'],9,['case',['get','major'],4,2.5],13,['case',['get','major'],7,5]],
+    'circle-color':['case',['get','v'],'#2e7d32','#ffffff'],
+    'circle-stroke-color':['case',['get','v'],'#ffffff',['get','col']],
+    'circle-stroke-width':['case',['get','v'],2,2.5],
+    'circle-stroke-opacity':['case',['get','approx'],0.55,1],
+    'circle-pitch-alignment':'viewport'}});
+  map.addLayer({id:'pk-lbl',type:'symbol',source:'peaks',
+    filter:['any',['get','major'],['>=',['zoom'],12.5]],
+    layout:{'text-field':['get','label'],'text-font':['Noto Sans Bold'],'text-size':labelSize(),
+      'text-anchor':'left','text-offset':[0.8,0],'text-justify':'left','text-max-width':12,
+      'symbol-sort-key':['-',0,['get','elev']],'text-optional':true},
+    paint:{'text-color':['case',['get','v'],'#1b5e20','#1d2321'],'text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.6}});
+  for(const id of ['pk','pk-lbl']){
+    map.on('click',id,e=>{e.preventDefault(); openPeak(e.features[0].properties.id);});
+    map.on('mouseenter',id,()=>map.getCanvas().style.cursor='pointer');
+    map.on('mouseleave',id,()=>map.getCanvas().style.cursor='');
+  }
+  applyScale(); refresh();
+});
+const refreshMap=()=>{const s=map.getSource('peaks'); if(s) s.setData(fc());};
+
+// --- popup
+let popup=null;
+function openPeak(id,fly){
+  if(window.DRAW_ON) return;
+  const p=byId[id]; if(!p||p.lat==null) return;
+  if(fly) map.flyTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),pitch:60,essential:true});
+  const box=document.createElement('div');
+  box.innerHTML=`<b>${p.name}</b> · ${p.elev.toFixed(p.elev%1?1:0)} m${p.rank?` · <span title="rang po prominenci">#${p.rank}</span>`:''}
+    <br><span style="color:#666">${p.range}${p.massif?' · '+p.massif:''}${p.is_sub==='yes'?' · podvrh':''}</span>
+    ${p.prom!=null?`<br>Prominenca: ${Math.round(p.prom)} m`:''}
+    ${p.dem_h!=null?`<br><span style="color:#666">LiDAR: ${p.dem_h.toFixed(1)} m</span>`:''}
+    ${p.coord_status!=='ok'?'<br><span class="warn">Približna lega (±150 m)</span>':''}
+    ${window.snowAt&&$id('snow').checked&&snowAt(p.lat,p.lon)!=null?`<br>❄ Sneg (model, ${snowDay()}): ~${snowAt(p.lat,p.lon)} cm`:''}`;
+  const lab=document.createElement('label'); lab.style.marginTop='6px';
+  const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=visited.has(id);
+  cb.onchange=()=>toggleV(id,cb.checked); lab.append(cb,' Obiskal sem');
+  box.append(lab);
+  const row=document.createElement('div'); row.className='pbtns';
+  const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
+  const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
+  row.append(rb,vb); box.append(row);
+  if(popup) popup.remove();
+  popup=new maplibregl.Popup({offset:10,maxWidth:'260px'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
+}
+function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }
+
+// --- drawer
+const $=id=>document.getElementById(id), drawer=$('drawer');
+$('openDrawer').onclick=()=>{ drawer.classList.add('open'); document.body.classList.remove('menu'); };
+$('mclose').onclick=()=>document.body.classList.remove('menu');
+function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
+  const st={layers:document.body.classList.contains('menu'),peaks:drawer.classList.contains('open'),draw:!!window.DRAW_ON};
+  tb.querySelectorAll('button').forEach(b=>b.classList.toggle('on',st[b.dataset.t])); }
+$('tabbar').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; const T=b.dataset.t;
+  const closeAll=()=>{ document.body.classList.remove('menu'); drawer.classList.remove('open'); };
+  if(T==='layers'){ const on=document.body.classList.contains('menu'); closeAll(); if(!on){ if(window.DRAW_ON) stopDraw(); document.body.classList.add('menu'); } }
+  else if(T==='peaks'){ const on=drawer.classList.contains('open'); closeAll(); if(!on){ if(window.DRAW_ON) stopDraw(); drawer.classList.add('open'); } }
+  else if(T==='draw'){ closeAll(); window.DRAW_ON?stopDraw():startDraw(); }
+  syncTabs(); };
+new MutationObserver(syncTabs).observe(document.body,{attributes:true,attributeFilter:['class']});
+new MutationObserver(syncTabs).observe(drawer,{attributes:true,attributeFilter:['class']});
+map.on('movestart',e=>{ if(e.originalEvent) document.body.classList.remove('menu'); });
+$('closeDrawer').onclick=()=>drawer.classList.remove('open');
+let FLT='all'; const CLOSED=new Set();
+$('q').oninput=renderList;
+$('chips').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; FLT=b.dataset.f;
+  $('chips').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); renderList(); };
+const norm=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const cntV=list=>list.filter(p=>visited.has(p.id)).length;
+const barH=(n,N)=>`<div class="bar"><i style="width:${N?100*n/N:0}%"></i></div>`;
+function renderList(){
+  const q=norm($('q').value.trim()), f=FLT;
+  const ok=p=>(!q||norm(p.name+' '+(p.pb_name||'')).includes(q))&&(f==='all'||(f==='rank'&&p.rank)||(f==='todo'&&!visited.has(p.id))||(f==='done'&&visited.has(p.id)));
+  let h='';
+  for(const [r,c] of RANGES){
+    const all=PEAKS.filter(p=>p.range===r), L=all.filter(ok).sort((a,b)=>b.elev-a.elev); if(!L.length) continue;
+    const closed=CLOSED.has(r)&&!q;
+    h+=`<div class="rg${closed?' closed':''}" data-r="${r}" style="color:${c}"><span class="chev">▾</span>${r}<span class="cnt">${cntV(all)} / ${all.length}</span></div>`;
+    if(closed) continue;
+    h+=L.map(p=>{const v=visited.has(p.id);return `<div class="it${p.rank?'':' sub'}${v?' done':''}"><input type="checkbox" data-id="${p.id}" ${v?'checked':''} aria-label="${p.name}">
+      <span class="nm${p.lat==null?' nc':''}" data-id="${p.id}" ${p.lat==null?'title="Lega še ni določena"':''}>${p.name}</span>
+      ${p.rank?`<span class="rk">#${p.rank}</span>`:''}<span class="el">${Math.round(p.elev)}</span></div>`;}).join('');
+  }
+  $('dlist').innerHTML=h||'<div class="empty">Ni zadetkov.</div>';
+}
+$('dlist').onclick=e=>{const t=e.target;
+  const g=t.closest('.rg'); if(g){ const r=g.dataset.r; CLOSED.has(r)?CLOSED.delete(r):CLOSED.add(r); renderList(); return; }
+  if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
+  else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
+function refresh(){
+  $('vcount').textContent=`${visited.size} / ${PEAKS.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
+  const R=PEAKS.filter(p=>p.rank), nA=cntV(PEAKS), nR=cntV(R);
+  const dOpen=!!$('progress').querySelector('details[open]');
+  $('progress').innerHTML=`<div class="pstat"><div>Vsi vrhovi<br><b>${nA}</b> / ${PEAKS.length}${barH(nA,PEAKS.length)}</div>
+    <div>98 prominentnih<br><b>${nR}</b> / ${R.length}${barH(nR,R.length)}</div></div>
+    <details${dOpen?' open':''}><summary>Po gorstvih</summary>${RANGES.map(([r,c])=>{const L=PEAKS.filter(p=>p.range===r),n=cntV(L);
+      return `<div class="prow"><span style="color:${c}">${r}</span><span>${n} / ${L.length}</span>${barH(n,L.length)}</div>`;}).join('')}</details>`;
+  renderList(); refreshMap();
+}
+$('vexp').onclick=()=>{const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify({visited:[...visited],date:new Date().toISOString()},null,1)],{type:'application/json'}));
+  a.download='moji-dvatisocaki.json'; a.click();};
+$('vimp').onclick=()=>$('vfile').click();
+$('vfile').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text()); (j.visited||[]).forEach(id=>byId[id]&&visited.add(id)); saveV(); refresh();}catch(err){alert('Neveljavna datoteka.');}};
+document.getElementById('peaks').onchange=e=>['pk','pk-lbl'].forEach(id=>vis(id,e.target.checked));
+document.getElementById('labels').onchange=e=>vis('pk-lbl',e.target.checked);
+
+map.on('error',e=>console.warn('map error',e.error&&e.error.message));
+</script>
+<script type="text/plain" id="osmpack"__PACKSRC__>__OSMPACK__</script>
+<script>__PACKJS__
+__TRAILS__
+__V360__</script>
+</body>
+</html>
