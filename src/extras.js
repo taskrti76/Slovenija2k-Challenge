@@ -154,11 +154,23 @@ grp.innerHTML = `<b style="display:block;margin:10px 0 4px;font-size:.86em;text-
 const adv = document.querySelector('details.adv'); if (adv) adv.insertBefore(grp, adv.querySelector('#tstatus'));
 $x('tourBtn').onclick = () => { if (adv) adv.open = false; tour(0); };
 let deferred = null;
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $x('instBtn').style.display = ''; });
-$x('instBtn').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $x('instBtn').style.display = 'none'; };
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+// the browser only offers its install prompt sometimes (not when the app is already installed, shortly after an uninstall,
+// or in some browsers at all) -> the button is always there and falls back to instructions
+if (!standalone) $x('instBtn').style.display = '';
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
+addEventListener('appinstalled', () => { deferred = null; const h=$x('instHint'); h.style.display=''; h.textContent=T('Aplikacija je nameščena — najdeš jo na začetnem zaslonu.'); });
+$x('instBtn').onclick = async () => {
+  if (deferred){ deferred.prompt(); await deferred.userChoice; deferred = null; return; }
+  const h = $x('instHint'); h.style.display = '';
+  h.textContent = /iphone|ipad|ipod/i.test(navigator.userAgent) ? T('iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.')
+    : /samsungbrowser/i.test(navigator.userAgent) ? T('Samsung Internet: meni ☰ → Dodaj stran na → Začetni zaslon.')
+    : T('Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.'); };
 if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)){ const h = $x('instHint'); h.style.display = ''; h.textContent = T('iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.'); }
 EN['iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.'] = 'iPhone: Safari → Share (□↑) → Add to Home Screen.';
+Object.assign(EN, {'Samsung Internet: meni ☰ → Dodaj stran na → Začetni zaslon.':'Samsung Internet: menu ☰ → Add page to → Home screen.',
+  'Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.':'The browser is not offering it right now: menu ⋮ → Install app / Add to Home screen. If it is already installed, remove it first.',
+  'Aplikacija je nameščena — najdeš jo na začetnem zaslonu.':'App installed — find it on your home screen.'});
 if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').then(reg => {
     reg.addEventListener('updatefound', () => { const w = reg.installing; w && w.addEventListener('statechange', () => {
@@ -167,6 +179,8 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 }
 Object.assign(EN, {'Na voljo je nova različica — osveži stran.':'A new version is available — reload the page.'});
+RX.push([/^360 se je prejšnjič sesul — kakovost znižana na (.+)\.$/, '360 crashed last time — quality lowered to $1.'],
+  [/^Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na (.+)\.$/, 'Graphics memory is full — 360 closed, quality lowered to $1.']);
 // offline area: terrain tiles (relief, hillshade, 3D all come from the DEM) for the visible area, zoom 8–14, max ~25 × 25 km.
 // Trails, huts, peaks and the app itself are cached automatically. Satellite / OpenTopoMap are only cached as you view them
 // (their terms do not allow bulk downloading).

@@ -123,6 +123,7 @@ function enter360_(id){
   S.maxZoom = map.getMaxZoom(); map.setMaxZoom(24); S.bounds = map.getMaxBounds(); map.setMaxBounds(null);
   map.setMaxPitch(150); if (map.setCenterClampedToGround) map.setCenterClampedToGround(false);
   map.getCanvasContainer().style.touchAction='none';
+  try{ localStorage.setItem('dvat3d_in360', String(qi)); }catch(_){}
   document.body.classList.add('in360'); document.body.classList.remove('menu'); if (typeof drawer!=='undefined') drawer.classList.remove('open');
   goTo(p);
 }
@@ -139,6 +140,7 @@ window.exit360 = () => {
   if (window.__dim && P.dim === 2) window.__dim.set(2, true);
   else map.setTerrain({source:'dem_terrain', exaggeration:+$$('exag').value});
   const r = document.querySelector(`input[name=base][value=${P.base}]`); if (r){ r.checked = true; r.dispatchEvent(new Event('change')); }
+  try{ localStorage.removeItem('dvat3d_in360'); }catch(_){}
   document.body.classList.remove('in360'); map.getCanvasContainer().style.touchAction=''; LBL.innerHTML=''; LB=[];
   // zoom out from the last viewed summit (keeps the direction you were looking)
   const flat = window.__dim && window.__dim.d === 2, pk = S.p;
@@ -183,7 +185,11 @@ const Q = [
 const MOBILE = matchMedia('(pointer:coarse)').matches;
 let qi = window.LITE_ON ? 0 : 1; if(!window.LITE_ON) try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
 let movingPR=false;
-function setPR(pr){ if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
+// phones: cap the number of rendered pixels (GPU memory of the terrain render targets grows with it); the picture stays sharp
+// because phone screens are tiny - 1.5 MP on a 6" screen is still ~1.4 px per CSS pixel
+const PX_BUDGET = window.IS_PHONE ? 1.5e6 : 6e6;
+function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.clientHeight); pr=Math.min(pr, Math.sqrt(PX_BUDGET/css));
+  if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
   try{ map.setSourceTileLodParams(q.sat[0], q.sat[1], 'sat'); map.setSourceTileLodParams(q.dem[0], q.dem[1], 'dem_terrain'); }catch(_){}
@@ -194,6 +200,12 @@ $$('v360q').onclick = e => { const b=e.target.closest('button'); if(!b) return; 
   try{ localStorage.setItem('dvat3d_q360', qi); }catch(_){}
   if (S.on){ applyQuality(); schedule(); } };
 $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi));
+// last visit ended inside 360 (page crashed / was killed for memory) -> start one quality lower and say so
+try{ const c=localStorage.getItem('dvat3d_in360'); if (c!==null){ localStorage.removeItem('dvat3d_in360'); const was=parseInt(c,10);
+  if (was>0){ qi=Math.min(qi,was-1); localStorage.setItem('dvat3d_q360',qi); setTimeout(()=>window.toastErr&&toastErr('360 se je prejšnjič sesul — kakovost znižana na '+Q[qi].n+'.'),2500); } } }catch(_){}
+// graphics memory ran out (WebGL context lost): lower the 360 quality, leave 360; MapLibre restores the map itself
+map.on('webglcontextlost', () => { if (!S.on) return; if (qi>0){ qi--; try{ localStorage.setItem('dvat3d_q360',qi); }catch(_){} }
+  window.toastErr && toastErr('Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na '+Q[qi].n+'.'); try{ exit360(); }catch(_){} });
 applyQuality.restore = ()=>{};
 // adaptive resolution: render lighter while turning, full sharpness ~0.35 s after you stop
 let still=0;

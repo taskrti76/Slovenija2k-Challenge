@@ -381,7 +381,7 @@ const style = {
   version:8,
   glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   sources:{
-    dem_terrain:DEM, dem_hs:DEM, dem_relief:DEM,
+    dem_terrain:DEM, dem_hs:DEM, // relief + snow map share the hillshade source (one DEM copy less in memory)
     sat:{type:"raster",tileSize:256,maxzoom:19,
       tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
       attribution:"Esri, Maxar, Earthstar Geographics"},
@@ -395,14 +395,14 @@ const style = {
   },
   layers:[
     {id:"bg",type:"background",paint:{"background-color":"#e9e4d8"}},
-    {id:"relief",type:"color-relief",source:"dem_relief",paint:{
+    {id:"relief",type:"color-relief",source:"dem_hs",paint:{
       "color-relief-color":["interpolate",["linear"],["elevation"],
         0,"#7fae6a", 400,"#a9c483", 800,"#d8d89c", 1200,"#e4cf98", 1600,"#d2b07f",
         1900,"#bfa38a", 2200,"#c9c3bb", 2500,"#e6e3df", 2900,"#ffffff"],
       "color-relief-opacity":1}},
     {id:"sat",type:"raster",source:"sat",layout:{visibility:"none"}},
     {id:"topo",type:"raster",source:"topo",layout:{visibility:"none"}},
-    {id:"snowbase",type:"color-relief",source:"dem_relief",layout:{visibility:"none"},paint:{
+    {id:"snowbase",type:"color-relief",source:"dem_hs",layout:{visibility:"none"},paint:{
       "color-relief-color":["interpolate",["linear"],["elevation"],0,"#eef1e6",600,"#e9ecdc",1200,"#e6e1cf",1800,"#ddd8cb",2400,"#d4d2cf",2900,"#cfcfd3"],"color-relief-opacity":1}},
     {id:"hs",type:"hillshade",source:"dem_hs",paint:{
       "hillshade-method":"igor","hillshade-exaggeration":0.55,
@@ -427,12 +427,15 @@ const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.
   return s>=3; })();
 const SL_LOCALE=(()=>{ try{ return (localStorage.getItem('dvat3d_lang')||((navigator.language||'sl').toLowerCase().startsWith('sl')?'sl':'en'))==='sl'; }catch(_){ return true; } })()
   ? {'NavigationControl.ZoomIn':'Približaj','NavigationControl.ZoomOut':'Oddalji','NavigationControl.ResetBearing':'Povleci za vrtenje, klik = sever','FullscreenControl.Enter':'Celozaslonski način','FullscreenControl.Exit':'Izhod iz celozaslonskega načina','GeolocateControl.FindMyLocation':'Moja lokacija','GeolocateControl.LocationNotAvailable':'Lokacija ni na voljo','Popup.Close':'Zapri','AttributionControl.ToggleAttribution':'Viri','ScaleControl.Meters':'m','ScaleControl.Kilometers':'km'} : undefined;
+const IS_PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<900; window.IS_PHONE=IS_PHONE;
 const map = new maplibregl.Map({ locale:SL_LOCALE,
   container:"map", style,
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
   maxBounds:[[12.9,45.3],[16.7,47.0]], // all of Slovenia (Snežnik, Pohorje …)
-  maxTileCacheZoomLevels:LITE_ON?5:8,
-  ...(LITE_ON?{}:{maxTileCacheSize:900}), // bigger tile cache: turning back in 360 / panning back reuses tiles instead of reloading
+  // tile cache: every cached DEM / satellite tile keeps memory (GPU texture + decoded heights). 900 tiles crashed phones in 360,
+  // so phones keep a small cache (turning back in 360 reloads from the browser / service-worker cache instead - fast, no network)
+  maxTileCacheZoomLevels:LITE_ON?4:IS_PHONE?5:8,
+  maxTileCacheSize:LITE_ON?60:IS_PHONE?(navigator.deviceMemory&&navigator.deviceMemory<=4?120:180):500,
   ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
   hash:true
 });
@@ -1919,6 +1922,7 @@ function enter360_(id){
   S.maxZoom = map.getMaxZoom(); map.setMaxZoom(24); S.bounds = map.getMaxBounds(); map.setMaxBounds(null);
   map.setMaxPitch(150); if (map.setCenterClampedToGround) map.setCenterClampedToGround(false);
   map.getCanvasContainer().style.touchAction='none';
+  try{ localStorage.setItem('dvat3d_in360', String(qi)); }catch(_){}
   document.body.classList.add('in360'); document.body.classList.remove('menu'); if (typeof drawer!=='undefined') drawer.classList.remove('open');
   goTo(p);
 }
@@ -1935,6 +1939,7 @@ window.exit360 = () => {
   if (window.__dim && P.dim === 2) window.__dim.set(2, true);
   else map.setTerrain({source:'dem_terrain', exaggeration:+$$('exag').value});
   const r = document.querySelector(`input[name=base][value=${P.base}]`); if (r){ r.checked = true; r.dispatchEvent(new Event('change')); }
+  try{ localStorage.removeItem('dvat3d_in360'); }catch(_){}
   document.body.classList.remove('in360'); map.getCanvasContainer().style.touchAction=''; LBL.innerHTML=''; LB=[];
   // zoom out from the last viewed summit (keeps the direction you were looking)
   const flat = window.__dim && window.__dim.d === 2, pk = S.p;
@@ -1979,7 +1984,11 @@ const Q = [
 const MOBILE = matchMedia('(pointer:coarse)').matches;
 let qi = window.LITE_ON ? 0 : 1; if(!window.LITE_ON) try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
 let movingPR=false;
-function setPR(pr){ if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
+// phones: cap the number of rendered pixels (GPU memory of the terrain render targets grows with it); the picture stays sharp
+// because phone screens are tiny - 1.5 MP on a 6" screen is still ~1.4 px per CSS pixel
+const PX_BUDGET = window.IS_PHONE ? 1.5e6 : 6e6;
+function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.clientHeight); pr=Math.min(pr, Math.sqrt(PX_BUDGET/css));
+  if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
   try{ map.setSourceTileLodParams(q.sat[0], q.sat[1], 'sat'); map.setSourceTileLodParams(q.dem[0], q.dem[1], 'dem_terrain'); }catch(_){}
@@ -1990,6 +1999,12 @@ $$('v360q').onclick = e => { const b=e.target.closest('button'); if(!b) return; 
   try{ localStorage.setItem('dvat3d_q360', qi); }catch(_){}
   if (S.on){ applyQuality(); schedule(); } };
 $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi));
+// last visit ended inside 360 (page crashed / was killed for memory) -> start one quality lower and say so
+try{ const c=localStorage.getItem('dvat3d_in360'); if (c!==null){ localStorage.removeItem('dvat3d_in360'); const was=parseInt(c,10);
+  if (was>0){ qi=Math.min(qi,was-1); localStorage.setItem('dvat3d_q360',qi); setTimeout(()=>window.toastErr&&toastErr('360 se je prejšnjič sesul — kakovost znižana na '+Q[qi].n+'.'),2500); } } }catch(_){}
+// graphics memory ran out (WebGL context lost): lower the 360 quality, leave 360; MapLibre restores the map itself
+map.on('webglcontextlost', () => { if (!S.on) return; if (qi>0){ qi--; try{ localStorage.setItem('dvat3d_q360',qi); }catch(_){} }
+  window.toastErr && toastErr('Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na '+Q[qi].n+'.'); try{ exit360(); }catch(_){} });
 applyQuality.restore = ()=>{};
 // adaptive resolution: render lighter while turning, full sharpness ~0.35 s after you stop
 let still=0;
@@ -2237,11 +2252,23 @@ grp.innerHTML = `<b style="display:block;margin:10px 0 4px;font-size:.86em;text-
 const adv = document.querySelector('details.adv'); if (adv) adv.insertBefore(grp, adv.querySelector('#tstatus'));
 $x('tourBtn').onclick = () => { if (adv) adv.open = false; tour(0); };
 let deferred = null;
-addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $x('instBtn').style.display = ''; });
-$x('instBtn').onclick = async () => { if (!deferred) return; deferred.prompt(); await deferred.userChoice; deferred = null; $x('instBtn').style.display = 'none'; };
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+// the browser only offers its install prompt sometimes (not when the app is already installed, shortly after an uninstall,
+// or in some browsers at all) -> the button is always there and falls back to instructions
+if (!standalone) $x('instBtn').style.display = '';
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
+addEventListener('appinstalled', () => { deferred = null; const h=$x('instHint'); h.style.display=''; h.textContent=T('Aplikacija je nameščena — najdeš jo na začetnem zaslonu.'); });
+$x('instBtn').onclick = async () => {
+  if (deferred){ deferred.prompt(); await deferred.userChoice; deferred = null; return; }
+  const h = $x('instHint'); h.style.display = '';
+  h.textContent = /iphone|ipad|ipod/i.test(navigator.userAgent) ? T('iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.')
+    : /samsungbrowser/i.test(navigator.userAgent) ? T('Samsung Internet: meni ☰ → Dodaj stran na → Začetni zaslon.')
+    : T('Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.'); };
 if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)){ const h = $x('instHint'); h.style.display = ''; h.textContent = T('iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.'); }
 EN['iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.'] = 'iPhone: Safari → Share (□↑) → Add to Home Screen.';
+Object.assign(EN, {'Samsung Internet: meni ☰ → Dodaj stran na → Začetni zaslon.':'Samsung Internet: menu ☰ → Add page to → Home screen.',
+  'Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.':'The browser is not offering it right now: menu ⋮ → Install app / Add to Home screen. If it is already installed, remove it first.',
+  'Aplikacija je nameščena — najdeš jo na začetnem zaslonu.':'App installed — find it on your home screen.'});
 if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').then(reg => {
     reg.addEventListener('updatefound', () => { const w = reg.installing; w && w.addEventListener('statechange', () => {
@@ -2250,6 +2277,8 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
 }
 Object.assign(EN, {'Na voljo je nova različica — osveži stran.':'A new version is available — reload the page.'});
+RX.push([/^360 se je prejšnjič sesul — kakovost znižana na (.+)\.$/, '360 crashed last time — quality lowered to $1.'],
+  [/^Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na (.+)\.$/, 'Graphics memory is full — 360 closed, quality lowered to $1.']);
 // offline area: terrain tiles (relief, hillshade, 3D all come from the DEM) for the visible area, zoom 8–14, max ~25 × 25 km.
 // Trails, huts, peaks and the app itself are cached automatically. Satellite / OpenTopoMap are only cached as you view them
 // (their terms do not allow bulk downloading).
