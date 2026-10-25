@@ -2,6 +2,28 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.16 — 2026-10-25
+- 360 sunrise / sunset: time and sun position where the sun actually clears the ridges (terrain horizon from the DEM up to 90 km,
+  earth curvature + refraction), not the flat horizon -> sun disc no longer shows through mountains; later sunrise / earlier sunset than the flat-horizon time.
+- Leaving 360: camera zooms out from the last summit (keeps your view direction).
+- Route "Od strani" / picking a route: camera now looks at the face the trail climbs (from the trail's side toward the summit),
+  turns the short way round, smoother 2 s ease.
+- Walking time no longer shows "5:60 h" (rounding).
+
+## web-v0.15 — 2026-10-25
+- Trail pack rebuilt with ferrata grades (OSM via_ferrata_scale), pruned to 4.2 MB.
+- Ferrata signs: 82 (paths tagged with a ferrata grade count too); grade text normalised from OSM's mixed notations
+  ("3"→C, "2+"→B+, "2-3"→B–C, "1.5"→A/B, letters kept).
+- Layers → Poti in koče (OSM): checkbox "Ferate (oznake + težavnost)" to show/hide ferrata signs.
+## web-v0.14 — 2026-10-25
+- Routes: ferrata variants near the summit are added (summit -> ferrata -> nearest parking), e.g. Mangart: Via Italiana (T6, 3.4 km);
+  near-duplicates are only merged when difficulty / ferrata / official route are the same.
+- Last bit to the summit without a mapped trail (≤250 m) drawn dashed and listed ("zadnjih 193 m brez poti", e.g. Planjava).
+- Via ferrata signs on the map (orange icon, name from the way or its hiking route, grade A–F from OSM via_ferrata_scale + SAC).
+  Pack keeps via_ferrata_scale (pack.js + dvat_fetch.py) - re-run dvat_fetch.py to get the A–F grades.
+- Save / delete route: in-page dialog instead of the browser's prompt/confirm.
+- Phone: language switch no longer under the panel's close ×.
+
 ## web-v0.13 — 2026-10-25
 - Installable app (PWA): manifest + service worker (sw.js, versioned by build hash). App files and trail data cached on install,
   map tiles cached as viewed (max 4000), "Namesti aplikacijo" button (Android/desktop), iPhone hint (Share → Add to Home Screen),

@@ -168,6 +168,20 @@ function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
   }
   return out;
 }
+// via ferratas near the summit (e.g. Via Italiana on Mangart): summit -> top of the ferrata -> along it -> down to the nearest parking
+function ferrataRoutes(g, s, base, starts, RMAX=4000){
+  const isF=q=>g.W[g.wy[q]].kind==='f', seenF=new Set(), out=[], startAt=new Map(); for(const st of starts) if(st.node>=0) startAt.set(st.node,st);
+  for(let u=0;u<g.n;u++){ if(!(base.dist[u]<=RMAX)||seenF.has(u)) continue; let has=false; for(let q=g.off[u];q<g.off[u+1];q++) if(isF(q)) has=true; if(!has) continue;
+    const comp=searchF(g,u,8000,isF); comp.seen.forEach(x=>seenF.add(x));
+    let en=u; for(const x of comp.seen) if(base.dist[x]<base.dist[en]) en=x;            // ferrata point closest to the summit
+    const fr=searchF(g,en,8000,isF); let far=en; for(const x of fr.seen) if(hav(g.lat[x],g.lon[x],g.lat[s],g.lon[s])>hav(g.lat[far],g.lon[far],g.lat[s],g.lon[s])) far=x;
+    if(far===en||fr.dist[far]<80) continue;
+    const r2=search(g,far,9000); let bn=-1, bd=Infinity; for(const [n] of startAt) if(r2.dist[n]<bd&&hav(g.lat[n],g.lon[n],g.lat[s],g.lon[s])>hav(g.lat[far],g.lon[far],g.lat[s],g.lon[s])){ bd=r2.dist[n]; bn=n; }
+    if(bn<0) continue;
+    const head=trace(g,base.pe,en), mid=trace(g,fr.pe,far), tail=trace(g,r2.pe,bn);
+    const nodes=tail.nodes.concat(mid.nodes.slice(1),head.nodes.slice(1)), edges=tail.edges.concat(mid.edges,head.edges);
+    const W=g.W[g.wy[mid.edges[0]]]; out.push({end:bn, st:startAt.get(bn), nodes, edges, set:new Set(nodes), fname:W.name||'', frel:W.rel?W.rel.find(ri=>!relLong(RELS[ri])):undefined}); }
+  return out; }
 function peakRoutes(g, la, lo, starts, opt={}){
   const s = nearestNode(g, la, lo, opt.snap||250, 0, true); if (s<0) return null;
   const {dist, pe} = search(g, s, opt.maxCost||30000);
@@ -188,9 +202,14 @@ function peakRoutes(g, la, lo, starts, opt={}){
     if (acc.length >= (opt.max||7)+4) break;
     const st=pathStats(g, rr.edges);
     if (st.len > Math.max(2.2*best, best+6000)) continue;            // absurd detours
-    const dup=acc.find(a=>{ let k=0; for(const x of rr.nodes) if(a.set.has(x)) k++; return k/rr.nodes.length>0.7; });
+    const dup=acc.find(a=>{ let k=0; for(const x of rr.nodes) if(a.set.has(x)) k++; return k/rr.nodes.length>0.7 && a.stats.ferrata===st.ferrata && Math.abs(a.stats.sac-st.sac)<2; });
     if (dup) continue;
     acc.push({start:rr.st?{...rr.st}:{node:rr.end, name:'', lat:g.lat[rr.end], lon:g.lon[rr.end], kind:'rel'}, rel:rr.ri, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:st.len, coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: st});
+  }
+  for (const fr of ferrataRoutes(g, s, {dist, pe}, starts)){
+    const st=pathStats(g, fr.edges); if (st.len > Math.max(2.5*best, best+7000)) continue;
+    if (acc.some(a=>a.stats.ferrata && [...fr.set].filter(x=>a.set.has(x)).length>0.8*fr.set.size)) continue;
+    acc.push({start:{...fr.st}, rel:fr.frel!=null?fr.frel:undefined, fname:fr.fname, set:fr.set, nodes:fr.nodes, edges:fr.edges, cost:st.len, coords:fr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats:st});
   }
   // label: relation that covers most of the route; bonus if it names this peak, small bonus for PZS marking
   const pn=(opt.peakName||'').toLowerCase().split(/[ (]/)[0];
@@ -202,7 +221,9 @@ function peakRoutes(g, la, lo, starts, opt={}){
   keep.sort((a,b)=>(b.rel!=null)-(a.rel!=null)||a.stats.len-b.stats.len);
   const fin=[];
   for (const a of keep){ if (fin.length>=(opt.max||7)+2) break;
-    if (fin.some(f=>hav(f.start.lat,f.start.lon,a.start.lat,a.start.lon)<600 && [...a.set].filter(x=>f.set.has(x)).length>0.5*a.set.size)) continue;
+    if (fin.some(f=>{ if(hav(f.start.lat,f.start.lon,a.start.lat,a.start.lon)>=600) return false; const ov=[...a.set].filter(x=>f.set.has(x)).length/a.set.size;
+      const differs=a.stats.ferrata!==f.stats.ferrata || Math.abs(a.stats.sac-f.stats.sac)>=2 || (a.rel!=null&&f.rel!=null&&a.rel!==f.rel); // e.g. Via Italiana vs normal way
+      return ov>0.85 || (ov>0.5 && !differs); })) continue;
     fin.push(a); }
   keep=fin.sort((a,b)=>a.stats.len-b.stats.len);
   return {summit:s, routes:keep};
@@ -388,7 +409,7 @@ function profileSVG(P, w=300, h=86){
     <text x="2" y="10" font-size="10" fill="currentColor">${Math.round(mx)} m</text><text x="2" y="${h-6}" font-size="10" fill="currentColor">${Math.round(mn)} m</text>
     <text x="${w-2}" y="${h-6}" font-size="10" text-anchor="end" fill="currentColor">${P.km.toFixed(1)} km</text></svg>`;
 }
-const fmtT=hh=>`${Math.floor(hh)}:${String(Math.round((hh%1)*60)).padStart(2,'0')} h`;
+const fmtT=hh=>{ const m=Math.round(hh*60); return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} h`; };
 const SACT=['','T1','T2','T3','T4','T5','T6'];
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function download(name, text, type='application/gpx+xml'){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
@@ -406,11 +427,22 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
   else if(kind==='park'){ rr(6,6,36,36,7); c.fillStyle='#1f5fbf'; c.fill(); c.stroke(); c.fillStyle='#fff'; c.font='bold 28px system-ui,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('P',24,26); }
   else if(kind==='th'){ c.beginPath(); c.arc(24,24,18,0,7); c.fillStyle='#2e7d32'; c.fill(); c.stroke(); c.fillStyle='#fff'; c.beginPath(); c.moveTo(24,13); c.lineTo(34,32); c.lineTo(14,32); c.closePath(); c.fill(); }
   else if(kind==='spring'){ c.beginPath(); c.moveTo(24,6); c.bezierCurveTo(36,22,38,28,38,31); c.arc(24,31,14,0,Math.PI); c.bezierCurveTo(10,28,12,22,24,6); c.fillStyle='#1e88e5'; c.fill(); c.stroke(); }
+  else if(kind==='ferr'){ rr(5,5,38,38,9); c.fillStyle='#e65100'; c.fill(); c.stroke(); // via ferrata: cable + rungs
+    c.strokeStyle='#fff'; c.lineWidth=3.2; c.beginPath(); c.moveTo(14,36); c.lineTo(34,12); c.stroke(); c.lineWidth=2.6;
+    for(const f of [.25,.5,.75]){ const x=14+20*f, y=36-24*f; c.beginPath(); c.moveTo(x-5,y-4); c.lineTo(x+5,y+4); c.stroke(); } }
   return c.getImageData(0,0,S,S); }
 
 // ---------- drawing colour (selectable, remembered) ----------
 const DCOLS=[['#2979ff','modra'],['#00b8d4','cian'],['#ff6d00','oranžna'],['#aa00ff','vijolična'],['#00c853','zelena'],['#ffd600','rumena'],['#111111','črna']];
 let DCOL='#2979ff'; try{ const c=localStorage.getItem('dvat3d_dcol'); if(c&&DCOLS.some(x=>x[0]===c)) DCOL=c; }catch(_){}
+// in-page dialog (text input, or yes/no when def===null) - replaces the browser's prompt()/confirm() boxes
+window.askText=(title,def)=>new Promise(res=>{ const d=document.createElement('div'); d.className='dlg';
+  d.innerHTML=`<form class="dlgc"><b>${title}</b>${def!==null?`<input type="text" maxlength="80">`:''}<div class="dlgb"><button type="button" class="c">Prekliči</button><button type="submit" class="o">${def!==null?'Shrani':'Izbriši'}</button></div></form>`;
+  document.body.append(d); const inp=d.querySelector('input'); if(inp){ inp.value=def; setTimeout(()=>{ inp.focus(); inp.select(); },30); } else setTimeout(()=>d.querySelector('.o').focus(),30);
+  const done=v=>{ d.remove(); res(v); };
+  d.querySelector('form').onsubmit=e=>{ e.preventDefault(); done(inp?inp.value.trim():true); };
+  d.querySelector('.c').onclick=()=>done(null); d.onclick=e=>{ if(e.target===d) done(null); };
+  d.addEventListener('keydown',e=>{ if(e.key==='Escape') done(null); }); });
 window.setDrawColor=c=>{ DCOL=c; try{ localStorage.setItem('dvat3d_dcol',c); }catch(_){}
   if(map.getLayer('dr-line')){ map.setPaintProperty('dr-line','line-color',c);
     map.setPaintProperty('dr-pts','circle-stroke-color',['case',['get','sel'],'#ffb300',['==',['get','r'],'m'],c,'#ffffff']); }
@@ -443,7 +475,7 @@ const EMPTY={type:'FeatureCollection',features:[]};
 const status=t=>{ const s=el('tstatus'); if(s) s.textContent=t; };
 
 function addLayers(){
-  for(const k of ['hut','biv','park','th','spring']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
+  for(const k of ['hut','biv','park','th','spring','ferr']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
   if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:0.5,attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
@@ -465,9 +497,10 @@ function addLayers(){
     paint:{'line-color':'#111','line-width':['interpolate',['linear'],['zoom'],11,1.5,16,3.2],'line-dasharray':[0.5,1.4]}});
   // routes
   if(!map.getSource('routes')) map.addSource('routes',{type:'geojson',data:EMPTY});
-  add({id:'rt-alt',type:'line',source:'routes',filter:['!',['get','sel']],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#ff8f00','line-width':3,'line-opacity':.75}});
-  add({id:'rt-sel-c',type:'line',source:'routes',filter:['get','sel'],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#fff','line-width':8}});
-  add({id:'rt-sel',type:'line',source:'routes',filter:['get','sel'],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#1565c0','line-width':4.5}});
+  add({id:'rt-alt',type:'line',source:'routes',filter:['all',['!',['get','sel']],['!',['has','gap']]],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#ff8f00','line-width':3,'line-opacity':.75}});
+  add({id:'rt-sel-c',type:'line',source:'routes',filter:['all',['get','sel'],['!',['has','gap']]],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#fff','line-width':8}});
+  add({id:'rt-sel',type:'line',source:'routes',filter:['all',['get','sel'],['!',['has','gap']]],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#1565c0','line-width':4.5}});
+  add({id:'rt-gap',type:'line',source:'routes',filter:['has','gap'],layout:{'line-cap':'round'},paint:{'line-color':['case',['get','sel'],'#1565c0','#ff8f00'],'line-width':3,'line-dasharray':[1,1.6]}}); // last bit without a mapped trail
   // my routes + drawing
   if(!map.getSource('myroutes')) map.addSource('myroutes',{type:'geojson',data:EMPTY});
   add({id:'my-rt',type:'line',source:'myroutes',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#6a1b9a','line-width':3.5,'line-opacity':.85}});
@@ -491,6 +524,10 @@ function addLayers(){
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':['interpolate',['linear'],['zoom'],10,.55,14,.8],'icon-allow-overlap':true,
       'text-field':['step',['zoom'],'',11.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':11*(+el('tscale').value||1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
     paint:{'text-color':['case',['==',['get','t'],'hut'],'#8e1b14','#a35400'],'text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.5}});
+  if(!map.getSource('ferr')) map.addSource('ferr',{type:'geojson',data:EMPTY});
+  add({id:'ferr-sign',type:'symbol',source:'ferr',minzoom:10.5,layout:{'icon-image':'i-ferr','icon-size':['interpolate',['linear'],['zoom'],11,.5,14,.75],'icon-allow-overlap':true,
+      'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(+el('tscale').value||1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
+    paint:{'text-color':'#bf360c','text-halo-color':'rgba(255,255,255,.92)','text-halo-width':1.6}});
   for(const id of ['poi-hut','poi-park','poi-spring']){
     map.on('click',id,e=>{ if(window.DRAW_ON) return; e.preventDefault(); poiPopup(e.features[0]); });
     map.on('mouseenter',id,()=>map.getCanvas().style.cursor=window.DRAW_ON?'crosshair':'pointer');
@@ -558,6 +595,21 @@ async function build(poi,tr,src){
     const h=k!=='r'?0:/^(primary|secondary|tertiary)/.test(t.highway)?3:/^(service|residential|living_street)$/.test(t.highway)?1:2;
     feats.push({type:'Feature',properties:{k,h,s:SACN[t.sac_scale]||0,v:/^(bad|horrible|no)$/.test(t.trail_visibility||'')?1:0},geometry:{type:'LineString',coordinates:g.map(p=>[p.lon,p.lat])}}); }
   map.getSource('trails-v').setData({type:'FeatureCollection',features:feats});
+  // via ferrata signs: one per named ferrata (way name, else its hiking route), with difficulty (OSM via_ferrata_scale 1-6 = A-F) and SAC grade
+  { const FG={}, VF='ABCDEF';
+    // OSM via_ferrata_scale is written many ways ("3", "2+", "2-3", "1.5", "C", "B/C"): numbers 1-6 -> A-F, x.5 -> X/Y
+    const vfNum=v=>{ const m=String(v).match(/[0-6](?:\.5)?|[A-Fa-f]/g); if(!m) return -1; return Math.max(...m.map(x=>/[A-F]/i.test(x)?VF.indexOf(x.toUpperCase())+1:+x)); };
+    const vfTxt=v=>{ const t=String(v).trim(); if(t==='0') return 'lahka';
+      return t.replace(/([1-6])\.5/g,(m,a)=>VF[a-1]+'/'+VF[a]).replace(/[1-6]/g,d=>VF[d-1]).replace(/-/g,'–'); };
+    for(const w of ways){ const t=w.tags||{}; if(t.highway!=='via_ferrata'&&t.via_ferrata_scale==null) continue; const g=(w.geometry||[]).filter(Boolean); if(g.length<2) continue;
+      let nm=t.name||''; if(!nm&&w.rel) for(const ri of w.rel){ const R=RELS[ri]; if(R&&R.name&&!relLong(R)){ nm=R.name; break; } }
+      const key=(nm||'#'+w.id)+'|'+Math.round(g[0].lat*20)+','+Math.round(g[0].lon*20); let o=FG[key]; if(!o) o=FG[key]={name:nm,best:g,len:0,sac:0,fs:-1};
+      let L=0; for(let i=1;i<g.length;i++) L+=hav(g[i-1].lat,g[i-1].lon,g[i].lat,g[i].lon); o.len+=L; if(g.length>o.best.length) o.best=g;
+      o.sac=Math.max(o.sac,SACN[t.sac_scale]||0); if(t.via_ferrata_scale!=null){ const f=vfNum(t.via_ferrata_scale); if(f>o.fs){ o.fs=f; o.fsTxt=vfTxt(t.via_ferrata_scale); } } }
+    const ff=[]; for(const o of Object.values(FG)){ if(!o.name&&o.len<120) continue; const q=o.best[Math.floor(o.best.length/2)];
+      const grade=[o.fs>=0?o.fsTxt:'', o.sac?SACT[o.sac]:''].filter(Boolean).join(' · ');
+      ff.push({type:'Feature',properties:{t:[o.name||'Ferata', grade].filter(Boolean).join('\n'),len:Math.round(o.len)},geometry:{type:'Point',coordinates:[q.lon,q.lat]}}); }
+    if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); }
   // POIs
   const pf=[]; STARTS=[]; HUTS=[]; PLACES=[];
   for(const e of poi.elements){ if(e.type==='relation') continue; const t=e.tags||{}, la=e.lat??e.center?.lat, lo=e.lon??e.center?.lon; if(la==null) continue;
@@ -593,7 +645,9 @@ async function routeProfiles(){ const cur=RT; if(!cur) return;
     // longer than 11 h of walking (DIN 33466) -> remove, unless it is the only way up
     if(r.P&&walkTime(r.P.km,r.P.up,r.P.down)>11&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
     if(RT===cur) renderRoutes(); } }
-function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.map((r,i)=>({type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:r.coords}}))}); }
+function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=g?r.coords.slice(0,-1):r.coords;
+  const f=[{type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:c}}];
+  if(g) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true},geometry:{type:'LineString',coordinates:r.coords.slice(-2)}}); return f; })}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start
 window.peakRoutesUI = async function(id){
   const p=byId[id]; if(!p) return; if(popup) popup.remove();
@@ -611,7 +665,7 @@ window.peakRoutesUI = async function(id){
       <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
   const MAXKM=22; // > ~11 h walking: dropped (checked again with the height profile)
   res.routes=res.routes.filter((r,i,a)=>r.stats.len/1000<=MAXKM||a.length===1);
-  res.routes.forEach(r=>{ const pk=[p.lon,p.lat]; r.coords=[...r.coords,pk];
+  res.routes.forEach(r=>{ const pk=[p.lon,p.lat], last=r.coords[r.coords.length-1]; r.gap=Math.round(hav(last[1],last[0],p.lat,p.lon)); r.coords=[...r.coords,pk];
     if(r.start.kind==='rel'){ const ns=nearStart(r.start.lat,r.start.lon); if(ns) r.start={...ns,node:r.start.node}; }
     // join the drawn line to the actual parking / hut point
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
@@ -635,9 +689,15 @@ window.sideView=()=>{ if(!RT) return; const r=RT.routes[RT.sel], C=r.coords; if(
   const at=(brg,d)=>{ const t=brg*Math.PI/180; return {lng:ctr.lng+Math.sin(t)*d/KX, lat:ctr.lat+Math.cos(t)*d/KY}; };
   const hSide=brg=>{ let h=0,n=0; for(const d of [1200,2500,4000]){ const e=map.queryTerrainElevation(at(brg,d)); if(e!=null){ h+=e; n++; } } return n?h/n:null; };
   let side=axisB+90; const h1=hSide(axisB+90), h2=hSide(axisB-90); if(h1!=null&&h2!=null&&h2<h1) side=axisB-90;
+  // face of the mountain the trail climbs: direction summit -> upper half of the route; camera stands out on that side looking at the summit
+  const pk=C[C.length-1], U=C.slice(Math.floor(C.length*0.4),-1); let fx=0,fy=0;
+  for(const [lo,la] of U){ const x=(lo-pk[0])*KX, y=(la-pk[1])*KY, d=Math.hypot(x,y); if(d>30){ fx+=x/d; fy+=y/d; } }
+  if(Math.hypot(fx,fy)>0.3*U.length) side=Math.atan2(fx,fy)*180/Math.PI;
   const bearing=((side+180)%360+360)%360, flat=window.__dim&&window.__dim.d===2;
   const cam=map.cameraForBounds(b,{padding:routePad(),bearing,maxZoom:15}); if(!cam) return;
-  map.easeTo({center:cam.center, zoom:cam.zoom-(flat?0:0.45), bearing, pitch:flat?0:Math.min(map.getMaxPitch(),window.LITE_ON?55:63), duration:window.LITE_ON?900:1600}); };
+  map.stop(); const cur=map.getBearing(); let tb=bearing; while(tb-cur>180) tb-=360; while(tb-cur<-180) tb+=360; // shortest turn
+  map.easeTo({center:cam.center, zoom:cam.zoom-(flat?0:0.5), bearing:tb, pitch:flat?0:Math.min(map.getMaxPitch(),window.LITE_ON?55:60),
+    duration:window.LITE_ON?1000:2000, easing:x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2, essential:true}); };
 window.routesMin=()=>{ if(!RT) return; RT.min=!RT.min; renderRoutes(); fitRoutes(); };
 function renderRoutes(){
   const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`;
@@ -648,8 +708,8 @@ function renderRoutes(){
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       const ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null;
       return `<div class="ri${i===RT.sel?' on':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}</div>
-        ${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
-        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}</div></div>`; }).join('')+
+        ${!R&&r.fname?`<div class="rp">⛓ ${esc(r.fname)}</div>`:''}${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
+        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
@@ -761,11 +821,11 @@ function loadIntoEditor(coords, idx){
 window.drawGPX=()=>{ const c=drawCoords(), P=D.P, nm=D.edit>=0?MY[D.edit].name:'Moja pot'; download(slug(nm)+'.gpx', toGPX(nm, P?P.pts:c, P?P.z:null)); };
 const packCoords=()=>drawCoords().map(([a,b])=>[+a.toFixed(6),+b.toFixed(6)]);
 window.drawSave=()=>{ if(D.edit>=0){ MY[D.edit].coords=packCoords(); MY[D.edit].date=Date.now(); saveMy(); myRender(); drawRender(); return; } drawSaveNew(); };
-window.drawSaveNew=()=>{ const n=prompt('Ime poti:', 'Moja pot '+(MY.length+1)); if(!n) return; MY.push({name:n,coords:packCoords(),date:Date.now()}); D.edit=MY.length-1; saveMy(); myRender(); drawRender(); };
+window.drawSaveNew=async()=>{ const n=await askText('Ime poti', 'Moja pot '+(MY.length+1)); if(!n) return; MY.push({name:n,coords:packCoords(),date:Date.now()}); D.edit=MY.length-1; saveMy(); myRender(); drawRender(); };
 window.myShow=i=>{ const b=new maplibregl.LngLatBounds(); MY[i].coords.forEach(x=>b.extend(x)); map.fitBounds(b,{padding:80,maxZoom:15}); };
 window.myEdit=i=>{ loadIntoEditor(MY[i].coords,i); if(!window.DRAW_ON) startDraw(); myShow(i); drawChanged(); };
 window.myGPX=async i=>{ const r=MY[i], P=await profile(r.coords); download(slug(r.name)+'.gpx', toGPX(r.name,P.pts,P.z)); };
-window.myDel=i=>{ if(!confirm(`Izbrišem "${MY[i].name}"?`)) return; MY.splice(i,1); if(D.edit===i) D.edit=-1; else if(D.edit>i) D.edit--; saveMy(); myRender(); drawRender(); };
+window.myDel=async i=>{ if(!(await askText(`Izbrišem "${MY[i].name}"?`, null))) return; MY.splice(i,1); if(D.edit===i) D.edit=-1; else if(D.edit>i) D.edit--; saveMy(); myRender(); drawRender(); };
 window.routeToDraw=()=>{ const r=RT.routes[RT.sel]; loadIntoEditor(r.coords,-1); closeRoutes(); startDraw(); drawChanged(); };
 function myRender(){ if(map.getSource('myroutes')) map.getSource('myroutes').setData({type:'FeatureCollection',features:MY.map(r=>({type:'Feature',properties:{name:r.name},geometry:{type:'LineString',coordinates:r.coords}}))}); }
 
@@ -822,9 +882,10 @@ map.on('click',drawClick);
 el('trv').onchange=e=>['tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr'].forEach(id=>vis(id,e.target.checked));
 el('huts').onchange=e=>['poi-hut','poi-spring'].forEach(id=>vis(id,e.target.checked));
 el('parks').onchange=e=>vis('poi-park',e.target.checked);
+el('ferrs').onchange=e=>vis('ferr-sign',e.target.checked);
 el('drawBtn').onclick=()=>window.DRAW_ON?stopDraw():startDraw();
 el('reload').onclick=()=>loadData(true);
-el('exportPack').onclick=async()=>{ const r=window.__osmRaw; if(!r){ alert('Podatki se še nalagajo.'); return; }
+el('exportPack').onclick=async()=>{ const r=window.__osmRaw; if(!r){ toastErr('Podatki se še nalagajo.'); return; }
   status('Pakiram …'); const pk=encodePack(r.poi,r.tr); pk.rb=[...ROAD_DONE]; if(EXT_DONE) pk.ext=1; const buf=await gzipJSON(pk);
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([buf],{type:'application/gzip'})); a.download='dvat-osm.json.gz'; a.click();
   status(`Paket: ${(buf.byteLength/1e6).toFixed(1)} MB — pošlji ga za vgradnjo v stran.`); };

@@ -4,7 +4,7 @@ const $$ = id => document.getElementById(id);
 const S = {on:false, raf:0};
 const DIRS = ['S','SV','V','JV','J','JZ','Z','SZ'];
 const HANDLERS = ['dragPan','dragRotate','scrollZoom','touchZoomRotate','touchPitch','keyboard','doubleClickZoom','boxZoom'];
-const HEAVY = ['cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing'];
+const HEAVY = ['cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing'];
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
 let pending=false;
@@ -140,7 +140,11 @@ window.exit360 = () => {
   else map.setTerrain({source:'dem_terrain', exaggeration:+$$('exag').value});
   const r = document.querySelector(`input[name=base][value=${P.base}]`); if (r){ r.checked = true; r.dispatchEvent(new Event('change')); }
   document.body.classList.remove('in360'); map.getCanvasContainer().style.touchAction=''; LBL.innerHTML=''; LB=[];
-  map.jumpTo(Object.assign({}, P.cam, {pitch: Math.min(P.cam.pitch, P.maxPitch)}));
+  // zoom out from the last viewed summit (keeps the direction you were looking)
+  const flat = window.__dim && window.__dim.d === 2, pk = S.p;
+  if (pk && pk.lat != null){ map.jumpTo({center:[pk.lon, pk.lat], zoom:14, bearing:S.brg, pitch:flat?0:Math.min(60, P.maxPitch)});
+    map.easeTo({zoom:Math.min(P.cam.zoom, 11.5), pitch:flat?0:Math.min(P.cam.pitch||50, 55, P.maxPitch), duration:1400}); }
+  else map.jumpTo(Object.assign({}, P.cam, {pitch: Math.min(P.cam.pitch, P.maxPitch)}));
 };
 
 // controls: one finger / mouse drag left-right = turn (with inertia); nothing else
@@ -218,18 +222,37 @@ function sunEvent(p, rise){ // first rising / last setting crossing today; horiz
   for (let m = 2; m <= 1440; m += 2){ const t = day.getTime() + m*6e4, el = solar(t, p.lat, p.lon).el;
     if (rise && prev < lim && el >= lim){ hit = t; break; } if (!rise && prev >= lim && el < lim) hit = t; prev = el; }
   return hit; }
+// terrain horizon seen from the summit in direction az (rad): max elevation angle of the DEM along the ray (earth curvature + refraction)
+const HZ = new Map();
+async function horizonAt(p0, az){
+  const key = p0.id + ':' + Math.round(az/D2R*4); if (HZ.has(key)) return HZ.get(key);
+  const R = 6371000, MAXD = 90000, kx = 1/(111320*Math.cos(p0.lat*D2R)), ky = 1/111320, sx = Math.sin(az), sy = Math.cos(az);
+  const T = {}, need = new Set();
+  for (let d = 0; d <= MAXD; d += 2000){ const X = tx(p0.lon + sx*d*kx), Y = ty(p0.lat + sy*d*ky); need.add(Math.floor(X/TS)+','+Math.floor(Y/TS)); }
+  await Promise.all([...need].map(k => { const [x,y] = k.split(',').map(Number); return tile(x,y).then(h => T[k] = h).catch(()=>{}); }));
+  let best = -0.1;
+  for (let d = 300; d <= MAXD; d += d < 5000 ? 60 : d < 20000 ? 120 : 250){
+    const X = tx(p0.lon + sx*d*kx), Y = ty(p0.lat + sy*d*ky), h = (T[Math.floor(X/TS)+','+Math.floor(Y/TS)] || null);
+    if (!h) continue; const z = h[(Math.floor(Y)%TS)*TS + (Math.floor(X)%TS)];
+    const a = Math.atan((z - d*d*0.87/(2*R) - S.eye)/d); if (a > best) best = a; }
+  HZ.set(key, best); return best; }
+// visible sunrise / sunset: first time after (rise) / last time before (set) the astronomical event that the sun clears the ridges
+async function sunOverRidge(p, rise, t0){
+  for (let k = 0; k <= 120; k++){ const t = t0 + (rise ? 1 : -1)*k*2*6e4, s = solar(t, p.lat, p.lon), hz = await horizonAt(p, s.az);
+    if (s.el >= hz + 0.25*D2R) return {t, az:s.az, el:s.el, hz}; }   // 0.25° = sun's radius: whole disc just above the ridge
+  return null; }
 const SKY = { 1:{"sky-color":"#3c5a8c","horizon-color":"#ffb67a","fog-color":"#f0a982","sky-horizon-blend":0.75,"horizon-fog-blend":0.5,"fog-ground-blend":0.7},
               2:{"sky-color":"#2f2f63","horizon-color":"#ff8a4c","fog-color":"#d97a63","sky-horizon-blend":0.8,"horizon-fog-blend":0.5,"fog-ground-blend":0.7} };
 const sunEl = document.createElement('div'); sunEl.id = 'v360sunDisk'; LBL.parentNode.append(sunEl);
 function placeSun(){
-  if (!SUN.mode || !S.on){ sunEl.style.display = 'none'; return; }
+  if (!SUN.mode || !S.on || SUN.hidden){ sunEl.style.display = 'none'; return; }
   const W = LBL.clientWidth, H = LBL.clientHeight, f = (H/2)/Math.tan(S.fov*D2R/2), B = S.brg*D2R, Lk = S.look*D2R;
   const F = [Math.cos(Lk)*Math.sin(B), Math.cos(Lk)*Math.cos(B), Math.sin(Lk)], Rt = [Math.cos(B), -Math.sin(B), 0], U = [-Math.sin(Lk)*Math.sin(B), -Math.sin(Lk)*Math.cos(B), Math.cos(Lk)];
   const el = Math.max(SUN.el, 0.004), v = [Math.cos(el)*Math.sin(SUN.az), Math.cos(el)*Math.cos(SUN.az), Math.sin(el)];
   const zc = v[0]*F[0] + v[1]*F[1] + v[2]*F[2]; if (zc < 0.05){ sunEl.style.display = 'none'; return; }
   const x = W/2 + (v[0]*Rt[0] + v[1]*Rt[1])/zc*f, y = H/2 - (v[0]*U[0] + v[1]*U[1] + v[2]*U[2])/zc*f;
   sunEl.style.display = 'block'; sunEl.style.transform = `translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-50%)`; }
-function setSun(mode){
+async function setSun(mode){
   const btn = $$('v360sun');
   if (mode && !SUN.saved){ // remember what we change
     SUN.saved = {sky: map.getSky ? map.getSky() : null, hsVis: map.getLayoutProperty('hs','visibility'),
@@ -241,9 +264,12 @@ function setSun(mode){
     if (sv){ try{ if (sv.sky) map.setSky(sv.sky); sv.hs.forEach(([k,v])=>{ try{ map.setPaintProperty('hs',k,v); }catch(_){} }); sv.sat.forEach(([k,v])=>{ try{ map.setPaintProperty('sat',k,v); }catch(_){} });
       map.setLayoutProperty('hs','visibility', S.on ? 'none' : (sv.hsVis||'visible')); }catch(_){} }
     placeSun(); return; }
-  const rise = mode === 1, t = sunEvent(S.p, rise);
-  if (t == null){ toastErr && toastErr('Sonce danes ne vzide / ne zaide.'); return setSun(0); }
-  const pos = solar(t, S.p.lat, S.p.lon); SUN.az = pos.az; SUN.el = pos.el; SUN.t = t;
+  const rise = mode === 1, t0 = sunEvent(S.p, rise);
+  if (t0 == null){ toastErr && toastErr('Sonce danes ne vzide / ne zaide.'); return setSun(0); }
+  if (btn) btn.textContent = rise ? '🌅 računam …' : '🌇 računam …';
+  const p0 = S.p; let vis = null; try{ vis = await sunOverRidge(p0, rise, t0); }catch(e){ console.warn('horizon', e); }
+  if (SUN.mode !== mode || S.p !== p0 || !S.on) return;           // changed meanwhile
+  const t = vis ? vis.t : t0, pos = vis || solar(t0, S.p.lat, S.p.lon); SUN.az = pos.az; SUN.el = pos.el; SUN.t = t; SUN.hidden = !vis;
   const hhmm = new Date(t).toLocaleTimeString('sl-SI', {hour:'2-digit', minute:'2-digit'});
   if (btn) btn.textContent = rise ? `🌅 Vzhod ${hhmm}` : `🌇 Zahod ${hhmm}`;
   $$('v360name').textContent = `${S.p.name} · ${rise?'sončni vzhod':'sončni zahod'} ${hhmm}`;

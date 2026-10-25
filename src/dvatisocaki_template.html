@@ -45,6 +45,12 @@
   #tour button{font:inherit;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   #tour .nx{background:#c62828;border-color:#c62828;color:#fff}#tour .sk{border:0;color:var(--mute);padding-left:0}
   #tour .tl{display:flex;gap:8px;margin:0 0 12px}#tour .tl button.on{background:var(--ink);color:var(--panel)}
+  .dlg{position:fixed;inset:0;z-index:60;background:rgba(10,14,13,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:15vh}
+  .dlgc{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(360px,calc(100% - 32px));box-shadow:0 12px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);font-size:calc(14px * var(--ui,1))}
+  .dlgc b{display:block;margin-bottom:10px;font-size:1.08em}.dlgc input{width:100%;box-sizing:border-box;font:inherit;font-size:max(16px,1em);padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--ink)}
+  .dlgb{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.dlgb button{font:inherit;font-weight:600;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+  .dlgb .o{background:#1565c0;border-color:#1565c0;color:#fff}
+  @media (max-width:700px){ #langsw{margin-right:40px} }
   #ptab{display:none}
   @media (min-width:701px){
     #ptab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:11;
@@ -311,6 +317,7 @@
     <label><input type="checkbox" id="trv" checked> Poti (markirane + neoznačene)</label>
     <label><input type="checkbox" id="huts" checked> Koče, bivaki, izviri</label>
     <label><input type="checkbox" id="parks" checked> Parkirišča / izhodišča</label>
+    <label><input type="checkbox" id="ferrs" checked> Ferate (oznake + težavnost)</label>
     <button class="btn dsk" id="drawBtn">Riši pot</button>
   </div>
 

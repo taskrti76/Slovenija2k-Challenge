@@ -88,7 +88,7 @@ def encode(ways, poi, marked, rels=()):
             if m["type"] == "way":
                 a = wrel.setdefault(m["ref"], [])
                 if ri not in a: a.append(ri)
-    names, nidx, K, S, V, N, L, XY, RL = [], {}, [], [], [], [], [], [], []
+    names, nidx, K, S, V, N, L, XY, RL, FS = [], {}, [], [], [], [], [], [], [], {}
     px = py = 0
     for w in ways:
         g = [p for p in (w.get("geometry") or []) if p]
@@ -112,6 +112,7 @@ def encode(ways, poi, marked, rels=()):
             if ni is None:
                 ni = len(names); nidx[t["name"]] = ni; names.append(t["name"])
         N.append(ni)
+        if t.get("via_ferrata_scale") not in (None, ""): FS[str(len(K) - 1)] = str(t["via_ferrata_scale"])
         L.append(len(g))
         a = wrel.get(w["id"]); RL.append(-1 if not a else a[0] if len(a) == 1 else a)
         for p in g:
@@ -135,7 +136,7 @@ def encode(ways, poi, marked, rels=()):
         else: continue
         P.append([k, t.get("name", ""), jsround(la * 1e6), jsround(lo * 1e6), t.get("ele", ""), t.get("website") or t.get("contact:website") or ""])
     return {"v": 2, "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-            "w": {"k": "".join(K), "s": S, "vis": V, "n": N, "names": names, "len": L, "xy": XY, "rel": RL}, "p": P, "r": R,
+            "w": {"k": "".join(K), "s": S, "vis": V, "n": N, "names": names, "len": L, "xy": XY, "rel": RL, "fs": FS}, "p": P, "r": R,
             "rb": list(range(16)), "ext": 1}
 
 # ---------- keep only what is near a peak (whole ways, nothing cut at the edge): trails <=12 km, roads/POIs <=15 km

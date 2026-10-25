@@ -11,7 +11,7 @@ const EN = Object.assign({}, RANGE_EN, {
   'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
   'Državna meja':'National border', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
-  'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
+  'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
   'Pretiravanje višin':'Height exaggeration', '1.0 = realno':'1.0 = real', 'Klik na teren':'Click on terrain', 'Klikni kamorkoli za višino DEM.':'Click anywhere for the terrain height.',
   'Napredno':'Advanced', 'Osveži podatke OSM':'Refresh OSM data', 'Naloži ceste':'Load roads', 'Razširi na 20 km (PC)':'Extend to 20 km (PC)', 'Izvozi paket podatkov':'Export data pack',
   'Varčni način (starejše naprave)':'Saving mode (older devices)', 'Izklopi senčenje, Waymarked sloj, ostrino 360° (samo Nizka), oddaljene ploščice in meglo; poti šele ob približanju.':'Turns off hillshade, the Waymarked layer, sharp 360° (Low only), distant tiles and fog; trails only when zoomed in.',
@@ -24,7 +24,7 @@ const EN = Object.assign({}, RANGE_EN, {
   'obiskan':'visited', 'cesta':'road', 'markirana pot':'marked trail', 'neoznačena / slaba pot':'unmarked / faint trail', 'ferata':'via ferrata',
   'GPX':'GPX', 'Uredi kot svojo':'Edit as my own', '⛰ Od strani':'⛰ Side view', 'Pogled na izbrano pot od strani':'Look at the selected route from the side',
   'Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.':'Generated from OSM: check before you go. T scale = SAC.', 'Markirana planinska pot (Knafelčeva markacija)':'Marked mountain trail (Knafelc blaze)',
-  'Pokaži poti':'Show routes', 'Skrij seznam poti':'Hide route list', 'Pripravljam omrežje poti …':'Preparing the trail network …', 'Ni izhodišča v dosegu.':'No trailhead within reach.',
+  'Pokaži poti':'Show routes', 'Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta':'No mapped trail to the top - the last part (dashed) is a straight line', 'Skrij seznam poti':'Hide route list', 'Pripravljam omrežje poti …':'Preparing the trail network …', 'Ni izhodišča v dosegu.':'No trailhead within reach.',
   'Do vrha v OSM ni vrisane poti (brezpotje).':'No mapped trail to the top in OSM (off-trail).', 'markirana pot':'marked trail',
   '✎ Risanje poti':'✎ Route drawing', 'Klik na karto = nova točka':'Click on the map = new point', 'Razveljavi':'Undo', 'Izbriši zadnjo':'Delete last', 'Obrni':'Reverse', 'Počisti':'Clear', 'Shrani':'Save',
   'Sledi potem in cestam':'Follow trails and roads', 'Barva:':'Colour:', '▾ Višinski profil':'▾ Height profile', '▸ Pokaži profil':'▸ Show profile', 'Računam profil …':'Calculating profile …', 'Skrij':'Hide',
@@ -48,18 +48,18 @@ const EN = Object.assign({}, RANGE_EN, {
   // extras
   'Aplikacija in brez signala':'App & offline', 'Namesti aplikacijo':'Install app', 'Prenesi to območje za brez signala':'Download this area for offline use', 'Izbriši shranjena območja':'Delete saved areas',
   'Vrhovi (':'Peaks (', 'Vrhovi 1500–2000\u00a0m (':'Peaks 1500–2000\u00a0m (', 'Vrhovi 1500–2000 m (':'Peaks 1500–2000 m (',
-  'Vodič':'Guide', 'Naprej':'Next', 'Nazaj':'Back', 'Preskoči':'Skip', 'Začni':'Start', 'Konec':'Done'
+  'Vodič':'Guide', 'Ferata':'Via ferrata', 'lahka':'easy', 'Ime poti':'Route name', 'Prekliči':'Cancel', 'Izbriši':'Delete', 'Naprej':'Next', 'Nazaj':'Back', 'Preskoči':'Skip', 'Začni':'Start', 'Konec':'Done'
 });
 const RX = [
   [/^iz (.+)$/, 'from $1'], [/^čez (.+)$/, 'via $1'], [/^pri (.+)$/, 'near $1'],
   [/^(\d+) prominentnih$/, '$1 prominent'], [/^Vsi vrhovi \((\d+)\)$/, 'All peaks ($1)'],
   [/^(\d+) prominentnih dvatisočakov · s podvrhi (\d+) · \+ (\d+) vrhov 1500–2000 m$/, '$1 prominent 2000 m peaks · $2 with subpeaks · + $3 peaks 1500–2000 m'],
-  [/^· (\d+) m · (\d+) (?:poti|pot)$/, '· $1 m · $2 routes'], [/^Prominenca: (.+)$/, 'Prominence: $1'],
-  [/^🌅 Vzhod (.+)$/, '🌅 Sunrise $1'], [/^🌇 Zahod (.+)$/, '🌇 Sunset $1'],
+  [/^· (\d+) m · (\d+) (?:poti|pot)$/, '· $1 m · $2 routes'], [/^Prominenca: (.+)$/, 'Prominence: $1'], [/^Izbrišem "(.+)"\?$/, 'Delete "$1"?'], [/^zadnjih (\d+) m brez poti$/, 'last $1 m without a trail'],
+  [/^🌅 Vzhod (.+)$/, '🌅 Sunrise $1'], [/^🌇 Zahod (.+)$/, '🌇 Sunset $1'], [/^(🌅|🌇) računam …$/, '$1 calculating …'],
   [/^Nalagam model … (.+) točk$/, 'Loading model … $1 points'],
   [/^Poti: ([\d.]+) odsekov(?: · ceste: ([\d.]+))? · koče\/bivaki: (\d+) · izhodišča: (\d+) · (.+)$/, (m,a,b,c,d,e)=>`Trails: ${a} segments${b?` · roads: ${b}`:''} · huts/bivouacs: ${c} · trailheads: ${d} · ${e.replace('vgrajeno','built-in').replace('paket','pack')}`]
 ];
-const TOK = [[' · prominenca ',' · prominence '],[' · podvrh',' · subpeak'],[' · sončni vzhod ',' · sunrise '],[' · sončni zahod ',' · sunset '],[' markirano',' marked'],[' km ceste',' km road'],[' · ferata',' · via ferrata'],[' (napoved)',' (forecast)'],[' (danes)',' (today)'],[' celic s snegom',' cells with snow'],[', največ ',', max '],[' · snežna karta',' · snow map']];
+const TOK = [[' · lahka',' · easy'],[' brez poti',' without a trail'],[' · zadnjih ',' · last '],[' · prominenca ',' · prominence '],[' · podvrh',' · subpeak'],[' · sončni vzhod ',' · sunrise '],[' · sončni zahod ',' · sunset '],[' markirano',' marked'],[' km ceste',' km road'],[' · ferata',' · via ferrata'],[' (napoved)',' (forecast)'],[' (danes)',' (today)'],[' celic s snegom',' cells with snow'],[', največ ',', max '],[' · snežna karta',' · snow map']];
 function tr(s){
   const k = s.trim(); if (!k) return null; let o = EN[k];
   if (o == null) for (const [r, v] of RX){ if (r.test(k)){ o = k.replace(r, v); break; } }
