@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.17 — 2026-10-25
+- Phone stability: map tile cache sized for phones (120–180 tiles instead of 900; every cached terrain/satellite tile holds
+  GPU + decoded-height memory, 900 could exhaust a phone in 360). Desktop 500. Turning back re-reads tiles from the browser cache.
+- Relief and snow map now share the hillshade DEM source (one fewer copy of the terrain tiles in memory).
+- 360: pixel budget on phones (max ~1.5 MP rendered); if graphics memory runs out (WebGL context lost) 360 closes and drops
+  one quality level; if the page crashed inside 360, the next visit starts one level lower and says so.
+- "Namesti aplikacijo" always visible (except inside the installed app); when the browser has no install prompt to offer
+  (already installed, just uninstalled, Samsung/iPhone) it shows the menu steps instead of hiding.
+- New icon: Triglav traced from a photo, red route over the ridge and down past Planika.
+
 ## web-v0.16 — 2026-10-25
 - 360 sunrise / sunset: time and sun position where the sun actually clears the ridges (terrain horizon from the DEM up to 90 km,
   earth curvature + refraction), not the flat horizon -> sun disc no longer shows through mountains; later sunrise / earlier sunset than the flat-horizon time.
