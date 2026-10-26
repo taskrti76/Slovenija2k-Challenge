@@ -32,11 +32,11 @@ self.addEventListener('fetch', e => {
     })()); return;
   }
   const same = new URL(u).origin === self.location.origin;
-  if (same || /cdn\.jsdelivr\.net|tilejson\.json/.test(u)){                  // app files: cache, update in background (snow.json: network first)
+  if (same || /cdn\.jsdelivr\.net|tilejson\.json/.test(u)){                  // app files: cache, update in background (snow.json / weather.json: network first)
     e.respondWith((async () => {
-      const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /snow\.json/.test(u) ? false : true});
+      const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /(snow|weather)\.json/.test(u) ? false : true});
       const net = fetch(r).then(res => { if (res.ok) c.put(r, res.clone()); return res; }).catch(() => null);
-      if (/snow\.json|\.html$|\/$/.test(u)){ const res = await net; return res || hit || new Response('', {status:504}); }
+      if (/snow\.json|weather\.json|\.html$|\/$/.test(u)){ const res = await net; return res || hit || new Response('', {status:504}); }
       return hit || (await net) || new Response('', {status:504});
     })());
   }

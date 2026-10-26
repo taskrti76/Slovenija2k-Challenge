@@ -1,7 +1,7 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
 // - map tiles cached as you view them (LRU-trimmed), terrain areas downloaded on request live in "dvat-region"
-const VER = 'fa42328615';
+const VER = '8e2e84c502';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
@@ -32,11 +32,11 @@ self.addEventListener('fetch', e => {
     })()); return;
   }
   const same = new URL(u).origin === self.location.origin;
-  if (same || /cdn\.jsdelivr\.net|tilejson\.json/.test(u)){                  // app files: cache, update in background (snow.json: network first)
+  if (same || /cdn\.jsdelivr\.net|tilejson\.json/.test(u)){                  // app files: cache, update in background (snow.json / weather.json: network first)
     e.respondWith((async () => {
-      const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /snow\.json/.test(u) ? false : true});
+      const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /(snow|weather)\.json/.test(u) ? false : true});
       const net = fetch(r).then(res => { if (res.ok) c.put(r, res.clone()); return res; }).catch(() => null);
-      if (/snow\.json|\.html$|\/$/.test(u)){ const res = await net; return res || hit || new Response('', {status:504}); }
+      if (/snow\.json|weather\.json|\.html$|\/$/.test(u)){ const res = await net; return res || hit || new Response('', {status:504}); }
       return hit || (await net) || new Response('', {status:504});
     })());
   }

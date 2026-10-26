@@ -2,6 +2,17 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.18 — 2026-10-26
+- Summit weather. Peak popup: 4 days (today + 3) with a day rating for 08–15 h (good / so-so / bad and why: storms, strong wind,
+  precipitation, snow on top, in cloud), summit temperature range, wind + gusts, precipitation, cloud, freezing level, storms,
+  hourly strip (6–21 h, collapsible). Layer "Vreme na vrhovih (ocena dneva)": main peaks glow green / amber / red for the chosen day.
+- Data: tools/weather_fetch.py + .github/workflows/weather.yml write weather.json 4x a day (DWD ICON via Open-Meteo, ICON-D2 2 km
+  for 2 days then ICON-EU). Peaks within 1.6 km share a forecast point asked at the highest summit's height; lower peaks get
+  -0.65 °C / 100 m. Summit wind = max(10 m wind, free-air wind at summit height from the 850–700 hPa levels) because a 2 km
+  model's 10 m wind sits on smoothed terrain. Without weather.json a popup asks Open-Meteo directly for that peak only.
+- Peak popup always opens above the peak and the map moves so the whole popup is visible.
+- snow.yml / weather.yml share one commit queue and retry the push, so the two bots don't collide.
+
 ## web-v0.17 — 2026-10-25
 - Phone stability: map tile cache sized for phones (120–180 tiles instead of 900; every cached terrain/satellite tile holds
   GPU + decoded-height memory, 900 could exhaust a phone in 360). Desktop 500. Turning back re-reads tiles from the browser cache.

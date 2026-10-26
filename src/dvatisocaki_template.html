@@ -765,12 +765,13 @@ function openPeak(id,fly){
   const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=visited.has(id);
   cb.onchange=()=>toggleV(id,cb.checked); lab.append(cb,' Obiskal sem');
   box.append(lab);
+  if(window.wxBox) box.append(wxBox(p));
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   if(popup) popup.remove();
-  popup=new maplibregl.Popup({offset:10,maxWidth:'260px'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
+  popup=new maplibregl.Popup({offset:10,maxWidth:'300px',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
 }
 function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }
 
