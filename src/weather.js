@@ -53,8 +53,15 @@ async function seriesFor(p){ await loadWX(); return fromWX(p) || await live(p); 
 //   precipitation, summit in cloud (low + mid cloud only - high thin cloud does not hide the view), fresh snow (freezing level
 //   below the summit + precipitation), old snow lying on the summit (winter conditions), cold (wind chill).
 //   good >= 75, so-so 45–74, bad < 45; thunder in the forecast is always bad.
+// harder peaks / routes: the same weather matters more (snow on a T5 ridge is winter alpinism, wind on exposed rock, wet slabs ...)
+// class 1 lahka (T1–T2) · 2 zahtevna (T3) · 3 zelo zahtevna (T4–T6, ferrata); winter experience from the profile scales snow
+const MULT = {snow:[1,1.6,2.5], fresh:[1,1.6,2.5], wind:[1,1.3,1.6], rain:[1,1.3,1.6], cold:[1,1.2,1.4], cloud:[1,1.2,1.2], storm:[1,1,1]};
+const WINTER_K = [1.5, 1, 0.5];
+const CLS_N = () => [L('lahka','easy'), L('zahtevna','demanding'), L('zelo zahtevna','very demanding')];
+window.peakClass = p => (window.selRouteClass && window.selRouteClass(p.id)) || (p.tech && p.tech.c) || null;
 const chill = (T, V) => T <= 10 && V > 4.8 ? 13.12 + 0.6215*T - 11.37*V**0.16 + 0.3965*T*V**0.16 : T;
-function day(s, d, elev){
+function day(s, d, elev, cls){
+  const ci = Math.min(3, Math.max(1, cls || 1)) - 1, pr = window.PROFILE || {}, wk = WINTER_K[pr.winter ?? 1] ?? 1;
   const nh = s.hours.length, all = s.hours.map((h, i) => d*nh + i);
   const win = all.filter((k, i) => s.hours[i] >= DAY_H[0] && s.hours[i] <= DAY_H[1]), pm = all.filter((k, i) => s.hours[i] >= PM_H && s.hours[i] <= DAY_H[1]);
   const g = (a, I) => a ? I.map(k => a[k]).filter(x => x != null) : [];
@@ -68,26 +75,26 @@ function day(s, d, elev){
   const noon = all[s.hours.indexOf(12)]; o.snowcm = s.S && noon != null ? s.S[noon] : null;
   o.chill = win.length && s.T && s.W ? Math.min(...win.filter(k => s.T[k] != null && s.W[k] != null).map(k => chill(s.T[k], s.W[k]))) : null;
   if (!isFinite(o.chill)) o.chill = null;
-  const add = (pts, sl, en) => { if (pts > 0) o.pen.push([pts, L(sl, en)]); };
+  const add = (pts, sl, en, cat) => { if (pts > 0){ const k = (MULT[cat] || MULT.storm)[ci] * (cat === 'snow' || cat === 'fresh' ? wk : 1); o.pen.push([Math.round(pts * k), L(sl, en)]); } };
   // storms
   const thAM = win.some(k => s.X && s.X[k] >= 95 && !pm.includes(k)), thPM = pm.some(k => s.X && s.X[k] >= 95), capeMax = mx(K) || 0, pPM = sum(g(s.P, pm));
   o.thunder = thAM || thPM;
-  if (thPM) add(60, 'nevihte popoldne', 'afternoon storms'); else if (thAM) add(48, 'nevihte dopoldne', 'morning storms');
-  else if (capeMax >= 1000 && o.p >= 0.5) add(35, 'nevihte možne', 'storms possible');
-  else if (capeMax >= 500 && pPM >= 0.2) add(15, 'možne popoldanske plohe', 'afternoon showers possible');
+  if (thPM) add(60, 'nevihte popoldne', 'afternoon storms', 'storm'); else if (thAM) add(48, 'nevihte dopoldne', 'morning storms', 'storm');
+  else if (capeMax >= 1000 && o.p >= 0.5) add(35, 'nevihte možne', 'storms possible', 'storm');
+  else if (capeMax >= 500 && pPM >= 0.2) add(15, 'možne popoldanske plohe', 'afternoon showers possible', 'storm');
   // wind: the worse of sustained wind and gusts
   const pw = o.w >= 60 ? 50 : o.w >= 45 ? 30 : o.w >= 30 ? 12 : 0, pg = o.g >= 90 ? 50 : o.g >= 70 ? 30 : o.g >= 50 ? 12 : 0;
-  add(Math.max(pw, pg), `veter ${r1(o.w)} km/h, sunki ${r1(o.g)}`, `wind ${r1(o.w)} km/h, gusts ${r1(o.g)}`);
-  add(o.p >= 5 ? 40 : o.p >= 2 ? 25 : o.p >= 0.5 ? 10 : 0, `padavine ${o.p.toFixed(1)} mm`, `precipitation ${o.p.toFixed(1)} mm`);
+  add(Math.max(pw, pg), `veter ${r1(o.w)} km/h, sunki ${r1(o.g)}`, `wind ${r1(o.w)} km/h, gusts ${r1(o.g)}`, 'wind');
+  add(o.p >= 5 ? 40 : o.p >= 2 ? 25 : o.p >= 0.5 ? 10 : 0, `padavine ${o.p.toFixed(1)} mm`, `precipitation ${o.p.toFixed(1)} mm`, 'rain');
   if (o.c != null) add(o.cloudLM ? (o.c >= 90 ? 20 : o.c >= 70 ? 8 : 0) : (o.c >= 95 ? 12 : o.c >= 85 ? 5 : 0),
-    o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy');
-  if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow');
-  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm)`, `winter conditions (snow ~${o.snowcm} cm)`);
-  if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`);
+    o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
+  if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
+  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm)`, `winter conditions (snow ~${o.snowcm} cm)`, 'snow');
+  if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
   o.r = o.thunder || o.score < 45 ? 2 : o.score < 75 ? 1 : 0;
-  o.why = o.pen.map(x => x[1]); o.storm = o.thunder || capeMax >= 1000;
+  o.why = o.pen.map(x => x[1]); o.storm = o.thunder || capeMax >= 1000; o.cls = ci + 1;
   return o; }
 const worst = X => X.reduce((a, b) => rank(b) > rank(a) ? b : a, X[0]);
 const rank = c => c >= 95 ? 9 : c >= 71 && c <= 77 || c >= 85 && c <= 86 ? 8 : c >= 61 && c <= 67 || c >= 80 && c <= 82 ? 7 : c >= 51 ? 6 : c >= 45 ? 5 : c >= 3 ? 3 : c >= 2 ? 2 : 1;
@@ -119,6 +126,11 @@ const css = document.createElement('style'); css.textContent = `
 #wxBig .tw{overflow-x:auto}#wxBig .note{font-size:.8em;color:#777;margin-top:8px}#wxBig td.win{background:#f6faf6}`;
 document.head.append(css);
 
+const SACT_ = ['', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
+function clsLine(p, o){ const sel = window.selRouteClass && window.selRouteClass(p.id), tc = p.tech, pr = window.PROFILE || {};
+  const src = sel ? L('izbrana pot', 'selected route') : tc ? (tc.s ? SACT_[tc.s] + ', ' : '') + L('najlažja pot', 'easiest route') : L('ocena', 'estimate');
+  const over = tc && ((tc.s && pr.maxT && tc.s > pr.maxT) || (tc.f && pr.ferrata === false));
+  return `<div style="font-size:.88em;color:#555;margin-bottom:3px">${L('Zahtevnost','Difficulty')}: <b>${CLS_N()[o.cls - 1]}</b> (${src})${over ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('nad tvojo mejo','above your limit')}</span>` : ''}</div>`; }
 // --- big window: all days, the score with every deduction, hourly table 06–21 h
 function big(p, s, D, DD, sel){
   let el = $w('wxBig'); if (el) el.remove();
@@ -136,15 +148,15 @@ function big(p, s, D, DD, sel){
     el.innerHTML = `<div class="wb"><button class="x" aria-label="${L('Zapri','Close')}">×</button>
       <h3>${p.name} · ${Math.round(topH(p))} m — ${L('vreme na vrhu','summit weather')}</h3>
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)} °C<br><span style="color:${RC[d.r]};font-weight:700">${d.score}</span></button>`).join('')}</div>
-      <div class="sc"><div><span class="pill" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}/100</span>
+      <div class="sc"><div>${clsLine(p, o)}<span class="pill" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}/100</span>
         <ul>${o.pen.length ? o.pen.map(([pt, tx]) => `<li>${tx} <b>−${pt}</b></li>`).join('') : `<li>${L('brez odbitkov','no deductions')}</li>`}</ul></div>
         <div>🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C${o.chill != null ? ` · ${L('občutek','feels like')} ${Math.round(o.chill)} °C` : ''}<br>💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
         💧 ${o.p.toFixed(1)} mm · ☁ ${o.c != null ? Math.round(o.c) + ' %' : '–'}${o.cloudLM ? ' (' + L('nizki+srednji', 'low+mid') + ')' : ''}<br>0 °C: ${o.fl != null ? Math.round(o.fl/50)*50 + ' m' : '–'}${o.snowcm != null ? ` · ❄ ${L('sneg', 'snow')} ~${o.snowcm} cm` : ''}</div></div>
       <div class="tw"><table><thead><tr><th>${L('ura','time')}</th><th></th><th>°C</th><th>${L('občutek','feels')}</th><th>${L('veter','wind')} km/h</th><th>${L('sunki','gusts')}</th>
         <th>${L('oblaki','cloud')}</th><th>mm</th><th>0 °C m</th><th>CAPE</th></tr></thead><tbody>${rows}</tbody></table></div>
       <details class="note"><summary>${L('Kako ocenjujemo?','How is it scored?')}</summary>${L(
-        'Ocena velja za 7–17 h (vzpon + sestop, zeleno v tabeli). Začne pri 100, vsak dejavnik odšteje točke: nevihte popoldne −60 (dopoldne −48; samo velika energija neviht CAPE ≥ 1000 J/kg + dež −35; popoldanske plohe −15) · veter na višini vrha ≥ 30/45/60 km/h ali sunki ≥ 50/70/90 km/h −12/−30/−50 (šteje slabše) · padavine ≥ 0,5/2/5 mm −10/−25/−40 · nizki + srednji oblaki ≥ 70/90 % −8/−20 · sveži sneg (ničta izoterma pod vrhom + padavine) −15 · sneg na vrhu ≥ 10/50 cm −15/−25 · občutek mraza ≤ −10/−20 °C −8/−20. Dober dan ≥ 75, pogojno 45–74, slab < 45; napovedana nevihta je vedno slab dan. Model ICON (DWD) za višino vrha, ne meritev; 3. in 4. dan sta manj zanesljiva.',
-        'The rating covers 7–17 h (ascent + descent, green in the table). It starts at 100 and each factor deducts points: afternoon storms −60 (morning −48; only high storm energy CAPE ≥ 1000 J/kg + rain −35; afternoon showers −15) · wind at summit height ≥ 30/45/60 km/h or gusts ≥ 50/70/90 km/h −12/−30/−50 (the worse counts) · precipitation ≥ 0.5/2/5 mm −10/−25/−40 · low + mid cloud ≥ 70/90 % −8/−20 · fresh snow (freezing level below the summit + precipitation) −15 · snow on the summit ≥ 10/50 cm −15/−25 · wind chill ≤ −10/−20 °C −8/−20. Good ≥ 75, so-so 45–74, bad < 45; forecast thunder is always a bad day. ICON model (DWD) at summit height, not a measurement; days 3 and 4 are less reliable.')}</details>
+        'Ocena velja za 7–17 h (vzpon + sestop, zeleno v tabeli). Začne pri 100, vsak dejavnik odšteje točke: nevihte popoldne −60 (dopoldne −48; samo velika energija neviht CAPE ≥ 1000 J/kg + dež −35; popoldanske plohe −15) · veter na višini vrha ≥ 30/45/60 km/h ali sunki ≥ 50/70/90 km/h −12/−30/−50 (šteje slabše) · padavine ≥ 0,5/2/5 mm −10/−25/−40 · nizki + srednji oblaki ≥ 70/90 % −8/−20 · sveži sneg (ničta izoterma pod vrhom + padavine) −15 · sneg na vrhu ≥ 10/50 cm −15/−25 · občutek mraza ≤ −10/−20 °C −8/−20. Pri zahtevnejših vrhovih odbitki rastejo (zahtevna / zelo zahtevna): sneg ×1,6 / ×2,5, veter in padavine ×1,3 / ×1,6, mraz ×1,2 / ×1,4, oblaki ×1,2; izkušnje z zimo v profilu sneg še pomnožijo (brez ×1,5, zimska alpinistika ×0,5). Dober dan ≥ 75, pogojno 45–74, slab < 45; napovedana nevihta je vedno slab dan. Model ICON (DWD) za višino vrha, ne meritev; 3. in 4. dan sta manj zanesljiva.',
+        'The rating covers 7–17 h (ascent + descent, green in the table). It starts at 100 and each factor deducts points: afternoon storms −60 (morning −48; only high storm energy CAPE ≥ 1000 J/kg + rain −35; afternoon showers −15) · wind at summit height ≥ 30/45/60 km/h or gusts ≥ 50/70/90 km/h −12/−30/−50 (the worse counts) · precipitation ≥ 0.5/2/5 mm −10/−25/−40 · low + mid cloud ≥ 70/90 % −8/−20 · fresh snow (freezing level below the summit + precipitation) −15 · snow on the summit ≥ 10/50 cm −15/−25 · wind chill ≤ −10/−20 °C −8/−20. On harder peaks deductions grow (demanding / very demanding): snow ×1.6 / ×2.5, wind and precipitation ×1.3 / ×1.6, cold ×1.2 / ×1.4, cloud ×1.2; winter experience in your profile scales snow again (none ×1.5, winter alpinism ×0.5). Good ≥ 75, so-so 45–74, bad < 45; forecast thunder is always a bad day. ICON model (DWD) at summit height, not a measurement; days 3 and 4 are less reliable.')}</details>
       <div class="note">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0)</div></div>`;
     el.querySelector('.x').onclick = close;
     el.querySelectorAll('.wxd button').forEach(b => b.onclick = () => { sel = +b.dataset.i; draw(); });
@@ -162,12 +174,12 @@ window.wxBox = p => {
   seriesFor(p).then(s => {
     if (!s){ box.querySelector('.wxs').textContent = L('Napoved trenutno ni dosegljiva.','Forecast not available right now.'); return; }
     const d0 = Math.max(0, s.days.indexOf(today()));
-    const D = [], DD = []; s.days.forEach((d, i) => { if (i < d0) return; const o = day(s, i, topH(p)); if (o){ D.push(o); DD.push(i); } }); let sel = 0;
+    const D = [], DD = []; s.days.forEach((d, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o){ D.push(o); DD.push(i); } }); let sel = 0;
     const draw = () => {
       const o = D[sel], si = DD[sel], nh = s.hours.length, hrs = [6, 9, 12, 15, 18, 21];
       box.innerHTML = `<div class="wxh">${L('Vreme na vrhu','Summit weather')} · ${Math.round(topH(p))} m<button class="wxbig" title="${L('Povečaj','Enlarge')}">⤢ ${L('Povečaj','Enlarge')}</button></div>
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)}°</button>`).join('')}</div>
-      <div class="wxs"><span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
+      <div class="wxs">${clsLine(p, o)}<span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
         🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C · 💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
         ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm` : ''}</div>
       <details class="wxdt"${OPENH ? ' open' : ''}><summary>${L('Po urah','Hourly')}</summary><div class="wxt">${hrs.map(h => { const k = si*nh + s.hours.indexOf(h); if (s.hours.indexOf(h) < 0 || !s.T || s.T[k] == null) return '';
@@ -200,7 +212,7 @@ if (grp){
     opt.querySelectorAll('button').forEach(b => b.onclick = () => { dsel = +b.dataset.i; paint(); });
     const d = di + dsel;
     PEAKS.forEach((p, id) => { if (p.lat == null) return; const main = p.rank != null || p.is_sub === 'no';
-      const s = main ? fromWX(p) : null, o = s ? day(s, d, topH(p)) : null;
+      const s = main ? fromWX(p) : null, o = s ? day(s, d, topH(p), (p.tech && p.tech.c) || 2) : null;
       try{ map.setFeatureState({source:'peaks', id}, {wx: o ? o.r : -1}); }catch(_){} });
   };
   const addLayer = () => { if (map.getLayer('pk-wx')) return;
@@ -213,6 +225,7 @@ if (grp){
     if (!map.getLayer('pk-wx')) return; map.setLayoutProperty('pk-wx', 'visibility', on ? 'visible' : 'none');
     if (on){ opt.innerHTML = L('Nalagam …','Loading …'); await loadWX(); paint(); } };
   $w('wxChk').onchange = onChk;
+  window.wxRepaint = () => { if ($w('wxChk').checked && WX) paint(); };
   const init = () => { addLayer(); onChk(); };   // feature-state survives the peaks source's setData
   if (map.loaded() && map.getSource('peaks')) init(); else map.on('load', () => setTimeout(init, 0));
 }

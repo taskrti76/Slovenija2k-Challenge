@@ -572,11 +572,11 @@ async function addRoads(force){
   const have=new Set(raw.tr.elements.filter(w=>ROADRE.test((w.tags||{}).highway||'')).map(sig));
   const add=(rw||[]).filter(w=>w.geometry&&w.geometry.length>1&&!have.has(sig(w)));
   add.forEach(w=>{ if(w.id<1e12) w.id=1e12+w.id; });
-  const miss=ROADS_FAILED?` (manjka ${ROADS_FAILED}/${ROAD_BOXES.length} območij — Napredno → Naloži ceste)`:'';
-  if(!add.length){ status(pre.replace(/ \+ ceste.*$/,'')+' + ceste'+miss); if(ROADS_FAILED) toastErr&&toastErr(`Ceste: ${ROADS_FAILED} od ${ROAD_BOXES.length} območij še manjka (strežnik zaseden). Napredno → Naloži ceste nadaljuje.`); return; }
+  const miss=ROADS_FAILED?` (manjka ${ROADS_FAILED}/${ROAD_BOXES.length} območij — Nastavitve → Naloži ceste)`:'';
+  if(!add.length){ status(pre.replace(/ \+ ceste.*$/,'')+' + ceste'+miss); if(ROADS_FAILED) toastErr&&toastErr(`Ceste: ${ROADS_FAILED} od ${ROAD_BOXES.length} območij še manjka (strežnik zaseden). Nastavitve → Naloži ceste nadaljuje.`); return; }
   const tr={elements:raw.tr.elements.concat(add)}; window.__osmRaw={poi:raw.poi,tr};
   await build(raw.poi,tr,RAWSRC.replace(/ \+ ceste.*$/,'')+' + ceste'+miss);
-  if(ROADS_FAILED) toastErr&&toastErr(`Ceste: ${ROADS_FAILED} od ${ROAD_BOXES.length} območij še manjka (strežnik zaseden). Napredno → Naloži ceste nadaljuje.`);
+  if(ROADS_FAILED) toastErr&&toastErr(`Ceste: ${ROADS_FAILED} od ${ROAD_BOXES.length} območij še manjka (strežnik zaseden). Nastavitve → Naloži ceste nadaljuje.`);
 }
 async function build(poi,tr,src){
   if(!map.getSource('trails-v')||!map.getSource('poi')) addLayers();
@@ -673,6 +673,19 @@ window.peakRoutesUI = async function(id){
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };
+window.rerenderRoutes = () => { if (RT) renderRoutes(); };
+// difficulty class of a route / peak (used by the weather rating), as PZS marks paths in Slovenia: 1 lahka (T1–T2), 2 zahtevna (T3),
+// 3 zelo zahtevna (T4–T6 or ferrata) - OSM in Slovenia tags the 'zelo zahtevna' paths (Triglav, Jalovec, Mangart ...) mostly as T4
+window.routeClass = r => r ? (r.stats.ferrata || r.stats.sac >= 4 ? 3 : r.stats.sac >= 3 ? 2 : 1) : null;
+window.selRouteClass = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? window.routeClass(RT.routes[RT.sel]) : null;
+// tools/peak_tech.js: routes of a peak without touching the UI
+window.__peakTech = async function(id){ const p=byId[id]; if(!p||p.lat==null) return null;
+  if(!inG(p.lat,p.lon,0.17)){ if(!GRAPHSRC) return null; await ensureGraph(p.lat,p.lon,0.17); if(!G) return null; }
+  const nearPark=(la,lo)=>STARTS.some(x=>hav(x.lat,x.lon,la,lo)<300);
+  const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:nearPark(la,lo)?1:0;
+  const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
+  if(!res) return {none:true}; const R=res.routes.filter((r,i,a)=>r.stats.len/1000<=22||a.length===1);
+  return {routes:R.map(r=>({sac:r.stats.sac,fer:!!r.stats.ferrata,km:+(r.stats.len/1000).toFixed(1),cls:window.routeClass(r)}))}; };
 // fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
 function routePad(){ const c=rcard(), W=innerWidth, H=innerHeight;
   const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}
@@ -703,13 +716,13 @@ function renderRoutes(){
   const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`;
   c.classList.toggle('rmin',!!RT.min);
   if(RT.min){ const r=RT.routes[RT.sel], s=r.stats, P=r.P;
-    c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:''} · ${SACT[s.sac]||'T?'}</div>`; return; }
+    c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:''} · ${SACT[s.sac]||'T?'}</div>`; return; }
   c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       const ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null;
       return `<div class="ri${i===RT.sel?' on':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}</div>
         ${!R&&r.fname?`<div class="rp">⛓ ${esc(r.fname)}</div>`:''}${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
-        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
+        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
@@ -756,7 +769,7 @@ function drawRender(){
   const card=el('dcard'), strip=el('dprof');
   if(!window.DRAW_ON){ card.style.display='none'; strip.style.display='none'; return; } card.style.display='block';
   const c=drawCoords(); let km=0; for(let i=1;i<c.length;i++) km+=hav(c[i-1][1],c[i-1][0],c[i][1],c[i][0])/1000; const P=D.P;
-  const stats=D.pts.length?`<span><b>${km.toFixed(2)}</b> km</span>${P?`<span>↑ <b>${Math.round(P.up)}</b> m</span><span>↓ <b>${Math.round(P.down)}</b> m</span><span>⏱ <b>${fmtT(walkTime(P.km,P.up,P.down))}</b></span>`:''}`:'<span>Klik na karto = nova točka</span>';
+  const stats=D.pts.length?`<span><b>${km.toFixed(2)}</b> km</span>${P?`<span>↑ <b>${Math.round(P.up)}</b> m</span><span>↓ <b>${Math.round(P.down)}</b> m</span><span>⏱ <b>${fmtT(walkTime(P.km,P.up,P.down)*((window.PROFILE&&window.PROFILE.fitK)||1))}</b></span>`:''}`:'<span>Klik na karto = nova točka</span>';
   // desktop: elevation profile as a strip along the bottom (gpx.studio style)
   strip.style.display='none'; // profile now lives inside the drawing window
   const profBlock=`<div class="ps">${stats}</div>`+(c.length>1?`<div class="phd"><button class="lnk pt" onclick="profToggle()">${PROFMIN?'▸ Pokaži profil':'▾ Višinski profil'}</button></div>`+

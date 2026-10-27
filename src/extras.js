@@ -59,7 +59,7 @@ const RX = [
   [/^Nalagam model … (.+) točk$/, 'Loading model … $1 points'],
   [/^Poti: ([\d.]+) odsekov(?: · ceste: ([\d.]+))? · koče\/bivaki: (\d+) · izhodišča: (\d+) · (.+)$/, (m,a,b,c,d,e)=>`Trails: ${a} segments${b?` · roads: ${b}`:''} · huts/bivouacs: ${c} · trailheads: ${d} · ${e.replace('vgrajeno','built-in').replace('paket','pack')}`]
 ];
-const TOK = [[' · lahka',' · easy'],[' brez poti',' without a trail'],[' · zadnjih ',' · last '],[' · prominenca ',' · prominence '],[' · podvrh',' · subpeak'],[' · sončni vzhod ',' · sunrise '],[' · sončni zahod ',' · sunset '],[' markirano',' marked'],[' km ceste',' km road'],[' · ferata',' · via ferrata'],[' (napoved)',' (forecast)'],[' (danes)',' (today)'],[' celic s snegom',' cells with snow'],[', največ ',', max '],[' · snežna karta',' · snow map']];
+const TOK = [[' · lahka',' · easy'],[' brez poti',' without a trail'],[' · zadnjih ',' · last '],[' · prominenca ',' · prominence '],[' · podvrh',' · subpeak'],[' · sončni vzhod ',' · sunrise '],[' · sončni zahod ',' · sunset '],[' markirano',' marked'],[' km ceste',' km road'],[' · ferata',' · via ferrata'],['⚠ nad tvojo mejo','⚠ above your limit'],[' (napoved)',' (forecast)'],[' (danes)',' (today)'],[' celic s snegom',' cells with snow'],[', največ ',', max '],[' · snežna karta',' · snow map']];
 function tr(s){
   const k = s.trim(); if (!k) return null; let o = EN[k];
   if (o == null) for (const [r, v] of RX){ if (r.test(k)){ o = k.replace(r, v); break; } }
@@ -96,8 +96,8 @@ const STEPS = [
   {t:'Klikni vrh na karti', d:'Odpre se okno z višino in prominenco. »Poti na vrh« pokaže poti s parkirišč (PZS oznaka, T-lestvica, čas hoje, GPX). »360° razgled« te postavi na vrh.', sel:()=>'#map', center:true},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, sneg. Tu je tudi velikost besedila in jezik.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':'.panel .grp'},
-  {t:'Kot aplikacija, tudi brez signala', d:'V »Napredno → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':'#appgrp'},
-  {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v Napredno → Vodič.'}
+  {t:'Kot aplikacija, tudi brez signala', d:'V »⚙ Nastavitve → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.', sel:()=>PHONE()?'#tabbar [data-t="settings"]':'#gearBtn'},
+  {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v ⚙ Nastavitve → Vodič.'}
 ];
 Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
@@ -111,9 +111,9 @@ Object.assign(EN, {
   'Podlage in sloji':'Base maps and layers',
   'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, sneg. Tu je tudi velikost besedila in jezik.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, snow. Text size and language are here too.',
   'Kot aplikacija, tudi brez signala':'As an app, even without signal',
-  'V »Napredno → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.':'In "Advanced → App & offline" you can install the site to your home screen and download an area (terrain, trails, peaks) for mountains without signal.',
+  'V »⚙ Nastavitve → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.':'In "⚙ Settings → App & offline" you can install the site to your home screen and download an area (terrain, trails, peaks) for mountains without signal.',
   'Srečno na poti!':'Have a good hike!',
-  'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v Napredno → Vodič.':'The data is automatic (OSM, LiDAR, snow model) — always check conditions before you go. Replay the guide in Advanced → Guide.'
+  'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v ⚙ Nastavitve → Vodič.':'The data is automatic (OSM, LiDAR, snow model) — always check conditions before you go. Replay the guide in ⚙ Settings → Guide.'
 });
 let step = 0, ov = null;
 function tour(start){ step = start || 0; if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }

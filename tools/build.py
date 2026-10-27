@@ -10,11 +10,17 @@ P = json.load(open(os.path.join(R, 'src', 'peaks_final.json'), encoding='utf8'))
 for _p in P: _p.setdefault('tier', '2000')
 _x = os.path.join(R, 'src', 'peaks_extra.json')   # 1500–2000 list + extra 2000 m subpeaks (tools/make_1500.py)
 P_ALL = P + (json.load(open(_x, encoding='utf8')) if os.path.exists(_x) else [])
+# difficulty class per peak (tools/peak_tech.py from the routes; data/tech_overrides.json wins): {"c":1-3,"s":T of easiest route,"f":ferrata only}
+_t = os.path.join(R, 'data', 'peak_tech.json'); _o = os.path.join(R, 'data', 'tech_overrides.json')
+TECH = json.load(open(_t, encoding='utf8')) if os.path.exists(_t) else {}
+if os.path.exists(_o): TECH.update({k: v for k, v in json.load(open(_o, encoding='utf8')).items() if not k.startswith('_')})
+for _p in P_ALL:
+    if _p['id'] in TECH: _p['tech'] = TECH[_p['id']]
 pk = os.path.join(R, 'dvat-osm.json.gz')
 b64 = base64.b64encode(open(pk, 'rb').read()).decode() if single and os.path.exists(pk) else ''
 out = (S('dvatisocaki_template.html')
        .replace('__PEAKS__', json.dumps(P_ALL, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/'))
-       .replace('__PACKJS__', S('pack.js')).replace('__TRAILS__', S('trails.js')).replace('__V360__', S('v360.js')).replace('__EXTRAS__', S('extras.js') + '\n' + S('weather.js'))
+       .replace('__PACKJS__', S('pack.js')).replace('__TRAILS__', S('trails.js')).replace('__V360__', S('v360.js')).replace('__EXTRAS__', S('extras.js') + '\n' + S('weather.js') + '\n' + S('settings.js'))
        .replace('__BORDER__', json.dumps(json.load(open(os.path.join(R, 'data', 'slovenia_border.json')))['coordinates'], separators=(',', ':')))
        .replace('__PACKSRC__', '' if single else ' data-src="dvat-osm.json.gz"')
        .replace('__OSMPACK__', b64))

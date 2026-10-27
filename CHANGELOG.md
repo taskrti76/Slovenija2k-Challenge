@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.21 — 2026-10-27
+- Peak difficulty (data/peak_tech.json, tools/peak_tech.py): class of the easiest route found from a parking, as PZS marks paths -
+  1 lahka (T1–T2), 2 zahtevna (T3), 3 zelo zahtevna (T4–T6 or ferrata only). 98 main peaks: 22 / 38 / 38; off-trail peaks = 2.
+  Hand fixes: data/tech_overrides.json.
+- Weather rating scales with difficulty (zahtevna / zelo zahtevna): snow ×1.6 / ×2.5, wind and rain ×1.3 / ×1.6, cold ×1.2 / ×1.4,
+  cloud ×1.2; storms stay "always bad". A selected route uses its own class. Popup shows "Zahtevnost: … (T4, najlažja pot)".
+- ⚙ Nastavitve (PC: next to SL/EN and where "Napredno" was; phone: 4th tab): My profile - winter experience (snow ×1.5 / ×1 / ×0.5),
+  fitness (walking times ×1.25 / ×1 / ×0.8), hardest comfortable T-grade and ferratas yes/no (routes and peaks above it get
+  "⚠ nad tvojo mejo"). Defaults are neutral. All former "Napredno" options moved into the same window.
+
 ## web-v0.20 — 2026-10-27
 - Automatic updates: the page checks for a new version on start, every 20 min and when the app comes back to the foreground;
   the new version takes over and the page reloads itself (at once while you are just looking at the map; during 360, drawing or
