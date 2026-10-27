@@ -1,25 +1,26 @@
-name: Summit weather
+name: Daily snow data
 on:
   schedule:
-    - cron: '41 1,7,13,19 * * *'
-  workflow_dispatch: {}
+    - cron: '17 4 * * *'   # every day ~06:17 Slovenian time (after the 00/03 UTC ICON-D2 runs)
+  workflow_dispatch: {}     # "Run workflow" button in the Actions tab
 permissions:
   contents: write
 concurrency: { group: data-commit, cancel-in-progress: false }
 jobs:
-  weather:
+  snow:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: python tools/weather_fetch.py
-      - name: Commit weather.json
+      - run: pip install pillow
+      - run: python tools/snow_fetch.py
+      - name: Commit snow.json
         run: |
-          git config user.name  "weather-bot"
-          git config user.email "weather-bot@users.noreply.github.com"
-          git add weather.json
+          git config user.name  "snow-bot"
+          git config user.email "snow-bot@users.noreply.github.com"
+          git add snow.json
           git diff --cached --quiet && exit 0
-          git commit -m "weather: $(date -u +%F' '%H:%M)"
+          git commit -m "snow: $(date -u +%F)"
           for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
