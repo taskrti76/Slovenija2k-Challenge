@@ -140,6 +140,7 @@ window.exit360 = () => {
   if (window.__dim && P.dim === 2) window.__dim.set(2, true);
   else map.setTerrain({source:'dem_terrain', exaggeration:+$$('exag').value});
   const r = document.querySelector(`input[name=base][value=${P.base}]`); if (r){ r.checked = true; r.dispatchEvent(new Event('change')); }
+  window.TERRAIN_DELTA = null;
   try{ localStorage.removeItem('dvat3d_in360'); }catch(_){}
   document.body.classList.remove('in360'); map.getCanvasContainer().style.touchAction=''; LBL.innerHTML=''; LB=[];
   // zoom out from the last viewed summit (keeps the direction you were looking)
@@ -191,6 +192,7 @@ const PX_BUDGET = window.IS_PHONE ? 1.5e6 : 6e6;
 function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.clientHeight); pr=Math.min(pr, Math.sqrt(PX_BUDGET/css));
   if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];
+  window.TERRAIN_DELTA = S.on ? (qi===2 ? 0 : qi===1 ? 1 : 2) : null; window.applyTerrainLOD && window.applyTerrainLOD();
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
   try{ map.setSourceTileLodParams(q.sat[0], q.sat[1], 'sat'); map.setSourceTileLodParams(q.dem[0], q.dem[1], 'dem_terrain'); }catch(_){}
   $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi)); }

@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.19 — 2026-10-27
+- "Hitri teren (test)" in Napredno (on by default): the 3D shape is built from height tiles one zoom level coarser (360: Srednja one,
+  Nizka two, Visoka full detail), while satellite / relief / hillshade on top stay at full resolution (Google-Earth style:
+  coarse shape, sharp picture). Hillshade + relief use coarser tiles towards the horizon. Fewer height tiles to load and decode.
+  Switch off to compare at the same spot.
+- Weather rating v2 (points 0–100, every deduction listed): window 07–17 h; thunder in the afternoon weighs more than in the morning;
+  "in cloud" from low + mid cloud only (high thin cloud no longer counts); fresh snow; snow already lying on the summit
+  (model snow depth, "zimske razmere"); cold by wind chill. Good ≥ 75, so-so 45–74, bad < 45, thunder always bad.
+- "⤢ Povečaj" in the weather block: large window with all days, the score and each deduction, hourly table 06–21 h
+  (temperature, feels-like, wind + direction, gusts, low/mid cloud, precipitation, freezing level, CAPE) and "Kako ocenjujemo?".
+- weather_fetch.py also fetches low / mid cloud and snow depth (re-upload tools/weather_fetch.py).
+- Snow map: hover (PC) or tap (phone) shows snow depth at that spot, its height, steepness and the local snow line -
+  the same value the map paints there.
+
 ## web-v0.18 — 2026-10-26
 - Summit weather. Peak popup: 4 days (today + 3) with a day rating for 08–15 h (good / so-so / bad and why: storms, strong wind,
   precipitation, snow on top, in cloud), summit temperature range, wind + gusts, precipitation, cloud, freezing level, storms,

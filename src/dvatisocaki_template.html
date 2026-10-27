@@ -343,6 +343,8 @@
     <button class="btn btn2" id="exportPack">Izvozi paket podatkov</button>
     <label title="Manjša ločljivost, manj poti pri oddaljenem pogledu, brez senčenja. Stran se ponovno naloži."><input type="checkbox" id="liteChk"> Varčni način (starejše naprave)</label>
     <div class="row" style="font-size:.8em;color:var(--mute);margin:-2px 0 4px 30px">Izklopi senčenje, Waymarked sloj, ostrino 360° (samo Nizka), oddaljene ploščice in meglo; poti šele ob približanju.</div>
+    <label title="Grobejša 3D oblika gora (višinski podatki eno raven nižje), enaka ostra slika in senčenje; manj senčenja v daljavi. Za primerjavo izklopi."><input type="checkbox" id="fastChk"> Hitri teren (test)</label>
+    <div class="row" style="font-size:.8em;color:var(--mute);margin:-2px 0 4px 30px">Hitrejše nalaganje in manj zatikanja: 3D oblika iz grobejših podatkov, slika in senčenje ostaneta ostra. Primerjaj vklop/izklop na istem mestu.</div>
     <div id="tstatus"></div>
   </details>
 </div>
@@ -439,6 +441,18 @@ const map = new maplibregl.Map({ locale:SL_LOCALE,
   ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
   hash:true
 });
+// --- fast terrain (test switch): the 3D mesh is built from height tiles 1–2 zoom levels coarser than now, while the picture draped
+// on it (satellite / relief / hillshade) keeps full resolution - like Google Earth: coarse shape, sharp image. Far shading tiles coarser too.
+// Fewer height tiles = faster loading, less decoding and memory. 360 Visoka always uses full detail.
+window.FAST_T=(()=>{ try{ return localStorage.getItem('dvat3d_fastterrain')!=='0'; }catch(_){ return true; } })();
+window.TERRAIN_DELTA=null;   // set by 360 quality; null = map default
+window.applyTerrainLOD=()=>{ const t=map.terrain, tm=t&&t.tileManager; if(!tm||!tm.tileManager) return;
+  const extra=!window.FAST_T?0:(window.TERRAIN_DELTA!=null?window.TERRAIN_DELTA:1), d=1+extra;
+  if(tm.deltaZoom!==d){ tm.deltaZoom=d; tm.tileManager.tileSize=tm.tileSize*2**extra; tm._sourceTileCache={}; try{ tm.freeRtt(); }catch(_){} map.triggerRepaint(); }
+  try{ if(!window.LITE_ON) map.setSourceTileLodParams(9.314, window.FAST_T?2:3, 'dem_hs'); }catch(_){} };
+map.on('terrain',()=>setTimeout(window.applyTerrainLOD,0)); map.once('load',()=>window.applyTerrainLOD());
+(function(){ const c=$id('fastChk'); if(!c) return; c.checked=window.FAST_T;
+  c.onchange=()=>{ window.FAST_T=c.checked; try{ localStorage.setItem('dvat3d_fastterrain',c.checked?'1':'0'); }catch(_){} window.applyTerrainLOD(); }; })();
 (function(){
   const setLite=v=>{ try{ localStorage.setItem('dvat3d_lite',v?'1':'0'); }catch(_){} };
   const chk=$id('liteChk'); chk.checked=LITE_ON; chk.onchange=()=>{ setLite(chk.checked); location.reload(); };
@@ -606,12 +620,38 @@ map.on('click',e=>{
   const depthPx=(f,h,slopeF)=>{ if(h<f[3]) return 0; const cap=Math.max(f[2]*1.5,f[2]+30); return Math.max(0,Math.min(cap,f[0]+f[1]*h))*slopeF; };
   const slopeFac=deg=>deg<35?1:deg>60?0.15:1-0.85*(deg-35)/25; // steep rock walls hold little snow
   window.snowPx=(la,lo,h)=>{ if(!SNOWMAP||!FIT||h==null) return null; const f=fitAt(la,lo); return Math.round(depthPx(f,h,1)); };
+  // hover / tap readout on the snow map: the same depth the map paints at that pixel (height + slope from the cached height tiles)
+  const HC=new Map();
+  function snowHere(lng,lat){ if(!SNOWMAP||!FIT) return null;
+    for(let z=12;z>=7;z--){ const n=2**z, X=(lng+180)/360*n, r=lat*Math.PI/180, Y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n;
+      const H=HC.get(z+'/'+Math.floor(X)+'/'+Math.floor(Y)); if(!H) continue; const S=512, px=Math.min(S-1,Math.floor((X%1)*S)), py=Math.min(S-1,Math.floor((Y%1)*S));
+      const h=H[py*S+px], mpp=40075016*Math.cos(r)/(n*S);
+      const hx=H[py*S+Math.min(S-1,px+1)]-H[py*S+Math.max(0,px-1)], hy=H[Math.min(S-1,py+1)*S+px]-H[Math.max(0,py-1)*S+px];
+      const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI, f=fitAt(lat,lng); if(!f) return null;
+      return {cm:Math.round(depthPx(f,h,slopeFac(deg))), h:Math.round(h), deg:Math.round(deg), line:f[3]>-1e3&&f[3]<9e3?Math.round(f[3]/50)*50:null}; }
+    // nothing cached yet (map still loading / tile not drawn yet): fetch the z12 height tile for this spot once
+    const n=4096, X=Math.floor((lng+180)/360*n), r=lat*Math.PI/180, Y=Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n), k='12/'+X+'/'+Y;
+    if(!HC.has(k)&&!HF.has(k)){ HF.add(k); fetch(`https://tiles.mapterhorn.com/${k}.webp`).then(r=>r.ok?r.blob():null).then(b=>b&&decodeTerrarium(b,512))
+      .then(H=>{ if(H){ HC.set(k,H); if(HC.size>40) HC.delete(HC.keys().next().value); if(lastE) showTip(lastE); } }).catch(()=>{}).finally(()=>HF.delete(k)); }
+    return null; }
+  const HF=new Set(); let lastE=null;
+  const tip=document.createElement('div'); tip.id='snowtip'; document.body.append(tip);
+  const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:30;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
+  document.head.append(tipCss);
+  const showTip=(e)=>{ lastE=e; const v=snowHere(e.lngLat.lng,e.lngLat.lat); if(!v){ tip.style.display='none'; return; }
+    const r=map.getContainer().getBoundingClientRect(); tip.style.left=(r.left+e.point.x)+'px'; tip.style.top=(r.top+e.point.y)+'px';
+    tip.innerHTML=`❄ <b>${v.cm} cm</b> · ${v.h} m${v.deg>=35?` · ${(window.T||(s=>s))('strmo')} ${v.deg}°`:''}${v.line!=null?`<br><span style="opacity:.75">${(window.T||(s=>s))('meja snega')} ~${v.line} m</span>`:''}`; tip.style.display='block'; };
+  let tipRaf=0;
+  map.on('mousemove',e=>{ if(!SNOWMAP||matchMedia('(pointer:coarse)').matches){ tip.style.display='none'; return; } cancelAnimationFrame(tipRaf); tipRaf=requestAnimationFrame(()=>showTip(e)); });
+  map.on('mouseout',()=>tip.style.display='none'); map.on('movestart',()=>tip.style.display='none');
+  map.on('click',e=>{ if(!SNOWMAP||!matchMedia('(pointer:coarse)').matches) return; showTip(e); clearTimeout(tip._t); tip._t=setTimeout(()=>tip.style.display='none',3500); });
   let protoOK=false;
   function setupProto(){ if(protoOK) return; protoOK=true;
     maplibregl.addProtocol('snowpx', async (params)=>{
       const m=params.url.match(/^snowpx:\/\/(\d+)\/(\d+)\/(\d+)/); const z=+m[1], x=+m[2], y=+m[3], S=512;
       const r=await fetch(`https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`); if(!r.ok) throw new Error('dem '+r.status);
       const H=await decodeTerrarium(await r.blob(),S), ctx=mkCtx(S,S), img=ctx.createImageData(S,S), px=img.data, n=2**z;
+      HC.set(z+'/'+x+'/'+y,H); if(HC.size>40) HC.delete(HC.keys().next().value); // keep heights for the hover readout
       const latOf=Y=>{ const t=Math.PI*(1-2*(y+Y/S)/n); return Math.atan(Math.sinh(t))*180/Math.PI; };
       for(let Y=0;Y<S;Y++){ const la=latOf(Y+.5), mpp=40075016*Math.cos(la*Math.PI/180)/(n*S);
         for(let X=0;X<S;X++){ const o=Y*S+X, h=H[o]; const lo=(x+(X+.5)/S)/n*360-180; const f=fitAt(la,lo); if(!f) continue;

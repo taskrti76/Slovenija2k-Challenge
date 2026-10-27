@@ -5,7 +5,7 @@ its highest peak, lower peaks in the group get the temperature corrected by -0.6
 Model: DWD ICON (ICON-D2 2 km for 2 days, then ICON-EU) via Open-Meteo ("icon_seamless"), hours 06–21, 4 days.
 Summit wind = max(10 m wind, free-air wind at summit height from the pressure levels) - the 10 m wind of a 2 km model
 sits on smoothed terrain far below a sharp summit and is much too low there.
-Output: weather.json (compact ints, decoded by src/weather.js). Needs only the Python standard library.
+Output: weather.json (compact ints, decoded by src/weather.js). Also low / mid cloud (is the summit in cloud?) and model snow depth. Needs only the Python standard library.
 """
 import json, math, os, sys, time, urllib.request, urllib.error, urllib.parse, datetime
 
@@ -16,7 +16,8 @@ API = 'https://api.open-meteo.com/v1/forecast'
 HOURS = list(range(6, 22))          # 06:00 .. 21:00 local
 DAYS = 4
 BASE = ['temperature_2m', 'wind_speed_10m', 'wind_gusts_10m', 'wind_direction_10m', 'cloud_cover', 'precipitation', 'weather_code']
-EXTRA = ['freezing_level_height', 'cape', 'wind_speed_850hPa', 'wind_speed_800hPa', 'wind_speed_750hPa', 'wind_speed_700hPa']
+EXTRA = ['freezing_level_height', 'cape', 'wind_speed_850hPa', 'wind_speed_800hPa', 'wind_speed_750hPa', 'wind_speed_700hPa',
+         'cloud_cover_low', 'cloud_cover_mid', 'snow_depth']
 PLEV = {850: 1460, 800: 1950, 750: 2470, 700: 3010}   # standard-atmosphere heights of the pressure levels (m)
 
 
@@ -91,7 +92,7 @@ def main():
     extra = accepted_vars(pts[0], model); print('model', model, 'extra', extra)
     V = BASE + extra
     keys = dict(T='temperature_2m', W='wind_speed_10m', G='wind_gusts_10m', D='wind_direction_10m', C='cloud_cover',
-                P='precipitation', X='weather_code', F='freezing_level_height', K='cape')
+                P='precipitation', X='weather_code', F='freezing_level_height', K='cape', CL='cloud_cover_low', CM='cloud_cover_mid', S='snow_depth')
     out = {k: [None] * len(pts) for k in keys}
     days = None; sel = None
     for i in range(0, len(pts), 40):
@@ -130,6 +131,9 @@ def main():
             out['X'][I] = col('weather_code', lambda v: int(v))
             out['F'][I] = col('freezing_level_height', lambda v: round(v / 10) * 10)
             out['K'][I] = col('cape', lambda v: round(v))
+            out['CL'][I] = col('cloud_cover_low', lambda v: round(v))
+            out['CM'][I] = col('cloud_cover_mid', lambda v: round(v))
+            out['S'][I] = col('snow_depth', lambda v: round(v * 100))   # cm
         time.sleep(1)
     if days is None: sys.exit('no data')
     res = {'gen': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%MZ'), 'model': model or 'best_match',
