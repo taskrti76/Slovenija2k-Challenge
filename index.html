@@ -2315,13 +2315,26 @@ Object.assign(EN, {'Samsung Internet: meni ☰ → Dodaj stran na → Začetni z
   'Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.':'The browser is not offering it right now: menu ⋮ → Install app / Add to Home screen. If it is already installed, remove it first.',
   'Aplikacija je nameščena — najdeš jo na začetnem zaslonu.':'App installed — find it on your home screen.'});
 if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.startsWith('http')){
-  navigator.serviceWorker.register('sw.js').then(reg => {
-    reg.addEventListener('updatefound', () => { const w = reg.installing; w && w.addEventListener('statechange', () => {
-      if (w.state === 'installed' && navigator.serviceWorker.controller) window.toastErr && toastErr(T('Na voljo je nova različica — osveži stran.')); }); });
+  // automatic updates: look for a new version on start, every 20 min and whenever the app comes back to the foreground;
+  // the new service worker takes over at once and the page reloads itself - right away if you are just looking at the map,
+  // otherwise (360, drawing, an open window) as soon as you finish or switch away from the app
+  const hadCtrl = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', {updateViaCache:'none'}).then(reg => {
+    const check = () => reg.update().catch(() => {});
+    setInterval(check, 20 * 60e3); document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
   }).catch(e => console.warn('sw', e));
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+  let reloading = false;
+  const busy = () => document.body.classList.contains('in360') || window.DRAW_ON || document.querySelector('#wxBig, .dlg.on, #tour.on, input:focus, textarea:focus');
+  const go = () => { if (reloading) return; reloading = true; try{ sessionStorage.setItem('dvat3d_updated', '1'); }catch(_){} location.reload(); };
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadCtrl || reloading) return;                 // first install: nothing to refresh
+    if (!busy()) return go();
+    document.addEventListener('visibilitychange', () => { if (document.hidden) go(); });
+    const iv = setInterval(() => { if (!busy()){ clearInterval(iv); go(); } }, 5000); });
+  try{ if (sessionStorage.getItem('dvat3d_updated')){ sessionStorage.removeItem('dvat3d_updated'); setTimeout(() => window.toastErr && toastErr(T('Stran je posodobljena na novo različico.')), 1500); } }catch(_){}
 }
-Object.assign(EN, {'Na voljo je nova različica — osveži stran.':'A new version is available — reload the page.'});
+Object.assign(EN, {'Na voljo je nova različica — osveži stran.':'A new version is available — reload the page.', 'Stran je posodobljena na novo različico.':'Updated to the new version.'});
 RX.push([/^360 se je prejšnjič sesul — kakovost znižana na (.+)\.$/, '360 crashed last time — quality lowered to $1.'],
   [/^Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na (.+)\.$/, 'Graphics memory is full — 360 closed, quality lowered to $1.']);
 // offline area: terrain tiles (relief, hillshade, 3D all come from the DEM) for the visible area, zoom 8–14, max ~25 × 25 km.

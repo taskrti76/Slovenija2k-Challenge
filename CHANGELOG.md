@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.20 — 2026-10-27
+- Automatic updates: the page checks for a new version on start, every 20 min and when the app comes back to the foreground;
+  the new version takes over and the page reloads itself (at once while you are just looking at the map; during 360, drawing or
+  an open window it waits until you finish or switch apps), then shows "Stran je posodobljena". The page, trail pack, snow.json and
+  weather.json are always revalidated with GitHub (no 10-minute browser cache). Visitors on v0.19 or older see the old
+  "nova različica" notice one last time.
+
 ## web-v0.19 — 2026-10-27
 - "Hitri teren (test)" in Napredno (on by default): the 3D shape is built from height tiles one zoom level coarser (360: Srednja one,
   Nizka two, Visoka full detail), while satellite / relief / hillshade on top stay at full resolution (Google-Earth style:
