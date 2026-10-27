@@ -21,7 +21,9 @@ const css = document.createElement('style'); css.textContent = `
 #setWin .q{margin:8px 0 2px;font-weight:600}#setWin .hint{font-size:.82em;color:var(--mute,#666);margin:2px 0 4px}
 #setWin .chips{display:flex;flex-wrap:wrap;gap:6px}#setWin .chips button{border:1px solid var(--line,#ccc);background:transparent;color:inherit;border-radius:18px;padding:5px 11px;font:inherit;font-size:.92em;cursor:pointer}
 #setWin .chips button.on{background:#1d2321;color:#fff;border-color:#1d2321}
-#setWin .advbox .btn{width:100%;margin:4px 0}#setWin .advbox label{display:flex;gap:8px;align-items:center;margin:6px 0}
+#setWin .advbox .btn{width:100%;margin:4px 0;background:#1d2321!important;color:#fff!important;border:1px solid #1d2321;font-weight:600}
+#setWin .advbox .btn2{background:#fff!important;color:#1d2321!important;border:1px solid #8a948f}#setWin .advbox .btn2:hover{background:#eef2f0!important}
+#setWin .advbox,#setWin .advbox label{color:#1d2321}#setWin .advbox .row,#setWin .advbox div[style*="color"],#setWin .hint{color:#4a524f!important}#setWin h4{color:#4a524f}#setWin .advbox label{display:flex;gap:8px;align-items:center;margin:6px 0}
 #gearBtn{float:right;margin:2px 6px 0 0;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--mute);font:600 calc(11px*var(--ui,1)) system-ui,sans-serif;padding:3px 7px;cursor:pointer}
 @media (max-width:700px){ #setWin{padding:0;align-items:stretch} #setWin .setcard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} #gearBtn{display:none} }`;
 document.head.append(css);

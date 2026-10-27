@@ -25,7 +25,7 @@ function fromWX(p){
   const e0 = WX.pts[i][2], dT = (e0 - topH(p)) * 0.0065, v = WX.v;
   const sc = (a, f) => a ? a.map(x => x == null ? null : f(x)) : null;
   return {days:WX.days, hours:WX.hours, gen:WX.gen, model:WX.model, T:sc(v.T[i], x => x/10 + dT), W:v.W[i], G:v.G[i], D:v.D[i], C:v.C[i],
-    P:sc(v.P[i], x => x/10), X:v.X[i], F:v.F[i], K:v.K[i], CL:v.CL ? v.CL[i] : null, CM:v.CM ? v.CM[i] : null, S:v.S ? v.S[i] : null}; }
+    P:sc(v.P[i], x => x/10), X:v.X[i], F:v.F[i], K:v.K[i], CL:v.CL ? v.CL[i] : null, CM:v.CM ? v.CM[i] : null, S:v.S ? v.S[i] : null, lat:p.lat, lon:p.lon}; }
 async function live(p){
   if (LIVE[p.id]) return LIVE[p.id];
   const e = Math.round(topH(p)), q = `latitude=${p.lat}&longitude=${p.lon}&elevation=${e}&forecast_days=4&timezone=Europe%2FLjubljana&wind_speed_unit=kmh`;
@@ -45,8 +45,10 @@ async function live(p){
   return LIVE[p.id] = {days:[...new Set(sel.map(k => h.time[k].slice(0, 10)))], hours:HOURS, gen:null, model:'icon (živo)',
     T:col('temperature_2m'), W, G, D:col('wind_direction_10m'), C:col('cloud_cover'), P:col('precipitation'), X:col('weather_code'),
     F:col('freezing_level_height'), K:col('cape'), CL:col('cloud_cover_low'), CM:col('cloud_cover_mid'),
-    S:h.snow_depth ? sel.map(k => h.snow_depth[k] == null ? null : Math.round(h.snow_depth[k] * 100)) : null}; }
-async function seriesFor(p){ await loadWX(); return fromWX(p) || await live(p); }
+    S:h.snow_depth ? sel.map(k => h.snow_depth[k] == null ? null : Math.round(h.snow_depth[k] * 100)) : null, lat:p.lat, lon:p.lon}; }
+async function seriesFor(p){ const extra = Promise.all([window.loadSat ? window.loadSat() : null, window.loadSnowpack ? window.loadSnowpack() : null]);
+  await Promise.all([loadWX(), Promise.race([extra, new Promise(r => setTimeout(r, 2500))])]);   // satellite / snowpack: wait at most 2.5 s
+  return fromWX(p) || await live(p); }
 
 // --- day score (0–100) and rating for the summit hours 07–17. Every factor takes points off; the list says why.
 //   storms (thunder in the forecast, or high storm energy CAPE + rain; afternoon weighs more), wind / gusts at summit height,
@@ -73,6 +75,10 @@ function day(s, d, elev, cls){
   const lm = s.CL && s.CM ? win.map(k => s.CL[k] == null && s.CM[k] == null ? null : Math.max(s.CL[k] || 0, s.CM[k] || 0)).filter(x => x != null) : [];
   o.cloudLM = lm.length > 0; o.c = o.cloudLM ? avg(lm) : avg(g(s.C, win));
   const noon = all[s.hours.indexOf(12)]; o.snowcm = s.S && noon != null ? s.S[noon] : null;
+  if (window.snowpackAt && s.lat != null){ const v = window.snowpackAt(s.lat, s.lon, elev, s.days[d]); if (v != null){ o.snowcm = Math.round(v); o.snowSP = true; } }
+  // today: the satellite (Sentinel-2, newest clear look ≤10 days, 200 m around the summit) decides whether snow lies there
+  if (s.days[d] === today() && s.lat != null && window.satSnow && window.satDayOK && window.satDayOK(s.days[d])){
+    const v = window.satSnow(s.lat, s.lon, 2); if (v && v.cls){ o.sat = v; o.snowcm = v.cls === 1 ? 0 : Math.max(o.snowcm || 0, 10); } }
   o.chill = win.length && s.T && s.W ? Math.min(...win.filter(k => s.T[k] != null && s.W[k] != null).map(k => chill(s.T[k], s.W[k]))) : null;
   if (!isFinite(o.chill)) o.chill = null;
   const add = (pts, sl, en, cat) => { if (pts > 0){ const k = (MULT[cat] || MULT.storm)[ci] * (cat === 'snow' || cat === 'fresh' ? wk : 1); o.pen.push([Math.round(pts * k), L(sl, en)]); } };
@@ -89,7 +95,7 @@ function day(s, d, elev, cls){
   if (o.c != null) add(o.cloudLM ? (o.c >= 90 ? 20 : o.c >= 70 ? 8 : 0) : (o.c >= 95 ? 12 : o.c >= 85 ? 5 : 0),
     o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
   if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
-  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm)`, `winter conditions (snow ~${o.snowcm} cm)`, 'snow');
+  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm${o.sat ? ', satellite' : ''})`, 'snow');
   if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
@@ -149,7 +155,7 @@ function big(p, s, D, DD, sel){
       <h3>${p.name} · ${Math.round(topH(p))} m — ${L('vreme na vrhu','summit weather')}</h3>
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)} °C<br><span style="color:${RC[d.r]};font-weight:700">${d.score}</span></button>`).join('')}</div>
       <div class="sc"><div>${clsLine(p, o)}<span class="pill" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}/100</span>
-        <ul>${o.pen.length ? o.pen.map(([pt, tx]) => `<li>${tx} <b>−${pt}</b></li>`).join('') : `<li>${L('brez odbitkov','no deductions')}</li>`}</ul></div>
+        <ul>${o.pen.length ? o.pen.map(([pt, tx]) => `<li>${tx} <b>−${pt}</b></li>`).join('') : `<li>${L('brez odbitkov','no deductions')}</li>`}</ul>${o.sat ? `<div class="note" style="margin-top:4px">🛰 ${L('Satelit Sentinel-2', 'Sentinel-2 satellite')} (${o.sat.date}${o.sat.age != null ? ', ' + L('posnetek', 'image') + ' ' + o.sat.age + ' d' : ''}): ${o.sat.cls === 2 ? L('sneg na vrhu', 'snow on the summit') : L('vrh kopen', 'summit free of snow')}</div>` : ''}</div>
         <div>🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C${o.chill != null ? ` · ${L('občutek','feels like')} ${Math.round(o.chill)} °C` : ''}<br>💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
         💧 ${o.p.toFixed(1)} mm · ☁ ${o.c != null ? Math.round(o.c) + ' %' : '–'}${o.cloudLM ? ' (' + L('nizki+srednji', 'low+mid') + ')' : ''}<br>0 °C: ${o.fl != null ? Math.round(o.fl/50)*50 + ' m' : '–'}${o.snowcm != null ? ` · ❄ ${L('sneg', 'snow')} ~${o.snowcm} cm` : ''}</div></div>
       <div class="tw"><table><thead><tr><th>${L('ura','time')}</th><th></th><th>°C</th><th>${L('občutek','feels')}</th><th>${L('veter','wind')} km/h</th><th>${L('sunki','gusts')}</th>

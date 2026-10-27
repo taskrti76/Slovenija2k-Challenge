@@ -2,6 +2,26 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.23 — 2026-10-27
+- Own snowpack model (tools/snowpack.py + .github/workflows/snowpack.yml, daily): snow water + density at every 250 m of height
+  (500 m … highest peak) in 61 mountain cells of ~8 km. Hourly: snowfall below ~0 °C / rain above ~2 °C (temperature downscaled to
+  the height), precipitation +5 % per 100 m above 1000 m, new-snow density from temperature, settling, degree-day melt
+  (stronger in spring) + rain heat. Season state kept in data/snowpack_state.json (starts 1 October). Output snowpack.json.
+- Snow map depth now from the snowpack model (interpolated over height and the 3 nearest cells), less on south-facing and more on
+  north-facing slopes (stronger in spring), less on steep walls; the satellite still decides where snow lies. Fallback: old fit.
+- Weather rating: snow on the summit from the snowpack model at the summit height (+ satellite today).
+- Settings window: clear dark text on light buttons (contrast).
+
+## web-v0.22 — 2026-10-27
+- Satellite snow cover: tools/snowsat_fetch.py + .github/workflows/snowsat.yml (daily) fetch Copernicus Sentinel-2 L2A through the
+  Copernicus Data Space Sentinel Hub API (free account, OAuth client in GitHub secrets CDSE_CLIENT_ID / CDSE_CLIENT_SECRET).
+  Per 40 m pixel the newest cloud-free look of the last 10 days says snow / no snow (scene classification or NDSI) -> snowsat.png + .json.
+  First run 27 Oct: 82 % of the Alps seen cloud-free, 4.8 % snow (high Julian Alps, Karavanke ridge, Kamnik Alps).
+- Snow map: where snow lies now comes from the satellite (seen bare = no snow, seen snow = at least 8 cm), depth from the model;
+  under cloud the model alone. Hover / tap shows "🛰 satelit: sneg (1 d)". Info line shows the satellite date and % cloud-free.
+- Weather rating: today's "snow on the summit" uses the satellite (200 m around the summit) when it has a clear look.
+- Service worker always revalidates snowsat.png / snowsat.json.
+
 ## web-v0.21 — 2026-10-27
 - Peak difficulty (data/peak_tech.json, tools/peak_tech.py): class of the easiest route found from a parking, as PZS marks paths -
   1 lahka (T1–T2), 2 zahtevna (T3), 3 zelo zahtevna (T4–T6 or ferrata only). 98 main peaks: 22 / 38 / 38; off-trail peaks = 2.

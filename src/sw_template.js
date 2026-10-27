@@ -36,9 +36,9 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /(snow|weather)\.json/.test(u) ? false : true});
       // page + data files: always ask GitHub whether they changed (cheap 304 if not) instead of trusting the browser's 10-min HTTP cache
-      const fresh = /snow\.json|weather\.json|\.html$|\/$|dvat-osm\.json\.gz/.test(u) || r.mode === 'navigate';
+      const fresh = /snow\.json|weather\.json|snowsat\.(json|png)|snowpack\.json|\.html$|\/$|dvat-osm\.json\.gz/.test(u) || r.mode === 'navigate';
       const net = (fresh ? fetch(r.url, {cache:'no-cache', credentials:'same-origin'}) : fetch(r)).then(res => { if (res.ok) c.put(r, res.clone()); return res; }).catch(() => null);
-      if (r.mode === 'navigate' || /snow\.json|weather\.json|\.html$|\/$/.test(u)){ const res = await net; return res || hit || new Response('', {status:504}); }
+      if (r.mode === 'navigate' || /snow\.json|weather\.json|snowsat\.(json|png)|snowpack\.json|\.html$|\/$/.test(u)){ const res = await net; return res || hit || new Response('', {status:504}); }
       return hit || (await net) || new Response('', {status:504});
     })());
   }

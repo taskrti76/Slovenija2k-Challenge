@@ -34,7 +34,7 @@ const EN = Object.assign({}, RANGE_EN, {
   '❄ Višina snega':'❄ Snow depth', 'Skrij legendo':'Hide legend', 'Pokaži legendo':'Show legend', 'Skrij / pokaži legendo':'Hide / show legend', 'Dan prej':'Previous day', 'Dan pozneje':'Next day',
   'Model ICON-D2 (DWD, mreža ~2 km) prek Open-Meteo. Ocena, ne meritev; ostri grebeni so zglajeni.':'ICON-D2 model (DWD, ~2 km grid) via Open-Meteo. An estimate, not a measurement; sharp ridges are smoothed.',
   'Model ICON-D2 (DWD) · Open-Meteo. Celice: 8 km pod 1000 m, 4 km do 1500 m, 2 km do 2000 m, 1 km nad 2000 m.':'ICON-D2 model (DWD) · Open-Meteo. Cells: 8 km below 1000 m, 4 km to 1500 m, 2 km to 2000 m, 1 km above 2000 m.',
-  'Snežna karta: model ICON-D2 razporejen po višini terena (lokalna odvisnost sneg–višina), strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.':'Snow map: ICON-D2 model spread over terrain height (local snow–height relation), less snow on slopes >35°. Contours: Mapterhorn DEM. An estimate, not a measurement.',
+  'Snežna karta: kje je sneg pove satelit Copernicus Sentinel-2 (zadnji jasen posnetek ≤10 dni, 40 m); globino naš sezonski model snežne odeje (sneženje od 1. oktobra minus taljenje, vsakih 250 m višine; južna pobočja manj, severna več). Strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.':'Snow map: where snow lies comes from the Copernicus Sentinel-2 satellite (newest clear image ≤10 days, 40 m); depth from our season snowpack model (snowfall since 1 October minus melt, every 250 m of height; less on south slopes, more on north). Less snow on slopes >35°. Contours: Mapterhorn DEM. An estimate, not a measurement.',
   'Pripravljam mrežo po nadmorski višini …':'Preparing the elevation grid …', 'Nalagam dnevne podatke o snegu …':'Loading daily snow data …',
   'Kakovost slike':'Image quality', 'Nizka':'Low', 'Srednja':'Medium', 'Visoka':'High', '⟳ Vrti':'⟳ Spin', '✕ Izhod':'✕ Exit', 'Približaj':'Zoom in', 'Oddalji':'Zoom out', '☀ Dan':'☀ Day',
   'Sončni vzhod / zahod danes s tega vrha':'Sunrise / sunset today from this summit',
@@ -59,7 +59,7 @@ const RX = [
   [/^Nalagam model … (.+) točk$/, 'Loading model … $1 points'],
   [/^Poti: ([\d.]+) odsekov(?: · ceste: ([\d.]+))? · koče\/bivaki: (\d+) · izhodišča: (\d+) · (.+)$/, (m,a,b,c,d,e)=>`Trails: ${a} segments${b?` · roads: ${b}`:''} · huts/bivouacs: ${c} · trailheads: ${d} · ${e.replace('vgrajeno','built-in').replace('paket','pack')}`]
 ];
-const TOK = [[' · lahka',' · easy'],[' brez poti',' without a trail'],[' · zadnjih ',' · last '],[' · prominenca ',' · prominence '],[' · podvrh',' · subpeak'],[' · sončni vzhod ',' · sunrise '],[' · sončni zahod ',' · sunset '],[' markirano',' marked'],[' km ceste',' km road'],[' · ferata',' · via ferrata'],['⚠ nad tvojo mejo','⚠ above your limit'],[' (napoved)',' (forecast)'],[' (danes)',' (today)'],[' celic s snegom',' cells with snow'],[', največ ',', max '],[' · snežna karta',' · snow map']];
+const TOK = [[' · lahka',' · easy'],[' brez poti',' without a trail'],[' · zadnjih ',' · last '],[' · prominenca ',' · prominence '],[' · podvrh',' · subpeak'],[' · sončni vzhod ',' · sunrise '],[' · sončni zahod ',' · sunset '],[' markirano',' marked'],[' km ceste',' km road'],[' · ferata',' · via ferrata'],['⚠ nad tvojo mejo','⚠ above your limit'],[' (napoved)',' (forecast)'],[' (danes)',' (today)'],[' celic s snegom',' cells with snow'],[', največ ',', max '],[' · snežna karta',' · snow map'],[' · satelit ',' · satellite '],[' · sezonski model snežne odeje',' · season snowpack model'],[' % brez oblakov)',' % cloud-free)']];
 function tr(s){
   const k = s.trim(); if (!k) return null; let o = EN[k];
   if (o == null) for (const [r, v] of RX){ if (r.test(k)){ o = k.replace(r, v); break; } }
@@ -168,7 +168,7 @@ $x('instBtn').onclick = async () => {
     : T('Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.'); };
 if (!standalone && /iphone|ipad|ipod/i.test(navigator.userAgent)){ const h = $x('instHint'); h.style.display = ''; h.textContent = T('iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.'); }
 EN['iPhone: Safari → Deli (□↑) → Dodaj na začetni zaslon.'] = 'iPhone: Safari → Share (□↑) → Add to Home Screen.';
-Object.assign(EN, {'strmo':'steep', 'meja snega':'snow line', 'Hitri teren (test)':'Fast terrain (test)',
+Object.assign(EN, {'strmo':'steep', 'meja snega':'snow line', 'satelit: sneg':'satellite: snow', 'satelit: kopno':'satellite: no snow', 'Hitri teren (test)':'Fast terrain (test)',
   'Hitrejše nalaganje in manj zatikanja: 3D oblika iz grobejših podatkov, slika in senčenje ostaneta ostra. Primerjaj vklop/izklop na istem mestu.':'Faster loading, less lag: 3D shape from coarser height data, the picture and shading stay sharp. Compare on/off at the same spot.'});
 Object.assign(EN, {'Samsung Internet: meni ☰ → Dodaj stran na → Začetni zaslon.':'Samsung Internet: menu ☰ → Add page to → Home screen.',
   'Brskalnik je trenutno ne ponudi sam: meni ⋮ → Namesti aplikacijo / Dodaj na začetni zaslon. Če je že nameščena, jo najprej odstrani.':'The browser is not offering it right now: menu ⋮ → Install app / Add to Home screen. If it is already installed, remove it first.',

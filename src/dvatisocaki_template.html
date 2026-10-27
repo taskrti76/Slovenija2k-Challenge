@@ -628,7 +628,9 @@ map.on('click',e=>{
       const h=H[py*S+px], mpp=40075016*Math.cos(r)/(n*S);
       const hx=H[py*S+Math.min(S-1,px+1)]-H[py*S+Math.max(0,px-1)], hy=H[Math.min(S-1,py+1)*S+px]-H[Math.max(0,py-1)*S+px];
       const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI, f=fitAt(lat,lng); if(!f) return null;
-      return {cm:Math.round(depthPx(f,h,slopeFac(deg))), h:Math.round(h), deg:Math.round(deg), line:f[3]>-1e3&&f[3]<9e3?Math.round(f[3]/50)*50:null}; }
+      let cm=Math.round(spDay(dt.value)?Math.max(0,(window.snowpackAt(lat,lng,h,dt.value)||0)*aspectK(hx,hy,deg,dt.value)*slopeFac(deg)):depthPx(f,h,slopeFac(deg))), sat=null;
+      if(satDayOK(dt.value)){ const v=window.satSnow(lat,lng,0); if(v&&v.cls){ sat=v; if(v.cls===1) cm=0; else if(cm<8&&deg<60) cm=8; } }
+      return {cm, h:Math.round(h), deg:Math.round(deg), line:f[3]>-1e3&&f[3]<9e3?Math.round(f[3]/50)*50:null, sat}; }
     // nothing cached yet (map still loading / tile not drawn yet): fetch the z12 height tile for this spot once
     const n=4096, X=Math.floor((lng+180)/360*n), r=lat*Math.PI/180, Y=Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n), k='12/'+X+'/'+Y;
     if(!HC.has(k)&&!HF.has(k)){ HF.add(k); fetch(`https://tiles.mapterhorn.com/${k}.webp`).then(r=>r.ok?r.blob():null).then(b=>b&&decodeTerrarium(b,512))
@@ -640,7 +642,7 @@ map.on('click',e=>{
   document.head.append(tipCss);
   const showTip=(e)=>{ lastE=e; const v=snowHere(e.lngLat.lng,e.lngLat.lat); if(!v){ tip.style.display='none'; return; }
     const r=map.getContainer().getBoundingClientRect(); tip.style.left=(r.left+e.point.x)+'px'; tip.style.top=(r.top+e.point.y)+'px';
-    tip.innerHTML=`❄ <b>${v.cm} cm</b> · ${v.h} m${v.deg>=35?` · ${(window.T||(s=>s))('strmo')} ${v.deg}°`:''}${v.line!=null?`<br><span style="opacity:.75">${(window.T||(s=>s))('meja snega')} ~${v.line} m</span>`:''}`; tip.style.display='block'; };
+    tip.innerHTML=`❄ <b>${v.cm} cm</b> · ${v.h} m${v.deg>=35?` · ${(window.T||(s=>s))('strmo')} ${v.deg}°`:''}${v.line!=null?`<br><span style="opacity:.75">${(window.T||(s=>s))('meja snega')} ~${v.line} m</span>`:''}${v.sat?`<br><span style="opacity:.75">🛰 ${(window.T||(s=>s))(v.sat.cls===2?'satelit: sneg':'satelit: kopno')}${v.sat.age!=null?` (${v.sat.age} d)`:''}</span>`:''}`; tip.style.display='block'; };
   let tipRaf=0;
   map.on('mousemove',e=>{ if(!SNOWMAP||matchMedia('(pointer:coarse)').matches){ tip.style.display='none'; return; } cancelAnimationFrame(tipRaf); tipRaf=requestAnimationFrame(()=>showTip(e)); });
   map.on('mouseout',()=>tip.style.display='none'); map.on('movestart',()=>tip.style.display='none');
@@ -649,6 +651,8 @@ map.on('click',e=>{
   function setupProto(){ if(protoOK) return; protoOK=true;
     maplibregl.addProtocol('snowpx', async (params)=>{
       const m=params.url.match(/^snowpx:\/\/(\d+)\/(\d+)\/(\d+)/); const z=+m[1], x=+m[2], y=+m[3], S=512;
+      const useSat=/[?&]s=\d/.test(params.url)&&!!SAT;
+      const spD=(params.url.match(/[?&]d=([\d-]+)/)||[])[1], useSP=!!spD&&spDay(spD)&&/[?&]p=1/.test(params.url);
       const r=await fetch(`https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`); if(!r.ok) throw new Error('dem '+r.status);
       const H=await decodeTerrarium(await r.blob(),S), ctx=mkCtx(S,S), img=ctx.createImageData(S,S), px=img.data, n=2**z;
       HC.set(z+'/'+x+'/'+y,H); if(HC.size>40) HC.delete(HC.keys().next().value); // keep heights for the hover readout
@@ -656,7 +660,8 @@ map.on('click',e=>{
       for(let Y=0;Y<S;Y++){ const la=latOf(Y+.5), mpp=40075016*Math.cos(la*Math.PI/180)/(n*S);
         for(let X=0;X<S;X++){ const o=Y*S+X, h=H[o]; const lo=(x+(X+.5)/S)/n*360-180; const f=fitAt(la,lo); if(!f) continue;
           const hx=H[Y*S+Math.min(S-1,X+1)]-H[Y*S+Math.max(0,X-1)], hy=H[Math.min(S-1,Y+1)*S+X]-H[Math.max(0,Y-1)*S+X];
-          const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI, d=depthPx(f,h,slopeFac(deg));
+          const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI; let d=useSP?Math.max(0,(window.snowpackAt(la,lo,h,spD)||0)*aspectK(hx,hy,deg,spD)*slopeFac(deg)):depthPx(f,h,slopeFac(deg));
+          if(useSat){ const sc=satAt(la,lo); if(sc===1) d=0; else if(sc===2&&d<8&&deg<60) d=8; }
           if(d<1) continue; let s=RGB.length-1; for(let q=1;q<RGB.length;q++) if(d<RGB[q][0]){ s=q; break; }
           const c0=RGB[Math.max(0,s-1)], c1=RGB[s], t=s===0||d>=c1[0]?1:(d-c0[0])/(c1[0]-c0[0]), p4=o*4;
           px[p4]=c0[1]+(c1[1]-c0[1])*t; px[p4+1]=c0[2]+(c1[2]-c0[2])*t; px[p4+2]=c0[3]+(c1[3]-c0[3])*t; px[p4+3]=Math.min(255,60+d*25); } }
@@ -680,12 +685,53 @@ map.on('click',e=>{
       layout:{'symbol-placement':'line','text-size':10.5*k,'text-field':['concat',['number-format',['get','ele'],{}],''],'text-font':['Noto Sans Bold'],'symbol-spacing':320},
       paint:{'text-color':'#6b4b30','text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.3}},before);
   }
+  // ---------- (c) satellite: Copernicus Sentinel-2 snow cover (tools/snowsat_fetch.py, daily, 40 m): WHERE snow lies, from the newest
+  // clear look of the last 10 days. On the satellite's day it overrides the model: seen bare -> no snow, seen snow -> at least 8 cm.
+  let SAT=null, SATP=null;
+  window.loadSat=()=>{ if(SATP) return SATP;
+    SATP=(location.protocol.startsWith('http')?fetch('snowsat.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null):Promise.resolve(null)).then(async m=>{
+      if(!m||!m.bbox) return null; const r=await fetch('snowsat.png',{cache:'no-cache'}); if(!r.ok) return null;
+      const bmp=await createImageBitmap(await r.blob(),{colorSpaceConversion:'none',premultiplyAlpha:'none'}), W=bmp.width, H=bmp.height, c=mkCtx(W,H);
+      c.drawImage(bmp,0,0); const d=c.getImageData(0,0,W,H).data, n=W*H, C=new Uint8Array(n), A=new Uint8Array(n);
+      for(let i=0;i<n;i++){ C[i]=d[i*4]; A[i]=d[i*4+1]; } SAT={m,C,A,W,H}; return SAT; }).catch(e=>{ console.warn('snowsat',e); return null; });
+    return SATP; };
+  const satAt=(la,lo)=>{ if(!SAT) return 0; const b=SAT.m.bbox, X=Math.floor((lo-b[0])/(b[2]-b[0])*SAT.W), Y=Math.floor((b[3]-la)/(b[3]-b[1])*SAT.H);
+    return X<0||Y<0||X>=SAT.W||Y>=SAT.H?0:SAT.C[Y*SAT.W+X]; };
+  // summit / spot verdict from the pixels around it (r = 1 -> 3×3 = 120 m, 2 -> 5×5 = 200 m)
+  window.satSnow=(la,lo,r=1)=>{ if(!SAT) return null; const b=SAT.m.bbox, X0=Math.floor((lo-b[0])/(b[2]-b[0])*SAT.W), Y0=Math.floor((b[3]-la)/(b[3]-b[1])*SAT.H);
+    let s=0,n=0,age=255; for(let y=Y0-r;y<=Y0+r;y++) for(let x=X0-r;x<=X0+r;x++){ if(x<0||y<0||x>=SAT.W||y>=SAT.H) continue; const k=y*SAT.W+x, c=SAT.C[k];
+      if(c===2) s++; else if(c===1) n++; if(c) age=Math.min(age,SAT.A[k]); }
+    return {cls:s+n===0?0:s>=n?2:1, snow:s, bare:n, age:age===255?null:age, date:SAT.m.date}; };
+  const satDayOK=day=>!!SAT&&Math.abs(Date.parse(day)-Date.parse(SAT.m.date))<=1.5*864e5;
+  // ---------- (d) own snowpack model (tools/snowpack.py, daily): the season's snowfall minus melt at every 250 m of height,
+  // per ~8 km mountain cell. Depth here = interpolated between heights and the 3 nearest cells, then sun / shade by slope aspect.
+  let SP=null, SPP=null, SPG=null;
+  window.loadSnowpack=()=>{ if(SPP) return SPP;
+    SPP=(location.protocol.startsWith('http')?fetch('snowpack.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null):Promise.resolve(null)).then(j=>{
+      if(!j||!j.pts) return null; SP=j; const G=new Map();
+      j.pts.forEach(([la,lo,e],i)=>{ const k=la+','+lo; let g=G.get(k); if(!g) G.set(k,g={la,lo,e:[],i:[]}); g.e.push(e); g.i.push(i); });
+      SPG=[...G.values()]; return SP; }).catch(()=>null);
+    return SPP; };
+  window.snowpackAt=(la,lo,h,day)=>{ if(!SP) return null; const di=SP.days.indexOf(day); if(di<0||h==null) return null; const C=SP.cm[di];
+    const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk>30) continue; best.push([dk,g]); }
+    if(!best.length) return null; best.sort((a,b)=>a[0]-b[0]); let sw=0,sv=0;
+    for(const [dk,g] of best.slice(0,3)){ const E=g.e; let v;
+      if(h<=E[0]) v=h<E[0]-150?0:C[g.i[0]];
+      else if(h>=E[E.length-1]){ const n=E.length-1, a=C[g.i[n]], b=n?C[g.i[n-1]]:a; v=Math.max(a, a+(a-b)*Math.min(2,(h-E[n])/250)*0.5); }
+      else { let k=0; while(E[k+1]<h) k++; const f=(h-E[k])/(E[k+1]-E[k]); v=C[g.i[k]]*(1-f)+C[g.i[k+1]]*f; }
+      const w=1/Math.max(1,dk)**2; sw+=w; sv+=w*v; }
+    return sv/sw; };
+  // sun / shade: south-facing slopes lose more snow (stronger in spring), north faces keep more
+  const aspectK=(hx,hy,deg,day)=>{ const g=Math.hypot(hx,hy); if(!g||deg<5) return 1; const south=-hy/g, s=Math.min(1,deg/30), m=+day.slice(5,7);
+    const k=m===12||m===1?0.15:m===11||m===2?0.22:m>=3&&m<=6?0.4:0.3; return Math.max(0.3,1-k*south*s); };
+  const spDay=day=>!!SP&&SP.days.includes(day);
+  window.satDayOK=satDayOK;
   function renderMap(){ const day=dt.value;
     if(FITDAY!==day){ FIT=buildFit(day); FITDAY=day; }
     setupProto();
-    const url=`snowpx://{z}/{x}/{y}?d=${day}&t=${DATA.times?DATA.times[0]:''}`;
+    const url=`snowpx://{z}/{x}/{y}?d=${day}&t=${DATA.times?DATA.times[0]:''}&s=${satDayOK(day)?SAT.m.date:''}&p=${spDay(day)?1:0}&g=${SP?SP.gen:''}`;
     if(!map.getSource('snowpx')){ map.addSource('snowpx',{type:'raster',tiles:[url],tileSize:512,minzoom:7,maxzoom:window.LITE_ON?10:12,bounds:[LO0-0.15,LA0-0.1,LO1+0.15,LA1+0.1],
-        attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0), razporejeno po višini'});
+        attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0), razporejeno po višini; satelit: vsebuje spremenjene podatke Copernicus Sentinel-2 (CDSE)'});
       map.addLayer({id:'snowpx',type:'raster',source:'snowpx',paint:{'raster-opacity':0.82,'raster-fade-duration':0}},'hs'); }
     else map.getSource('snowpx').setTiles([url]);
   }
@@ -701,10 +747,10 @@ map.on('click',e=>{
     try{ if(!DATA) DATA=await load(); }
     catch(e){ info.textContent='Model ni dosegljiv: '+e.message; toastErr('Višina snega (Open-Meteo): '+e.message+'. Poskusi čez nekaj minut.'); return; }
     const day=dt.value, tag=`${day}${day>today?' (napoved)':day===today?' (danes)':''}`, part=DATA.partial?' · delno (strežnik zaseden, poskusi znova kasneje)':'';
-    if(SNOWMAP){ renderMap(); setVis('snowd',false);
+    if(SNOWMAP){ await Promise.all([window.loadSat(), window.loadSnowpack()]); renderMap(); setVis('snowd',false);
       const ok=DATA.elev&&DATA.elev.some(e=>e!=null);
-      info.textContent=`${tag} · snežna karta${FIT?'':' — premalo točk za razporeditev'}${part}`;
-      $id('snowlegnote').textContent='Snežna karta: model ICON-D2 razporejen po višini terena (lokalna odvisnost sneg–višina), strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
+      info.textContent=`${tag} · snežna karta${FIT?'':' — premalo točk za razporeditev'}${spDay(day)?' · sezonski model snežne odeje':''}${satDayOK(day)?` · satelit ${SAT.m.date} (${Math.round(SAT.m.clear_pct)} % brez oblakov)`:''}${part}`;
+      $id('snowlegnote').textContent='Snežna karta: kje je sneg pove satelit Copernicus Sentinel-2 (zadnji jasen posnetek ≤10 dni, 40 m); globino naš sezonski model snežne odeje (sneženje od 1. oktobra minus taljenje, vsakih 250 m višine; južna pobočja manj, severna več). Strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
     else { const f=renderCells(); setVis('snowd',true); const max=f.reduce((m,x)=>Math.max(m,x.properties.cm),0);
       info.textContent=`${tag} · ${f.length} celic s snegom${f.length?', največ '+max+' cm':''}${part}`;
       $id('snowlegnote').textContent='Model ICON-D2 (DWD) · Open-Meteo. Celice: 8 km pod 1000 m, 4 km do 1500 m, 2 km do 2000 m, 1 km nad 2000 m.'; }
