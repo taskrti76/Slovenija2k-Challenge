@@ -714,6 +714,14 @@ window.__peakTech = async function(id){ const p=byId[id]; if(!p||p.lat==null) re
   const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
   if(!res) return {none:true}; const R=res.routes.filter((r,i,a)=>r.stats.len/1000<=22||a.length===1);
   return {routes:R.map(r=>({sac:r.stats.sac,fer:!!r.stats.ferrata,km:+(r.stats.len/1000).toFixed(1),cls:window.routeClass(r)}))}; };
+// lines of all routes to a peak (same routes the route card shows; no UI) - used for snow along the way
+const RL=new Map();
+window.__peakRouteLines = async function(id){ if(RL.has(id)) return RL.get(id); const p=byId[id]; if(!p||p.lat==null) return [];
+  if(!inG(p.lat,p.lon,0.17)){ if(!GRAPHSRC){ if(!loading) loadData(); return null; } await ensureGraph(p.lat,p.lon,0.17); if(!G) return null; }
+  const nearPark=(la,lo)=>STARTS.some(x=>hav(x.lat,x.lon,la,lo)<300);
+  const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:nearPark(la,lo)?1:0;
+  const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
+  const L=res?res.routes.filter((r,i,a)=>r.stats.len/1000<=22||a.length===1).map(r=>r.coords):[]; RL.set(id,L); return L; };
 // fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
 function routePad(){ const c=rcard(), W=innerWidth, H=innerHeight;
   const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}

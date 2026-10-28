@@ -190,14 +190,14 @@ window.wxBox = p => {
   seriesFor(p).then(s => {
     if (!s){ box.querySelector('.wxs').textContent = L('Napoved trenutno ni dosegljiva.','Forecast not available right now.'); return; }
     const d0 = Math.max(0, s.days.indexOf(today()));
-    const D = [], DD = []; s.days.forEach((d, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o){ D.push(o); DD.push(i); } }); let sel = 0;
+    let D = [], DD = []; const mk = () => { D = []; DD = []; s.days.forEach((d, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o){ D.push(o); DD.push(i); } }); }; mk(); let sel = 0;
     const draw = () => {
       const o = D[sel], si = DD[sel], nh = s.hours.length, hrs = [6, 9, 12, 15, 18, 21];
       box.innerHTML = `<div class="wxh">${L('Vreme na vrhu','Summit weather')} · ${Math.round(topH(p))} m<button class="wxbig" title="${L('Povečaj','Enlarge')}">⤢ ${L('Povečaj','Enlarge')}</button></div>
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)}°</button>`).join('')}</div>
       <div class="wxs">${clsLine(p, o)}<span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
         🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C · 💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
-        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm` : ''}</div>
+        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm${s.snowRoute ? ' ' + L('(največ na poti)','(most on the way up)') : ''}` : ''}</div>
       <details class="wxdt"${OPENH ? ' open' : ''}><summary>${L('Po urah','Hourly')}</summary><div class="wxt">${hrs.map(h => { const k = si*nh + s.hours.indexOf(h); if (s.hours.indexOf(h) < 0 || !s.T || s.T[k] == null) return '';
         return `<div>${h}h<i>${ICON(s.X && s.X[k])}</i>${Math.round(s.T[k])}°<br>${r1(s.W && s.W[k])} ${DIR(s.D && s.D[k])}</div>`; }).join('')}</div></details>
       <div class="wxf">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>${s.gen ? ' · ' + new Date(s.gen.replace('Z', ':00Z')).toLocaleString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday:'short', hour:'2-digit', minute:'2-digit'}) : ''} · ${L('ocena za 7–17 h; model, ne meritev','rating for 7–17 h; model, not a measurement')}</div>`;
@@ -208,8 +208,19 @@ window.wxBox = p => {
     };
     if (!D.length){ box.querySelector('.wxs').textContent = L('Napoved trenutno ni dosegljiva.','Forecast not available right now.'); return; }
     draw();
+    // snow for the rating = the most snow anywhere along the routes to this peak (snow map values); summit only when no route
+    routeSnow(p, s.days.slice(d0)).then(R => { if (!R || !box.isConnected) return; s.snowPt = Object.assign({}, s.snowPt, R); s.snowRoute = true; mk(); if (D.length) draw(); });
   });
   return box; };
+// samples every ~150 m along each route, snow map value per sample and day, max per day
+async function routeSnow(p, days){
+  if (!window.__peakRouteLines || !window.snowPoint) return null;
+  let lines = null; for (let k = 0; k < 4 && lines == null; k++){ lines = await window.__peakRouteLines(p.id).catch(() => null); if (lines == null) await new Promise(r => setTimeout(r, 3000)); } // trails still loading
+  if (!lines || !lines.length) return null;
+  const pts = []; for (const c of lines){ let last = null; for (const q of c){ if (!last || Math.hypot((q[0]-last[0])*77, (q[1]-last[1])*111) > 0.15){ pts.push(q); last = q; } } }
+  const out = {};
+  for (const d of days){ let mx = null; for (const q of pts){ const v = await window.snowPoint(q[1], q[0], d); if (v != null && (mx == null || v > mx)) mx = v; } if (mx != null) out[d] = mx; }
+  return Object.keys(out).length ? out : null; }
 
 // --- map layer: main peaks coloured by the day's rating
 const grp = $w('legend') && $w('legend').parentNode;

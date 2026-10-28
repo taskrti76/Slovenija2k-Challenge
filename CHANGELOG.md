@@ -2,6 +2,12 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.32 — 2026-10-28
+- Text size rescaled: 1.0 = the old 1.4; slider 0.6–1.4 (map labels unchanged at 1.0).
+- Snow in the peak popup / day rating = the most snow anywhere along the routes to that peak (snow-map values sampled every ~150 m,
+  per day); summit value only when the peak has no route. Shown as "❄ 15 cm (največ na poti)". The rating layer on the map still
+  uses the summit model value (computing routes for every peak live is too heavy - to be precomputed later).
+
 ## web-v0.31 — 2026-10-28
 - Peak popup snow = the snow map's value at the summit point (same model, wind, slope, satellite) - one number in popup, rating,
   hover and map (window.snowPoint).
