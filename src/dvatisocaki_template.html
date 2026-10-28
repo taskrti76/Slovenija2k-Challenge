@@ -14,8 +14,8 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css">
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <style>
-  :root{--bg:#f6f4ef;--panel:rgba(255,255,255,.92);--ink:#1d2321;--mute:#5d6662;--line:#d9d5cc;--acc:#b5482d}
-  @media (prefers-color-scheme:dark){:root{--panel:rgba(24,27,26,.9);--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d;--acc:#e07a5f}}
+  :root{--bg:#f6f4ef;--panel:rgba(255,255,255,.92);--solid:#fdfdfc;--ink:#1d2321;--mute:#5d6662;--line:#d9d5cc;--acc:#b5482d}
+  @media (prefers-color-scheme:dark){:root{--panel:rgba(24,27,26,.9);--solid:#1b1e1d;--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d;--acc:#e07a5f}}
   html,body{margin:0;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%;background:#1b1f1e;font:calc(14px * var(--ui,1))/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
   #map{position:absolute;inset:0}
   .panel{position:absolute;top:12px;left:12px;width:250px;max-width:calc(100% - 24px);max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;background:var(--panel);backdrop-filter:blur(6px);
@@ -64,9 +64,9 @@
     body.dopen .maplibregl-ctrl-top-right{right:362px;transition:right .25s}
     body.dopen #snowleg{right:372px}
   }
-  #dhead{padding:12px 14px 8px;border-bottom:1px solid var(--line)}
-  #dhead h2{font-size:1.07em;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}
-  #dhead h2 button{border:0;background:none;font-size:1.43em;cursor:pointer;color:var(--ink);line-height:1}
+  #dhead{padding:0 14px 8px;border-bottom:1px solid var(--line)}
+  #dtitle{font-size:1.07em;margin:0;padding:12px 14px 6px;display:flex;justify-content:space-between;align-items:center;background:var(--panel)}
+  #dtitle button{border:0;background:none;font-size:1.43em;cursor:pointer;color:var(--ink);line-height:1}
   .pmain{margin:2px 0 8px}.pmain div{font-size:calc(26px * var(--ui,1));font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}.pmain div b{color:#c62828}
   .pmain span{font-size:.9em;color:var(--mute)}.pmain .bar{height:8px;margin-top:5px}.pmain .bar i{background:#c62828}
   .pstat{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:2px 0 6px}
@@ -250,7 +250,15 @@
     #drawer{top:auto;left:0;right:0;bottom:var(--tab);height:calc(100dvh - var(--tab) - 48px);width:auto;border:0;border-radius:18px 18px 0 0;
       transform:translateY(105%);box-shadow:0 -6px 24px rgba(0,0,0,.25);z-index:11}
     #drawer.open{transform:none}
-    #dhead{padding:12px 16px 8px}#dhead h2{font-size:calc(19px * var(--ui,1))}#dhead h2 button{font-size:calc(30px * var(--ui,1));padding:0 4px;color:var(--mute)}
+    #dhead{padding:0 16px 8px}#dtitle{font-size:calc(19px * var(--ui,1));padding:12px 16px 6px}#dtitle button{font-size:calc(30px * var(--ui,1));padding:0 4px;color:var(--mute)}
+    /* phone: the whole sheet scrolls - counters and filters scroll away, the list gets the full height;
+       title (with ×) and the range headers stay pinned at the top, Export / Import at the bottom */
+    #drawer{display:block;overflow-y:auto;overscroll-behavior:contain;background:var(--solid);backdrop-filter:none}
+    #dtitle{position:sticky;top:0;z-index:3;border-radius:18px 18px 0 0;background:var(--solid)}
+    #drawer .rg{background:var(--solid)}
+    #dlist{overflow:visible;flex:none;min-height:60vh}
+    .rg{top:var(--dth,52px)}
+    #dfoot{position:sticky;bottom:0;z-index:3;background:var(--solid)}
     #q{font-size:max(16px, calc(16px * var(--ui,1)));padding:10px 12px}
     #chips button{font-size:calc(14px * var(--ui,1));padding:8px 14px}
     .rg{padding:12px 16px 10px;font-size:calc(12.5px * var(--ui,1))}
@@ -273,8 +281,8 @@
 <div id="dprof"></div>
 <button id="ptab" title="Seznam vrhov (odpri / zapri)"><span class="chev" id="ptabChev">‹</span>▲ Seznam vrhov <em id="vcount3"></em></button>
 <div id="drawer">
+  <h2 id="dtitle">Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
   <div id="dhead">
-    <h2>Moji vrhovi <button id="closeDrawer" aria-label="Zapri">×</button></h2>
     <div id="tiers"><button data-t="2000">2000+ m</button><button data-t="1500">1500–2000 m</button><button data-t="all">Vsi</button></div>
     <div id="progress"></div>
     <input id="q" type="search" placeholder="Išči vrh …" autocomplete="off">
@@ -628,7 +636,7 @@ map.on('click',e=>{
       const h=H[py*S+px], mpp=40075016*Math.cos(r)/(n*S);
       const hx=H[py*S+Math.min(S-1,px+1)]-H[py*S+Math.max(0,px-1)], hy=H[Math.min(S-1,py+1)*S+px]-H[Math.max(0,py-1)*S+px];
       const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI, f=fitAt(lat,lng); if(!f) return null;
-      let cm=Math.round(spDay(dt.value)?Math.max(0,(window.snowpackAt(lat,lng,h,dt.value)||0)*aspectK(hx,hy,deg,dt.value)*slopeFac(deg)):depthPx(f,h,slopeFac(deg))), sat=null;
+      let cm=Math.round(spDay(dt.value)?spDepth(lat,lng,h,dt.value,hx,hy,deg):depthPx(f,h,slopeFac(deg))), sat=null;
       if(satDayOK(dt.value)){ const v=window.satSnow(lat,lng,0); if(v&&v.cls){ sat=v; if(v.cls===1) cm=0; else if(cm<8&&deg<60) cm=8; } }
       return {cm, h:Math.round(h), deg:Math.round(deg), line:f[3]>-1e3&&f[3]<9e3?Math.round(f[3]/50)*50:null, sat}; }
     // nothing cached yet (map still loading / tile not drawn yet): fetch the z12 height tile for this spot once
@@ -660,7 +668,7 @@ map.on('click',e=>{
       for(let Y=0;Y<S;Y++){ const la=latOf(Y+.5), mpp=40075016*Math.cos(la*Math.PI/180)/(n*S);
         for(let X=0;X<S;X++){ const o=Y*S+X, h=H[o]; const lo=(x+(X+.5)/S)/n*360-180; const f=fitAt(la,lo); if(!f) continue;
           const hx=H[Y*S+Math.min(S-1,X+1)]-H[Y*S+Math.max(0,X-1)], hy=H[Math.min(S-1,Y+1)*S+X]-H[Math.max(0,Y-1)*S+X];
-          const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI; let d=useSP?Math.max(0,(window.snowpackAt(la,lo,h,spD)||0)*aspectK(hx,hy,deg,spD)*slopeFac(deg)):depthPx(f,h,slopeFac(deg));
+          const deg=Math.atan(Math.hypot(hx,hy)/(2*mpp))*180/Math.PI; let d=useSP?spDepth(la,lo,h,spD,hx,hy,deg):depthPx(f,h,slopeFac(deg));
           if(useSat){ const sc=satAt(la,lo); if(sc===1) d=0; else if(sc===2&&d<8&&deg<60) d=8; }
           if(d<1) continue; let s=RGB.length-1; for(let q=1;q<RGB.length;q++) if(d<RGB[q][0]){ s=q; break; }
           const c0=RGB[Math.max(0,s-1)], c1=RGB[s], t=s===0||d>=c1[0]?1:(d-c0[0])/(c1[0]-c0[0]), p4=o*4;
@@ -712,16 +720,22 @@ map.on('click',e=>{
       j.pts.forEach(([la,lo,e],i)=>{ const k=la+','+lo; let g=G.get(k); if(!g) G.set(k,g={la,lo,e:[],i:[]}); g.e.push(e); g.i.push(i); });
       SPG=[...G.values()]; return SP; }).catch(()=>null);
     return SPP; };
-  window.snowpackAt=(la,lo,h,day)=>{ if(!SP) return null; const di=SP.days.indexOf(day); if(di<0||h==null) return null; const C=SP.cm[di];
-    const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk>30) continue; best.push([dk,g]); }
+  // v2 (snowpack.py v2): every point has 3 surfaces - flat, 30° north-facing, 30° south-facing; `south` (-1 … 1) blends them
+  window.snowpackAt=(la,lo,h,day,south=0)=>{ if(!SP) return null; const di=SP.days.indexOf(day); if(di<0||h==null) return null; const C=SP.cm[di], v2=SP.ver>=2;
+    const val=(i)=>{ const c=C[i]; if(!v2) return c; const f=c[0]; return south>0?f+south*(c[2]-f):f-south*(c[1]-f); };
+    const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk>(v2?15:30)) continue; best.push([dk,g]); }
     if(!best.length) return null; best.sort((a,b)=>a[0]-b[0]); let sw=0,sv=0;
     for(const [dk,g] of best.slice(0,3)){ const E=g.e; let v;
-      if(h<=E[0]) v=h<E[0]-150?0:C[g.i[0]];
-      else if(h>=E[E.length-1]){ const n=E.length-1, a=C[g.i[n]], b=n?C[g.i[n-1]]:a; v=Math.max(a, a+(a-b)*Math.min(2,(h-E[n])/250)*0.5); }
-      else { let k=0; while(E[k+1]<h) k++; const f=(h-E[k])/(E[k+1]-E[k]); v=C[g.i[k]]*(1-f)+C[g.i[k+1]]*f; }
+      if(h<=E[0]) v=h<E[0]-150?0:val(g.i[0]);
+      else if(h>=E[E.length-1]){ const n=E.length-1, a=val(g.i[n]), b=n?val(g.i[n-1]):a; v=Math.max(a, a+(a-b)*Math.min(2,(h-E[n])/250)*0.5); }
+      else { let k=0; while(E[k+1]<h) k++; const f=(h-E[k])/(E[k+1]-E[k]); v=val(g.i[k])*(1-f)+val(g.i[k+1])*f; }
       const w=1/Math.max(1,dk)**2; sw+=w; sv+=w*v; }
     return sv/sw; };
-  // sun / shade: south-facing slopes lose more snow (stronger in spring), north faces keep more
+  // how much a slope faces south (+1) / north (-1), scaled by its steepness (full effect at the model's 30°)
+  const southness=(hx,hy,deg)=>{ const g=Math.hypot(hx,hy); return !g||deg<3?0:(-hy/g)*Math.min(1,deg/((SP&&SP.slope)||30)); };
+  const spDepth=(la,lo,h,day,hx,hy,deg)=>{ if(SP&&SP.ver>=2) return Math.max(0,(window.snowpackAt(la,lo,h,day,southness(hx,hy,deg))||0)*slopeFac(deg));
+    return Math.max(0,(window.snowpackAt(la,lo,h,day)||0)*aspectK(hx,hy,deg,day)*slopeFac(deg)); };
+  // v1 only: sun / shade heuristic (v2 computes the sun on N / S slopes itself)
   const aspectK=(hx,hy,deg,day)=>{ const g=Math.hypot(hx,hy); if(!g||deg<5) return 1; const south=-hy/g, s=Math.min(1,deg/30), m=+day.slice(5,7);
     const k=m===12||m===1?0.15:m===11||m===2?0.22:m>=3&&m<=6?0.4:0.3; return Math.max(0.3,1-k*south*s); };
   const spDay=day=>!!SP&&SP.days.includes(day);
@@ -750,7 +764,7 @@ map.on('click',e=>{
     if(SNOWMAP){ await Promise.all([window.loadSat(), window.loadSnowpack()]); renderMap(); setVis('snowd',false);
       const ok=DATA.elev&&DATA.elev.some(e=>e!=null);
       info.textContent=`${tag} · snežna karta${FIT?'':' — premalo točk za razporeditev'}${spDay(day)?' · sezonski model snežne odeje':''}${satDayOK(day)?` · satelit ${SAT.m.date} (${Math.round(SAT.m.clear_pct)} % brez oblakov)`:''}${part}`;
-      $id('snowlegnote').textContent='Snežna karta: kje je sneg pove satelit Copernicus Sentinel-2 (zadnji jasen posnetek ≤10 dni, 40 m); globino naš sezonski model snežne odeje (sneženje od 1. oktobra minus taljenje, vsakih 250 m višine; južna pobočja manj, severna več). Strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
+      $id('snowlegnote').textContent='Snežna karta: kje je sneg pove satelit Copernicus Sentinel-2 (zadnji jasen posnetek ≤10 dni, 40 m); globino naš sezonski model snežne odeje (vsako uro od 1. oktobra: dež ali sneg po mokri temperaturi in meji sneženja, gostota novega snega, sesedanje, taljenje s temperaturo in soncem na ravnem, severnem in južnem pobočju; vsakih 250 m višine, celice ~4 km; dnevno popravljen s satelitom). Strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
     else { const f=renderCells(); setVis('snowd',true); const max=f.reduce((m,x)=>Math.max(m,x.properties.cm),0);
       info.textContent=`${tag} · ${f.length} celic s snegom${f.length?', največ '+max+' cm':''}${part}`;
       $id('snowlegnote').textContent='Model ICON-D2 (DWD) · Open-Meteo. Celice: 8 km pod 1000 m, 4 km do 1500 m, 2 km do 2000 m, 1 km nad 2000 m.'; }
@@ -881,6 +895,9 @@ new MutationObserver(syncTabs).observe(document.body,{attributes:true,attributeF
 new MutationObserver(syncTabs).observe(drawer,{attributes:true,attributeFilter:['class']});
 map.on('movestart',e=>{ if(e.originalEvent) document.body.classList.remove('menu'); });
 $('closeDrawer').onclick=()=>drawer.classList.remove('open');
+// phone: range headers pin just below the pinned title
+const setDTH=()=>{ const h=$('dtitle').offsetHeight; if(h) drawer.style.setProperty('--dth',h+'px'); };
+addEventListener('resize',setDTH); new MutationObserver(setDTH).observe(drawer,{attributes:true,attributeFilter:['class']});
 let FLT='rank', STF='all'; try{ FLT=localStorage.getItem('dvat3d_flt')||'rank'; if(FLT!=='rank'&&FLT!=='all') FLT='rank'; STF=localStorage.getItem('dvat3d_stf')||'all'; }catch(_){}
 const inScope=p=>inTier(p)&&(FLT!=='rank'||isMain(p)); const CLOSED=new Set(); // default: the 98 prominent 2000 m peaks
 $('q').oninput=renderList;

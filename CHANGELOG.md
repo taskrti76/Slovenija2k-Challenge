@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.24 — 2026-10-28
+- Snowpack model v2 (tools/snowpack.py): ~4 km cells (125 cells, 791 points every 250 m from 750 m), three surfaces each - flat,
+  30° north-facing, 30° south-facing. Hourly from 1 October with DWD ICON (icon_seamless) at the point's height:
+  rain / snow from wet-bulb temperature (Stull 2011, humidity-dependent threshold ~ +1 °C) averaged with the model's snowfall height;
+  new-snow density Hedstrom & Pomeroy (1998) + wind packing; albedo ageing / refresh; solar position + direct / diffuse radiation on
+  each slope; enhanced temperature-index melt (Pellicciotti et al. 2005) + rain heat; 10 % liquid water holding, night refreeze;
+  settling towards 300 / 500 kg/m³ (FSM, Essery 2015). No more guessed "+5 %/100 m" precipitation boost (it made high summits
+  too snowy). Daily satellite correction: per cell, 250 m band and N / S / flat surface, Sentinel-2 seen bare (<10 % snow) ->
+  snow removed, seen white (>60 %) but model empty -> 10 cm. Log prints Kredarica, Kanin, Vogel, Krvavec, Rudno polje for checking.
+  Runs daily at 18:07 UTC, after the satellite job.
+- Snow map / hover / weather rating read the 3 surfaces and blend them by the real slope direction and steepness.
+- Phone peak list: the whole sheet scrolls, so counters and filters scroll away and the list gets the screen
+  (title with × and range headers stay pinned, Export / Import at the bottom).
+
 ## web-v0.23 — 2026-10-27
 - Own snowpack model (tools/snowpack.py + .github/workflows/snowpack.yml, daily): snow water + density at every 250 m of height
   (500 m … highest peak) in 61 mountain cells of ~8 km. Hourly: snowfall below ~0 °C / rain above ~2 °C (temperature downscaled to
