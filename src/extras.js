@@ -19,7 +19,7 @@ const EN = Object.assign({}, RANGE_EN, {
   'Moji vrhovi':'My peaks', '2000+ m':'2000+ m', '1500–2000 m':'1500–2000 m', 'Vsi':'All', 'Neobiskani':'Not visited', 'Obiskani':'Visited', 'Išči vrh …':'Search peak …', 'Po gorstvih':'By range',
   'Izvozi':'Export', 'Uvozi':'Import', 'shranjeno v brskalniku':'saved in this browser', 'prominentnih dvatisočakov':'prominent 2000 m peaks', 'Vsi nad 2000 m (s podvrhi)':'All above 2000 m (incl. subpeaks)',
   'Vsi 1500–2000 m':'All 1500–2000 m', 'prominentnih vrhov 1500–2000 m (≥100 m)':'prominent peaks 1500–2000 m (≥100 m)', 'prominentnih vrhov':'prominent peaks', 'Vsi vrhovi':'All peaks',
-  'Ni zadetkov.':'No results.', 'Seznam vrhov (odpri / zapri)':'Peak list (open / close)', '▲ Seznam vrhov':'▲ Peak list', 'Karta':'Map', 'Vrhovi':'Peaks', 'Riši':'Draw',
+  'Ni zadetkov.':'No results.', 'Seznam vrhov (odpri / zapri)':'Peak list (open / close)', 'Karta in sloji (odpri / zapri)':'Map & layers (open / close)', '◧ Karta in sloji':'◧ Map & layers', '▲ Seznam vrhov':'▲ Peak list', 'Karta':'Map', 'Vrhovi':'Peaks', 'Riši':'Draw',
   'Poti na vrh':'Routes to the top', '360° razgled':'360° view', 'Obiskal sem':'I was there', 'Pomoč':'Help', 'rang po prominenci':'rank by prominence', 'približna lega':'approximate position',
   'obiskan':'visited', 'cesta':'road', 'markirana pot':'marked trail', 'neoznačena / slaba pot':'unmarked / faint trail', 'ferata':'via ferrata',
   'GPX':'GPX', 'Uredi kot svojo':'Edit as my own', '⛰ Od strani':'⛰ Side view', 'Pogled na izbrano pot od strani':'Look at the selected route from the side',
@@ -95,7 +95,7 @@ const STEPS = [
   {t:'Seznam vrhov', d:'Glavni seznam: 98 prominentnih dvatisočakov. Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos).', sel:()=>PHONE()?'#tabbar [data-t="peaks"]':'#ptab'},
   {t:'Klikni vrh na karti', d:'Odpre se okno z višino in prominenco. »Poti na vrh« pokaže poti s parkirišč (PZS oznaka, T-lestvica, čas hoje, GPX). »360° razgled« te postavi na vrh.', sel:()=>'#map', center:true},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn'},
-  {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, sneg. Tu je tudi velikost besedila in jezik.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':'.panel .grp'},
+  {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, sneg. Tu je tudi velikost besedila in jezik.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':document.body.classList.contains('lclosed')?'#ltab':'.panel .grp'},
   {t:'Kot aplikacija, tudi brez signala', d:'V »⚙ Nastavitve → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.', sel:()=>PHONE()?'#tabbar [data-t="settings"]':'#gearBtn'},
   {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v ⚙ Nastavitve → Vodič.'}
 ];
