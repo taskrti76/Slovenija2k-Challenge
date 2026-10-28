@@ -2,6 +2,11 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.29 — 2026-10-28
+- Via ferrata signs: one sign per ferrata (82 -> 62). Pieces that touch (ends within 40 m) or share a name within 1.5 km are joined,
+  wherever map-grid edges fall; the name is the longest named piece (+ a second name if the pieces carry two); the grade shown is the
+  hardest piece, with its +/–. Secured bits under 60 m on normal paths get no sign; a ferrata with a closed part says "(del zaprt)".
+
 ## web-v0.28 — 2026-10-28
 - Position check of all 2000 m peaks against the OSM summits (what OpenTopoMap shows) and hribi.net: 295 of 352 agree within 60 m.
   Fixed (src/peaks_final.json, reason in each peak's notes):
