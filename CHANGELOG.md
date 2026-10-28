@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.26 — 2026-10-28
+- Snow map smoother, no more 0 -> 30 cm cliffs:
+  - satellite no longer switches single 40 m pixels to 0 / 8 cm; it uses the share of snow pixels within ~140 m and the share
+    seen through clouds, so snow edges fade over ~280 m (mostly bare -> model depth fades out, mostly white -> at least 8 cm);
+  - slope direction (N / S blend) taken over ~80 m, so the switch across a ridge is gradual;
+  - below the lowest model level (750 m) snow fades out over 250 m instead of dropping to 0 at 150 m.
+- Wind on crests: summits and ridges that stick out of their ~100 m surroundings get down to ×0.5 snow (blown off),
+  hollows and gullies up to ×1.25 (drifts). Same on the map, hover readout and fallback renderer.
+- Layers & maps as a roll-out sheet: PC - left edge, blue pull tab "Karta in sloji" (state remembered), same as the peak list on
+  the right; phone - same tall sheet as the peak list with the title and × pinned on top.
+- Fix: phone tab bar sometimes highlighted "Nastavitve" when it was not open.
+
 ## web-v0.25 — 2026-10-28
 - Snowpack forecast to today + 4 days (all 4 weather-rating days use it); snow map date picker to +4 days.
 - ARSO snow stations (vreme.arso.gov.si snow_geojson, ~20 mountain stations incl. Kredarica, Kanin, Vogel, Vršič, Krvavec, Zelenica)
