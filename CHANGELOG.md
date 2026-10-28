@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.31 — 2026-10-28
+- Peak popup snow = the snow map's value at the summit point (same model, wind, slope, satellite) - one number in popup, rating,
+  hover and map (window.snowPoint).
+- Snow legend / colours follow the deepest snow of the shown day: legend top = next round number (10, 20, 30, 50, 100, 150, 200 ...).
+- Popup sharpness: MapLibre's will-change:transform switched off (GPU layer blurred the text) + placed on whole device pixels.
+- Text size: slider 1.0–2.0, default 1.4 (menus bigger; map labels keep their old size at the default). Side panels, route card
+  and popup widths grow with the text size; the popup is panned clear of the side panels. Bigger checkboxes on PC.
+
 ## web-v0.30 — 2026-10-28
 - Via ferrata signs: only pieces of the same path are joined (same name, or unnamed bits touching it); differently named ferratas stay
   separate even when they meet (82 -> 73 signs: only true duplicates removed). Hardest grade kept.

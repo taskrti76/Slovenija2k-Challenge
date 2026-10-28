@@ -527,11 +527,11 @@ function addLayers(){
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':.6,'icon-allow-overlap':['step',['zoom'],false,13,true]}});
   add({id:'poi-hut',type:'symbol',source:'poi',minzoom:9.5,filter:['any',['==',['get','t'],'hut'],['==',['get','t'],'biv']],
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':['interpolate',['linear'],['zoom'],10,.55,14,.8],'icon-allow-overlap':true,
-      'text-field':['step',['zoom'],'',11.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':11*(+el('tscale').value||1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
+      'text-field':['step',['zoom'],'',11.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
     paint:{'text-color':['case',['==',['get','t'],'hut'],'#8e1b14','#a35400'],'text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.5}});
   if(!map.getSource('ferr')) map.addSource('ferr',{type:'geojson',data:EMPTY});
   add({id:'ferr-sign',type:'symbol',source:'ferr',minzoom:10.5,layout:{'icon-image':'i-ferr','icon-size':['interpolate',['linear'],['zoom'],11,.5,14,.75],'icon-allow-overlap':true,
-      'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(+el('tscale').value||1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
+      'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
     paint:{'text-color':'#bf360c','text-halo-color':'rgba(255,255,255,.92)','text-halo-width':1.6}});
   for(const id of ['poi-hut','poi-park','poi-spring']){
     map.on('click',id,e=>{ if(window.DRAW_ON) return; e.preventDefault(); poiPopup(e.features[0]); });

@@ -59,15 +59,15 @@
     #ptab em{font-style:normal;font-weight:500;font-size:calc(13px * var(--ui,1));background:rgba(255,255,255,.22);border-radius:10px;padding:8px 2px}
     #ptab:hover{filter:brightness(1.08)}
     #ptab .chev{writing-mode:horizontal-tb;font-size:calc(16px * var(--ui,1));line-height:1}
-    body.dopen #ptab{right:400px}
-    #drawer{width:400px}
-    .panel,#drawer{font-size:calc(16px * var(--ui,1))}
+    :root{--dw:min(calc(326px * var(--ui,1)),45vw)}
+    body.dopen #ptab{right:var(--dw)}
+    #drawer{width:var(--dw)}
     body.in360 #ptab{display:none}
-    body.dopen .maplibregl-ctrl-top-right{right:402px;transition:right .25s}
-    body.dopen #snowleg{right:412px}
+    body.dopen .maplibregl-ctrl-top-right{right:calc(var(--dw) + 2px);transition:right .25s}
+    body.dopen #snowleg{right:calc(var(--dw) + 12px)}
     /* layers & maps: roll-out sheet on the left edge with its own pull tab (same as the peak list) */
-    :root{--lw:300px} body.lclosed{--lw:0px}
-    .panel{top:0;left:0;bottom:0;width:300px;max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
+    :root{--pw:min(calc(245px * var(--ui,1)),35vw);--lw:var(--pw)} body.lclosed{--lw:0px}
+    .panel{top:0;left:0;bottom:0;width:var(--pw);max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
       padding:14px 16px;transition:transform .25s,visibility .25s;z-index:10}
     body.lclosed .panel{transform:translateX(-105%);visibility:hidden}
     #ltab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;left:var(--lw);transform:translateY(-50%);z-index:11;
@@ -123,7 +123,9 @@
   #dfoot .fnote{margin-left:auto;color:var(--mute)}
   #dfoot button{font:inherit;font-size:0.857em;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .ok{color:#2e7d32}.warn{color:#b26a00}
-  .maplibregl-popup-content{font:calc(14px * var(--ui,1))/1.45 system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#1d2321;padding:10px 12px}
+    .maplibregl-popup{will-change:auto!important}
+  @media (min-width:701px){ .panel input[type=checkbox],.panel input[type=radio],#dlist input[type=checkbox],.maplibregl-popup-content input[type=checkbox]{width:calc(14px * var(--ui,1));height:calc(14px * var(--ui,1))} }
+  .maplibregl-popup-content{font:calc(13px * var(--ui,1))/1.45 system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#1d2321;padding:10px 12px}
   .maplibregl-popup-content button{margin-top:6px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;cursor:pointer}
   .card{position:absolute;left:12px;bottom:34px;width:330px;max-width:calc(100% - 24px);max-height:55vh;overflow:auto;background:var(--panel);backdrop-filter:blur(6px);
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.2);display:none;z-index:6;font-size:calc(13px * var(--ui,1))}
@@ -205,7 +207,7 @@
   /* phone */
   /* drawing tools: panel next to the sidebar + profile strip at the bottom (gpx.studio-like) */
   @media (min-width:701px){
-    #dcard,#rcard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:340px;max-height:calc(100vh - 60px)}
+    #dcard,#rcard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(280px * var(--ui,1)),40vw);max-height:calc(100vh - 60px)}
     #dcard .rh,#rcard .rh{cursor:move;user-select:none}
     .card.dragging{opacity:.85;box-shadow:0 10px 30px rgba(0,0,0,.3)}
     #dprof .ps{cursor:move;user-select:none}
@@ -350,8 +352,8 @@
 
 
   <div class="grp"><b>Velikost besedila</b>
-    <input type="range" id="tscale" min="0.8" max="1.8" step="0.1" value="1.2">
-    <div class="row"><span>karta + meniji</span><span id="tscalev">1.2×</span></div>
+    <input type="range" id="tscale" min="1" max="2" step="0.1" value="1.4">
+    <div class="row"><span>karta + meniji</span><span id="tscalev">1.4×</span></div>
   </div>
 
   <div class="grp"><b>Pretiravanje višin</b>
@@ -386,7 +388,7 @@
 <div id="toast"></div>
 <div id="litebar"><span>Naprava je videti počasna. Vklopim varčni način?</span><button class="p" id="liteYes">Vklopi</button><button id="liteNo">Ne</button></div>
 <div id="snowleg"><div class="lh"><b>❄ Višina snega</b> <span id="snowlegdate"></span><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
-  <div class="lb"><div id="snowlegbar"></div><div class="sl"><span>1</span><span>20</span><span>50</span><span>100</span><span>200+ cm</span></div>
+  <div class="lb"><div id="snowlegbar"></div><div class="sl" id="snowlegsl"><span>1</span><span>20</span><span>50</span><span>100</span><span>200+ cm</span></div>
   <div class="sl3" id="snowlegnote"></div></div></div>
 <script>
 const $id=id=>document.getElementById(id);
@@ -570,6 +572,13 @@ map.on('click',e=>{
   const STOPS=[[1,'#efe3ff'],[10,'#d9c2ff'],[20,'#bd98f7'],[50,'#9a66e8'],[100,'#7438cf'],[150,'#5a1fae'],[200,'#3d0f80']];
   $id('snowlegbar').style.background='linear-gradient(90deg,'+STOPS.map(([v,c],i)=>`${c} ${(i/(STOPS.length-1)*100).toFixed(0)}%`).join(',')+')';
   const RGB=STOPS.map(([v,c])=>[v,parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)]);
+  // colour scale follows the deepest snow of the shown day: top of the legend = next round number above it (max 38 -> 50, 67 -> 100)
+  const FR=[1/200,10/200,20/200,50/200,100/200,150/200,1]; let LMAX=200;
+  function setScale(day){ let mx=0; if(SP&&spDay(day)){ const C=SP.cm[SP.days.indexOf(day)]; for(const c of C) for(const v of (Array.isArray(c)?c:[c])) if(v>mx) mx=v; mx*=1.25; } // wind drifts up to ×1.25
+    else if(DATA&&DATA.depth){ for(let i=0;i<cells.length;i++){ const v=depthAt(i,day); if(v!=null&&v*100>mx) mx=v*100; } mx*=1.5; }
+    const L=[10,20,30,50,100,150,200,300,400,500].find(v=>v>=mx)||600; if(L===LMAX) return; LMAX=L;
+    STOPS.forEach((st,i)=>{ st[0]=Math.max(i?STOPS[i-1][0]+0.5:1,Math.round(FR[i]*L*10)/10); RGB[i][0]=st[0]; });
+    const t=[1,Math.round(L/10),Math.round(L/4),Math.round(L/2)]; $id('snowlegsl').innerHTML=t.map(v=>`<span>${v}</span>`).join('')+`<span>${L}+ cm</span>`; }
   let DATA=null; // {times:[...], depth:[cellIdx][hour] in m, elev:[cellIdx] model grid-cell height}
   const CK='dvat_snow_v4', SNOWJSON=location.protocol.startsWith('http')?'snow.json':''; // snow.json: refreshed daily by GitHub Action
   async function load(){
@@ -664,6 +673,14 @@ map.on('click',e=>{
       .then(H=>{ if(H){ HC.set(k,H); if(HC.size>40) HC.delete(HC.keys().next().value); if(lastE) showTip(lastE); } }).catch(()=>{}).finally(()=>HF.delete(k)); }
     return null; }
   const HF=new Set(); let lastE=null;
+  // snow at one point exactly as the snow map paints it (used by the peak popup / weather rating, so both show the same number)
+  window.snowPoint=async(lat,lng,day)=>{ if(!spDay(day)) return null;
+    const z=12, n=4096, X=(lng+180)/360*n, r=lat*Math.PI/180, Y=(1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n, k=z+'/'+Math.floor(X)+'/'+Math.floor(Y);
+    let H=HC.get(k); if(!H){ try{ const rs=await fetch(`https://tiles.mapterhorn.com/${k}.webp`); if(!rs.ok) return null; H=await decodeTerrarium(await rs.blob(),512); }catch(_){ return null; }
+      if(!H) return null; HC.set(k,H); if(HC.size>40) HC.delete(HC.keys().next().value); }
+    const S=512, px=Math.min(S-1,Math.floor((X%1)*S)), py=Math.min(S-1,Math.floor((Y%1)*S)), mpp=40075016*Math.cos(r)/(n*S), T=snowTerr(H,S,px,py,mpp,[0,0,0,1,0]);
+    let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)){ const q=satFK(lat,lng); if(q) cm=satAdj(cm,q[0],q[1],T[0]); }
+    return Math.round(cm); };
   const tip=document.createElement('div'); tip.id='snowtip'; document.body.append(tip);
   const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:30;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
   document.head.append(tipCss);
@@ -799,7 +816,7 @@ map.on('click',e=>{
     map.addSource('contours',{type:'vector',maxzoom:15,tiles:[CONT.contourProtocolUrl({multiplier:1,
       thresholds:{9:[200,1000],10:[100,500],11:[100,500],12:[50,250],13:[20,100],14:[20,100],15:[10,50]},
       contourLayer:'contours',elevationKey:'ele',levelKey:'level',extent:4096,buffer:1})]});
-    const before=map.getLayer('trails')?'trails':undefined, k=+$id('tscale').value||1;
+    const before=map.getLayer('trails')?'trails':undefined, k=window.MAPK?window.MAPK():1;
     map.addLayer({id:'cont-line',type:'line',source:'contours','source-layer':'contours',layout:{'line-join':'round'},
       paint:{'line-color':'rgba(92,64,40,0.55)','line-width':['match',['get','level'],1,1.1,0.5]}},before);
     map.addLayer({id:'cont-lbl',type:'symbol',source:'contours','source-layer':'contours',filter:['>',['get','level'],0],
@@ -867,14 +884,14 @@ map.on('click',e=>{
     const fc={type:'FeatureCollection',features:O.filter(o=>o.alt>=700).map(o=>({type:'Feature',properties:{t:`${o.name} ${Math.round(o.alt)} m\n${Math.round(o.cm)} cm${o.after!=null?` (model ${o.after})`:''}`},geometry:{type:'Point',coordinates:[o.lon,o.lat]}}))};
     if(!map.getSource('snowobs')){ if(!on) return; map.addSource('snowobs',{type:'geojson',data:fc,attribution:'Meritve snega: ARSO'});
       map.addLayer({id:'snowobs',type:'circle',source:'snowobs',paint:{'circle-radius':5,'circle-color':'#fff','circle-stroke-color':'#3d0f80','circle-stroke-width':2.5,'circle-pitch-alignment':'viewport'}});
-      map.addLayer({id:'snowobs-lbl',type:'symbol',source:'snowobs',minzoom:8.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Bold'],'text-size':11*(+$id('tscale').value||1),'text-anchor':'top','text-offset':[0,0.7]},
+      map.addLayer({id:'snowobs-lbl',type:'symbol',source:'snowobs',minzoom:8.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,0.7]},
         paint:{'text-color':'#3d0f80','text-halo-color':'rgba(255,255,255,.95)','text-halo-width':1.6}}); }
     else map.getSource('snowobs').setData(fc);
     setVis('snowobs',on); setVis('snowobs-lbl',on); }
-  function renderMap(){ const day=dt.value;
+  function renderMap(){ const day=dt.value; setScale(day);
     if(FITDAY!==day&&!spDay(day)){ FIT=buildFit(day); FITDAY=day; }  // old fit only needed without the snowpack model
     setupProto();
-    const url=`snowpx://{z}/{x}/{y}?d=${day}&t=${DATA.times?DATA.times[0]:''}&s=${satDayOK(day)?SAT.m.date:''}&p=${spDay(day)?1:0}&g=${SP?SP.gen:''}`;
+    const url=`snowpx://{z}/{x}/{y}?d=${day}&t=${DATA.times?DATA.times[0]:''}&s=${satDayOK(day)?SAT.m.date:''}&p=${spDay(day)?1:0}&g=${SP?SP.gen:''}&L=${LMAX}`;
     if(!map.getSource('snowpx')){ map.addSource('snowpx',{type:'raster',tiles:[url],tileSize:512,minzoom:7,maxzoom:window.LITE_ON?10:12,bounds:[LO0-0.15,LA0-0.1,LO1+0.15,LA1+0.1],
         attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0), razporejeno po višini; satelit: vsebuje spremenjene podatke Copernicus Sentinel-2 (CDSE)'});
       map.addLayer({id:'snowpx',type:'raster',source:'snowpx',paint:{'raster-opacity':0.82,'raster-fade-duration':0}},'hs'); }
@@ -912,14 +929,16 @@ map.on('click',e=>{
 
 // --- text scale (map labels + UI), persisted
 const tsc=document.getElementById('tscale'), tscv=document.getElementById('tscalev');
-try{ const s=localStorage.getItem('dvat3d_tscale'); if(s) tsc.value=s; }catch(e){}
-const labelSize=()=>{const k=+tsc.value; return ['interpolate',['linear'],['zoom'],9,11*k,14,14.5*k];};
+try{ const s=localStorage.getItem('dvat3d_tscale2'); if(s) tsc.value=s; }catch(e){}
+// map labels keep their old size at the new default (1.4 = old 1.2); menus follow the slider fully
+window.MAPK=()=>(+tsc.value||1.4)*1.2/1.4;
+const labelSize=()=>{const k=window.MAPK(); return ['interpolate',['linear'],['zoom'],9,11*k,14,14.5*k];};
 function applyScale(){ const k=+tsc.value; tscv.textContent=k.toFixed(1)+'×';
   document.documentElement.style.setProperty('--ui',(0.875*k).toFixed(3)); // all UI text scales with the slider
-  if(map.getLayer('poi-hut')) map.setLayoutProperty('poi-hut','text-size',11*k);
-  if(map.getLayer('cont-lbl')) map.setLayoutProperty('cont-lbl','text-size',10.5*k);
+  if(map.getLayer('poi-hut')) map.setLayoutProperty('poi-hut','text-size',11*window.MAPK());
+  if(map.getLayer('cont-lbl')) map.setLayoutProperty('cont-lbl','text-size',10.5*window.MAPK());
   if(map.getLayer('pk-lbl')) map.setLayoutProperty('pk-lbl','text-size',labelSize());
-  try{ localStorage.setItem('dvat3d_tscale',tsc.value); }catch(e){} }
+  try{ localStorage.setItem('dvat3d_tscale2',tsc.value); }catch(e){} }
 tsc.oninput=applyScale; applyScale();
 
 // --- border: Natural Earth fallback embedded; upgrade to precise OSM boundary (cached)
@@ -1002,7 +1021,7 @@ function openPeak(id,fly){
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   if(popup) popup.remove();
-  popup=new maplibregl.Popup({offset:10,maxWidth:'330px',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
+  popup=new maplibregl.Popup({offset:10,maxWidth:'calc(275px * var(--ui,1))',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
 }
 function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }
 
@@ -1093,7 +1112,7 @@ refresh(); // list does not depend on the map (works even if map tiles fail / of
 map.on('error',e=>console.warn('map error',e.error&&e.error.message));
 // popups on whole pixels: MapLibre centres them with translate(-50%,-100%), which leaves a half pixel on odd sizes and blurs the text
 map.on('render',()=>{ for(const el of document.querySelectorAll('.maplibregl-popup')){ el.style.margin='0'; const r=el.getBoundingClientRect();
-  const dx=Math.round(r.left)-r.left, dy=Math.round(r.top)-r.top; if(Math.abs(dx)>0.01||Math.abs(dy)>0.01){ el.style.marginLeft=dx+'px'; el.style.marginTop=dy+'px'; } } });
+  const q=devicePixelRatio||1, dx=Math.round(r.left*q)/q-r.left, dy=Math.round(r.top*q)/q-r.top; if(Math.abs(dx)>0.01||Math.abs(dy)>0.01){ el.style.marginLeft=dx+'px'; el.style.marginTop=dy+'px'; } } });
 </script>
 <script type="text/plain" id="osmpack" data-src="dvat-osm.json.gz"></script>
 <script>// ---------- compact OSM pack (shared by packer tool + site) ----------
@@ -1676,11 +1695,11 @@ function addLayers(){
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':.6,'icon-allow-overlap':['step',['zoom'],false,13,true]}});
   add({id:'poi-hut',type:'symbol',source:'poi',minzoom:9.5,filter:['any',['==',['get','t'],'hut'],['==',['get','t'],'biv']],
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':['interpolate',['linear'],['zoom'],10,.55,14,.8],'icon-allow-overlap':true,
-      'text-field':['step',['zoom'],'',11.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':11*(+el('tscale').value||1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
+      'text-field':['step',['zoom'],'',11.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
     paint:{'text-color':['case',['==',['get','t'],'hut'],'#8e1b14','#a35400'],'text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.5}});
   if(!map.getSource('ferr')) map.addSource('ferr',{type:'geojson',data:EMPTY});
   add({id:'ferr-sign',type:'symbol',source:'ferr',minzoom:10.5,layout:{'icon-image':'i-ferr','icon-size':['interpolate',['linear'],['zoom'],11,.5,14,.75],'icon-allow-overlap':true,
-      'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(+el('tscale').value||1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
+      'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
     paint:{'text-color':'#bf360c','text-halo-color':'rgba(255,255,255,.92)','text-halo-width':1.6}});
   for(const id of ['poi-hut','poi-park','poi-spring']){
     map.on('click',id,e=>{ if(window.DRAW_ON) return; e.preventDefault(); poiPopup(e.features[0]); });
@@ -2673,7 +2692,11 @@ async function live(p){
     S:h.snow_depth ? sel.map(k => h.snow_depth[k] == null ? null : Math.round(h.snow_depth[k] * 100)) : null, lat:p.lat, lon:p.lon}; }
 async function seriesFor(p){ const extra = Promise.all([window.loadSat ? window.loadSat() : null, window.loadSnowpack ? window.loadSnowpack() : null]);
   await Promise.all([loadWX(), Promise.race([extra, new Promise(r => setTimeout(r, 2500))])]);   // satellite / snowpack: wait at most 2.5 s
-  return fromWX(p) || await live(p); }
+  const s = fromWX(p) || await live(p);
+  // snow on the summit = the snow map's value at that exact point (same model, wind, slope and satellite) - one number everywhere
+  if (s && window.snowPoint && p.lat != null){ s.snowPt = {};
+    await Promise.race([Promise.all(s.days.map(async d => { s.snowPt[d] = await window.snowPoint(p.lat, p.lon, d).catch(() => null); })), new Promise(r => setTimeout(r, 2500))]); }
+  return s; }
 
 // --- day score (0–100) and rating for the summit hours 07–17. Every factor takes points off; the list says why.
 //   storms (thunder in the forecast, or high storm energy CAPE + rain; afternoon weighs more), wind / gusts at summit height,
@@ -2700,10 +2723,12 @@ function day(s, d, elev, cls){
   const lm = s.CL && s.CM ? win.map(k => s.CL[k] == null && s.CM[k] == null ? null : Math.max(s.CL[k] || 0, s.CM[k] || 0)).filter(x => x != null) : [];
   o.cloudLM = lm.length > 0; o.c = o.cloudLM ? avg(lm) : avg(g(s.C, win));
   const noon = all[s.hours.indexOf(12)]; o.snowcm = s.S && noon != null ? s.S[noon] : null;
-  if (window.snowpackAt && s.lat != null){ const v = window.snowpackAt(s.lat, s.lon, elev, s.days[d]); if (v != null){ o.snowcm = Math.round(v); o.snowSP = true; } }
+  const sp = s.snowPt && s.snowPt[s.days[d]];
+  if (sp != null){ o.snowcm = sp; o.snowSP = true; }
+  else if (window.snowpackAt && s.lat != null){ const v = window.snowpackAt(s.lat, s.lon, elev, s.days[d]); if (v != null){ o.snowcm = Math.round(v); o.snowSP = true; } }
   // today: the satellite (Sentinel-2, newest clear look ≤10 days, 200 m around the summit) decides whether snow lies there
   if (s.days[d] === today() && s.lat != null && window.satSnow && window.satDayOK && window.satDayOK(s.days[d])){
-    const v = window.satSnow(s.lat, s.lon, 2); if (v && v.cls){ o.sat = v; o.snowcm = v.cls === 1 ? 0 : Math.max(o.snowcm || 0, 10); } }
+    const v = window.satSnow(s.lat, s.lon, 2); if (v && v.cls){ o.sat = v; if (sp == null) o.snowcm = v.cls === 1 ? 0 : Math.max(o.snowcm || 0, 10); } }
   o.chill = win.length && s.T && s.W ? Math.min(...win.filter(k => s.T[k] != null && s.W[k] != null).map(k => chill(s.T[k], s.W[k]))) : null;
   if (!isFinite(o.chill)) o.chill = null;
   const add = (pts, sl, en, cat) => { if (pts > 0){ const k = (MULT[cat] || MULT.storm)[ci] * (cat === 'snow' || cat === 'fresh' ? wk : 1); o.pen.push([Math.round(pts * k), L(sl, en)]); } };
@@ -2720,7 +2745,7 @@ function day(s, d, elev, cls){
   if (o.c != null) add(o.cloudLM ? (o.c >= 90 ? 20 : o.c >= 70 ? 8 : 0) : (o.c >= 95 ? 12 : o.c >= 85 ? 5 : 0),
     o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
   if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
-  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm v zavetju na višini vrha${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm in sheltered spots at summit height${o.sat ? ', satellite' : ''})`, 'snow');
+  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm${o.sat ? ', satellite' : ''})`, 'snow');
   if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
@@ -2800,7 +2825,11 @@ window.wxBox = p => {
   // the popup grew -> if its top left the map, move the map down so the whole popup is visible
   const fit = () => requestAnimationFrame(() => { const el = box.closest('.maplibregl-popup'); if (!el) return;
     const r = el.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(), top = r.top - m.top - 8;
-    if (top < 0) map.panBy([0, top], {duration:300}); });
+    // keep it clear of the side panels (PC): left sheet + tab, peak list + tab
+    const pnl = document.body.classList.contains('lclosed') ? 0 : (document.querySelector('.panel') || {}).offsetWidth || 0, dr = document.getElementById('drawer');
+    const L0 = m.left + (innerWidth > 700 ? pnl + 50 : 8), R0 = m.right - (innerWidth > 700 && dr && dr.classList.contains('open') ? dr.offsetWidth + 50 : 8);
+    let dx = r.left < L0 ? r.left - L0 : r.right > R0 ? r.right - R0 : 0;
+    if (top < 0 || dx) map.panBy([dx, Math.min(0, top)], {duration:300}); });
   box.innerHTML = `<div class="wxh">${L('Vreme na vrhu','Summit weather')} · ${Math.round(topH(p))} m</div><div class="wxs" style="color:#888">${L('Nalagam napoved …','Loading forecast …')}</div>`;
   seriesFor(p).then(s => {
     if (!s){ box.querySelector('.wxs').textContent = L('Napoved trenutno ni dosegljiva.','Forecast not available right now.'); return; }
@@ -2812,7 +2841,7 @@ window.wxBox = p => {
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)}°</button>`).join('')}</div>
       <div class="wxs">${clsLine(p, o)}<span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
         🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C · 💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
-        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · <span title="${L('v zavetju na višini vrha; na izpostavljenem vrhu ga veter odpihne (snežna karta)','in sheltered spots at summit height; the wind strips the exposed top (snow map)')}">❄ ${o.snowcm} cm ${L('v zavetju','sheltered')}</span>` : ''}</div>
+        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm` : ''}</div>
       <details class="wxdt"${OPENH ? ' open' : ''}><summary>${L('Po urah','Hourly')}</summary><div class="wxt">${hrs.map(h => { const k = si*nh + s.hours.indexOf(h); if (s.hours.indexOf(h) < 0 || !s.T || s.T[k] == null) return '';
         return `<div>${h}h<i>${ICON(s.X && s.X[k])}</i>${Math.round(s.T[k])}°<br>${r1(s.W && s.W[k])} ${DIR(s.D && s.D[k])}</div>`; }).join('')}</div></details>
       <div class="wxf">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>${s.gen ? ' · ' + new Date(s.gen.replace('Z', ':00Z')).toLocaleString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday:'short', hour:'2-digit', minute:'2-digit'}) : ''} · ${L('ocena za 7–17 h; model, ne meritev','rating for 7–17 h; model, not a measurement')}</div>`;
