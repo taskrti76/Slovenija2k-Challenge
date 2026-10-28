@@ -4,7 +4,7 @@ const $$ = id => document.getElementById(id);
 const S = {on:false, raf:0};
 const DIRS = ['S','SV','V','JV','J','JZ','Z','SZ'];
 const HANDLERS = ['dragPan','dragRotate','scrollZoom','touchZoomRotate','touchPitch','keyboard','doubleClickZoom','boxZoom'];
-const HEAVY = ['pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing'];
+const HEAVY = ['snowobs','snowobs-lbl','pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing'];
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
 let pending=false;

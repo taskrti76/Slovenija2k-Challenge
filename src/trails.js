@@ -622,7 +622,12 @@ async function build(poi,tr,src){
     if(k==='hut'||k==='biv') HUTS.push({name:t.name||TNAME[k],lat:la,lon:lo});
     pf.push({type:'Feature',properties:{t:k,name:t.name||'',ele:t.ele||'',web:t.website||t['contact:website']||''},geometry:{type:'Point',coordinates:[lo,la]}});
   }
-  for(const s of STARTS) if(!s.name){ let best=null,bd=4000; for(const p of PLACES){const d=hav(s.lat,s.lon,p.lat,p.lon); if(d<bd&&p.name){bd=d;best=p.name;}} s.name=best?`pri ${best}`:'parkirišče'; }
+  // nearest named place within 4 km: grid of ~5 km buckets instead of comparing every parking with every place (was ~0.5 s on load)
+  const PG=new Map(), pk=(la,lo)=>Math.floor(la/0.045)+','+Math.floor(lo/0.065);
+  for(const p of PLACES) if(p.name){ const k=pk(p.lat,p.lon); let a=PG.get(k); if(!a) PG.set(k,a=[]); a.push(p); }
+  for(const s of STARTS) if(!s.name){ let best=null,bd=4000; const a0=Math.floor(s.lat/0.045), b0=Math.floor(s.lon/0.065);
+    for(let a=a0-1;a<=a0+1;a++) for(let b=b0-1;b<=b0+1;b++) for(const p of PG.get(a+','+b)||[]){ const d=hav(s.lat,s.lon,p.lat,p.lon); if(d<bd){bd=d;best=p.name;} }
+    s.name=best?`pri ${best}`:'parkirišče'; }
   STARTS_ALL=STARTS; STARTS=[];
   map.getSource('poi').setData({type:'FeatureCollection',features:pf});
   const nr=feats.filter(f=>f.properties.k==='r').length;

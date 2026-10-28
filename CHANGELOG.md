@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.25 — 2026-10-28
+- Snowpack forecast to today + 4 days (all 4 weather-rating days use it); snow map date picker to +4 days.
+- ARSO snow stations (vreme.arso.gov.si snow_geojson, ~20 mountain stations incl. Kredarica, Kanin, Vogel, Vršič, Krvavec, Zelenica)
+  assimilated every day with a Kalman filter at the time of the morning reading: every model point keeps an error variance that
+  grows daily (more after snowfall) and shrinks near stations; increments spread with distance (L = 20 km) and height (Lz = 400 m).
+  The job log lists every mountain station: measured, model before -> after. Stations shown on the snow map with their reading.
+- Snow map much faster: per-pixel work moved to background workers (fetch + decode heights, slope / aspect, satellite, colours,
+  PNG); the main thread only builds a coarse snow-vs-height profile grid per tile from per-cell profiles cached per day (~10 ms
+  per tile instead of ~50–170 ms + the whole pixel loop). Old fit only built when the snowpack has no data for that day.
+  Fallback to the old main-thread renderer on browsers without OffscreenCanvas in workers.
+- Page load: parking names from the nearest place via a grid lookup (was ~0.5 s).
+
 ## web-v0.24 — 2026-10-28
 - Snowpack model v2 (tools/snowpack.py): ~4 km cells (125 cells, 791 points every 250 m from 750 m), three surfaces each - flat,
   30° north-facing, 30° south-facing. Hourly from 1 October with DWD ICON (icon_seamless) at the point's height:
