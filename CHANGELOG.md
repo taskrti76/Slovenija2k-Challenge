@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.27 — 2026-10-28
+- Data check against hribi.net, bergsteigen.com, via-ferrata.de, exploreslovenia.si (report: docs/data-check-2026-10.md):
+  - peak difficulty class from hribi.net (PZS categories) for 42 of 84 checked peaks (data/tech_overrides.json; overrides now merge per key);
+  - 64 trailheads get their real names (Aljažev dom v Vratih, Mangartsko sedlo, Planica, Zadnjica, V Koncu, Logarska dolina ...) instead of
+    "pri <nearest place>" (data/data_fixes.json -> starts);
+  - Pot čez Žrelo (closed) left out of routing (data_fixes -> closed);
+  - via ferrata names / grades fixed for Hvadnik, Češka koča, Zelenica (Spodnji plot), Mučevo, Olimpline, Via Italiana (data_fixes -> ferratas).
+- Route cards: relation name only when it covers at least half of the route; no PZS badge on Italian / Austrian routes; the start hut
+  is not repeated in "čez ...".
+- Guide rewritten (11 steps): peak window, routes, 360° + sun, summit weather, snow map, drawing, layers, ⚙ settings and profile.
+  Opening it from settings closes the settings window; hidden controls are scrolled into view.
+
 ## web-v0.26 — 2026-10-28
 - Snow map smoother, no more 0 -> 30 cm cliffs:
   - satellite no longer switches single 40 m pixels to 0 / 8 cm; it uses the share of snow pixels within ~140 m and the share

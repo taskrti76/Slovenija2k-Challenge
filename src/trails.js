@@ -3,6 +3,9 @@
 const TB = [46.20, 13.38, 46.57, 14.86]; // s,w,n,e
 const SACN = {hiking:1,mountain_hiking:2,demanding_mountain_hiking:3,alpine_hiking:4,demanding_alpine_hiking:5,difficult_alpine_hiking:6};
 const GAP_M = 35;
+const FIX = (typeof window!=='undefined'&&window.DATA_FIX)||{starts:[],ferratas:[],closed:[]};
+// closed paths (e.g. Žrelo): left out of routing, still drawn on the map
+const isClosed = (t, g) => !!t.name && (FIX.closed||[]).some(c => c.name===t.name && g.length && Math.abs(g[0].lat-c.lat)*111e3<c.r && Math.abs(g[0].lon-c.lon)*77e3<c.r);
 const hav = (a,b,c,d) => { const R=6371000, r=Math.PI/180, x=(d-b)*r*Math.cos((a+c)/2*r), y=(c-a)*r; return R*Math.hypot(x,y); };
 
 const ROADRE = /^(primary|secondary|tertiary|unclassified|residential|living_street|service|road|primary_link|secondary_link|tertiary_link)$/;
@@ -29,6 +32,7 @@ function buildGraph(ways, marked){
   const eu=[], ev=[], ew=[], el=[], ey=[], W=[];
   for (const w of ways){
     const g = (w.geometry||[]).filter(Boolean); if (g.length < 2) continue;
+    if (isClosed(w.tags||{}, g)) continue;
     const t = w.tags||{}, kind = wayKind(t, marked.has(w.id)), f = wayFactor(t, kind), wi = W.length;
     W.push({id:w.id, kind, sac:SACN[t.sac_scale]||0, name:t.name||'', vis:/^(bad|horrible|no)$/.test(t.trail_visibility||''), rel:w.rel||null});
     let p = nid(g[0].lat, g[0].lon);
@@ -119,13 +123,14 @@ function trace(g, pe, t){ const nodes=[t], edges=[]; let u=t, guard=0;
 let RELS=[]; // [{name,ref,operator,network,from,to,'osmc:symbol'}]
 const LONGRE=/slovensk\w* planinsk\w* pot|\bSPP\b|via alpina|\bE ?[67]\b|alpe.adria|transverzal|koroška planinska|kamniško.savinjska planinska|razširjena|evropsk|pot kurirjev|pot prijateljstva|juliana trail|via dinarica|planinska pot\b.*\d/i;
 const relLong=r=>!!r&&(/^(nwn|iwn)$/.test(r.network||'')||LONGRE.test(r.name||''));
-const relPZS=r=>!!r&&(/red_round|white_dot|red:white|knafel/i.test(r['osmc:symbol']||'')||/\bPZS\b|planinsk\w* (zveza|društvo|drustvo)|^PD\b/i.test(r.operator||''));
+const relForeign=r=>!!r&&(/\b(CAI|SAF|ÖAV|OeAV|ÖTK|Alpenverein|Naturfreunde|Club Alpino)\b/i.test(r.operator||'')||/Wanderweg|Klettersteig|sentiero|via ferrata|^\d{3}[a-z]?$/i.test(r.name||r.ref||'')||/^\d{3}[a-z]?$/i.test(r.ref||'')||/^(it|at)\b/i.test(r.network||''));
+const relPZS=r=>!!r&&!relForeign(r)&&(/red_round|white_dot|red:white|knafel/i.test(r['osmc:symbol']||'')||/\bPZS\b|planinsk\w* (zveza|društvo|drustvo)|^PD\b/i.test(r.operator||''));
 const relName=r=>r?(r.name||r.ref||''):'';
 function pathStats(g, edges){
   let L=0, mk=0, rd=0, sac=0, fer=false, pz=0; const names=new Map(), rc=new Map();
   for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m'||(w.rel&&w.rel.some(ri=>!relLong(RELS[ri])))) mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac) sac=w.sac;
     if(w.name) names.set(w.name,(names.get(w.name)||0)+l);
-    if(w.rel){ let p=false; for(const ri of w.rel){ const R=RELS[ri]; if(relPZS(R)) p=true; if(!relLong(R)) rc.set(ri,(rc.get(ri)||0)+l); } if(p||w.kind==='m') pz+=l; } }
+    if(w.rel){ let p=false, fr=true; for(const ri of w.rel){ const R=RELS[ri]; if(relPZS(R)) p=true; if(!relForeign(R)) fr=false; if(!relLong(R)) rc.set(ri,(rc.get(ri)||0)+l); } if(p||(w.kind==='m'&&!fr)) pz+=l; } }
   const top=[...rc].sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=0.35*L).slice(0,4).map(x=>x[0]), cov=new Map(top.map(r=>[r,rc.get(r)/L]));
   return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]), rels:top, cov, pzs:L?pz/L:0};
 }
@@ -214,7 +219,7 @@ function peakRoutes(g, la, lo, starts, opt={}){
   // label: relation that covers most of the route; bonus if it names this peak, small bonus for PZS marking
   const pn=(opt.peakName||'').toLowerCase().split(/[ (]/)[0];
   for (const a of acc){ if (a.rel!=null) continue; let bs=0;
-    for (const ri of a.stats.rels){ const R=RELS[ri], sc=(a.stats.cov.get(ri)||0)+(pn&&relName(R).toLowerCase().includes(pn)?0.5:0)+(relPZS(R)?0.1:0); if(sc>bs){ bs=sc; a.rel=ri; } } }
+    for (const ri of a.stats.rels){ const R=RELS[ri], cv=a.stats.cov.get(ri)||0; if(cv<0.5) continue; const sc=cv+(pn&&relName(R).toLowerCase().includes(pn)?0.5:0)+(relPZS(R)?0.1:0); if(sc>bs){ bs=sc; a.rel=ri; } } }
   // drop absurd detours, then near-duplicates (same start area and mostly the same way), keep at most max+2
   const good=acc.filter(a=>a.stats.marked>=0.6).length;
   let keep=acc.filter(a=>(a.stats.len<=Math.max(2.2*best,best+6000)||acc.length<=3)&&!(good>=4&&a.rel==null&&a.stats.marked<0.4));
@@ -607,6 +612,7 @@ async function build(poi,tr,src){
       let L=0; for(let i=1;i<g.length;i++) L+=hav(g[i-1].lat,g[i-1].lon,g[i].lat,g[i].lon); o.len+=L; if(g.length>o.best.length) o.best=g;
       o.sac=Math.max(o.sac,SACN[t.sac_scale]||0); if(t.via_ferrata_scale!=null){ const f=vfNum(t.via_ferrata_scale); if(f>o.fs){ o.fs=f; o.fsTxt=vfTxt(t.via_ferrata_scale); } } }
     const ff=[]; for(const o of Object.values(FG)){ if(!o.name&&o.len<120) continue; const q=o.best[Math.floor(o.best.length/2)];
+      const fx=(FIX.ferratas||[]).find(f=>hav(q.lat,q.lon,f[0],f[1])<f[2]); if(fx){ if(fx[3]) o.name=fx[3]; if(fx[4]){ o.fs=0; o.fsTxt=fx[4]; } }
       const grade=[o.fs>=0?o.fsTxt:'', o.sac?SACT[o.sac]:''].filter(Boolean).join(' · ');
       ff.push({type:'Feature',properties:{t:[o.name||'Ferata', grade].filter(Boolean).join('\n'),len:Math.round(o.len)},geometry:{type:'Point',coordinates:[q.lon,q.lat]}}); }
     if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); }
@@ -628,6 +634,7 @@ async function build(poi,tr,src){
   for(const s of STARTS) if(!s.name){ let best=null,bd=4000; const a0=Math.floor(s.lat/0.045), b0=Math.floor(s.lon/0.065);
     for(let a=a0-1;a<=a0+1;a++) for(let b=b0-1;b<=b0+1;b++) for(const p of PG.get(a+','+b)||[]){ const d=hav(s.lat,s.lon,p.lat,p.lon); if(d<bd){bd=d;best=p.name;} }
     s.name=best?`pri ${best}`:'parkirišče'; }
+  for(const s of STARTS){ const f=(FIX.starts||[]).find(f=>hav(s.lat,s.lon,f[0],f[1])<f[2]); if(f) s.name=f[3]; }
   STARTS_ALL=STARTS; STARTS=[];
   map.getSource('poi').setData({type:'FeatureCollection',features:pf});
   const nr=feats.filter(f=>f.properties.k==='r').length;
@@ -637,7 +644,7 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
-window.__dbg=()=>({RT,STARTS,HUTS}); // for tests
+window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats}); // for tests
 // start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
 function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
   for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }
@@ -674,7 +681,8 @@ window.peakRoutesUI = async function(id){
     if(r.start.kind==='rel'){ const ns=nearStart(r.start.lat,r.start.lon); if(ns) r.start={...ns,node:r.start.node}; }
     // join the drawn line to the actual parking / hut point
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
-    r.huts=hutsAlong(r.coords); if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=(r.start.kind==='hut'?r.start.name:'')||hutNear(r.start)||r.start.name||relStartName(r,p); });
+    if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=(r.start.kind==='hut'?r.start.name:'')||hutNear(r.start)||r.start.name||relStartName(r,p);
+    const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); });
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };

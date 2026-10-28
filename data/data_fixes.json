@@ -1,0 +1,448 @@
+{
+ "_about": "Hand fixes on top of OSM, checked 2026-10-28 against hribi.net (start names = the names hribi.net / PZS use), bergsteigen.com, via-ferrata.de, exploreslovenia.si. Merged into the page by tools/build.py (window.DATA_FIX). starts: [lat, lon, radius m, name]. ferratas: [lat, lon, radius m, name or '', grade text or '', source]. closed: OSM ways with this name near lat/lon are left out of routing (the line stays on the map).",
+ "starts": [
+  [
+   46.413,
+   13.847,
+   300,
+   "Aljažev dom v Vratih"
+  ],
+  [
+   46.418,
+   13.859,
+   250,
+   "Vrata (Poldov rovt)"
+  ],
+  [
+   46.385,
+   13.907,
+   300,
+   "Konec ceste na Pokljuki (Pri Lesi)"
+  ],
+  [
+   46.289,
+   13.802,
+   250,
+   "Koča pri Savici"
+  ],
+  [
+   46.346,
+   13.924,
+   300,
+   "Rudno polje"
+  ],
+  [
+   46.31,
+   13.849,
+   400,
+   "Planina Blato"
+  ],
+  [
+   46.381,
+   13.752,
+   250,
+   "Trenta (Na Logu)"
+  ],
+  [
+   46.382,
+   13.761,
+   250,
+   "Zadnjica (Trenta)"
+  ],
+  [
+   46.439,
+   13.748,
+   250,
+   "Vršič (prelaz)"
+  ],
+  [
+   46.434,
+   13.743,
+   250,
+   "Vršič (Tičarjev dom)"
+  ],
+  [
+   46.427,
+   13.744,
+   250,
+   "Huda ravan (pod Vršičem)"
+  ],
+  [
+   46.439,
+   13.762,
+   200,
+   "Koča na Gozdu"
+  ],
+  [
+   46.443,
+   13.777,
+   300,
+   "Vršiška cesta – Mihov dom (Krnica)"
+  ],
+  [
+   46.467,
+   13.783,
+   300,
+   "Pišnica (nad Jasno)"
+  ],
+  [
+   46.475,
+   13.723,
+   400,
+   "Planica (Nordijski center)"
+  ],
+  [
+   46.404,
+   13.71,
+   300,
+   "Zadnja Trenta (Flori)"
+  ],
+  [
+   46.409,
+   13.726,
+   200,
+   "Koča pri izviru Soče"
+  ],
+  [
+   46.397,
+   13.745,
+   200,
+   "Trenta (pri cerkvi)"
+  ],
+  [
+   46.439,
+   13.641,
+   300,
+   "Mangartsko sedlo (konec ceste)"
+  ],
+  [
+   46.434,
+   13.639,
+   250,
+   "Mangartska cesta (pod sedlom)"
+  ],
+  [
+   46.476,
+   13.672,
+   400,
+   "Belopeška jezera (Laghi di Fusine)"
+  ],
+  [
+   46.481,
+   13.674,
+   250,
+   "Belopeška jezera (Laghi di Fusine)"
+  ],
+  [
+   46.37,
+   13.63,
+   300,
+   "Bavšica"
+  ],
+  [
+   46.38,
+   13.585,
+   250,
+   "Možnica (Log pod Mangartom)"
+  ],
+  [
+   46.361,
+   13.589,
+   250,
+   "Trdnjava Kluže"
+  ],
+  [
+   46.338,
+   13.494,
+   200,
+   "Gozdec (Kanin)"
+  ],
+  [
+   46.388,
+   13.472,
+   300,
+   "Nevejski preval (Sella Nevea)"
+  ],
+  [
+   46.31,
+   13.48,
+   200,
+   "Žaga (Pri Mostu)"
+  ],
+  [
+   46.351,
+   13.386,
+   250,
+   "Ronk (Rezija)"
+  ],
+  [
+   46.304,
+   13.681,
+   250,
+   "Dom v Lepeni"
+  ],
+  [
+   46.242,
+   13.661,
+   250,
+   "Planina Kuhinja"
+  ],
+  [
+   46.238,
+   13.674,
+   250,
+   "Planina Polog"
+  ],
+  [
+   46.256,
+   13.617,
+   300,
+   "Drežnica"
+  ],
+  [
+   46.229,
+   13.771,
+   300,
+   "Tolminske Ravne"
+  ],
+  [
+   46.211,
+   13.787,
+   300,
+   "Planina Kuk"
+  ],
+  [
+   46.326,
+   13.698,
+   200,
+   "Pod Zjabci"
+  ],
+  [
+   46.279,
+   13.829,
+   200,
+   "Ukanc"
+  ],
+  [
+   46.301,
+   13.865,
+   300,
+   "Konec ceste na Vogar"
+  ],
+  [
+   46.31,
+   13.883,
+   250,
+   "Voje (Planinska koča na Vojah)"
+  ],
+  [
+   46.313,
+   13.905,
+   300,
+   "Uskovnica (Lom)"
+  ],
+  [
+   46.401,
+   13.924,
+   250,
+   "Dolina Krma (Kovinarska koča)"
+  ],
+  [
+   46.455,
+   13.932,
+   200,
+   "Mojstrana (Fabrka)"
+  ],
+  [
+   46.385,
+   14.536,
+   250,
+   "Ravenska Kočna"
+  ],
+  [
+   46.402,
+   14.566,
+   300,
+   "Belska Kočna / Vellacher Kotschna"
+  ],
+  [
+   46.393,
+   14.501,
+   250,
+   "Zgornje Jezersko"
+  ],
+  [
+   46.335,
+   14.51,
+   250,
+   "Suhadolnik (Kokra)"
+  ],
+  [
+   46.343,
+   14.568,
+   250,
+   "V Koncu (Kamniška Bistrica)"
+  ],
+  [
+   46.336,
+   14.585,
+   250,
+   "Kamniška Bistrica (Jermanca)"
+  ],
+  [
+   46.327,
+   14.589,
+   200,
+   "Dom v Kamniški Bistrici"
+  ],
+  [
+   46.319,
+   14.6,
+   250,
+   "Kamniška Bistrica (Predoselj)"
+  ],
+  [
+   46.37,
+   14.599,
+   300,
+   "Logarska dolina (slap Rinka)"
+  ],
+  [
+   46.384,
+   14.622,
+   300,
+   "Logarska dolina"
+  ],
+  [
+   46.395,
+   14.63,
+   250,
+   "Logarska dolina (Plesnik)"
+  ],
+  [
+   46.332,
+   14.673,
+   300,
+   "Planina Podvežak"
+  ],
+  [
+   46.394,
+   14.696,
+   250,
+   "Robanov kot"
+  ],
+  [
+   46.403,
+   14.757,
+   250,
+   "Planina Loka (pod Raduho)"
+  ],
+  [
+   46.359,
+   14.391,
+   200,
+   "Dom pod Storžičem"
+  ],
+  [
+   46.426,
+   14.147,
+   200,
+   "Valvasorjev dom pod Stolom"
+  ],
+  [
+   46.411,
+   14.148,
+   250,
+   "Završnica (Turška jama)"
+  ],
+  [
+   46.454,
+   14.16,
+   250,
+   "Trate / Johannsenruhe"
+  ],
+  [
+   46.432,
+   14.259,
+   300,
+   "Ljubelj (parkirišče Zelenica)"
+  ],
+  [
+   46.43,
+   14.269,
+   250,
+   "Ljubelj"
+  ],
+  [
+   46.429,
+   14.274,
+   250,
+   "Ljubelj (Košutica)"
+  ],
+  [
+   46.439,
+   14.267,
+   250,
+   "Ljubelj (Koča na Ljubelju)"
+  ]
+ ],
+ "ferratas": [
+  [
+   46.48907,
+   13.84626,
+   300,
+   "Ferata Hvadnik",
+   "B/C",
+   "exploreslovenia.si (OSM: C)"
+  ],
+  [
+   46.37164,
+   14.53765,
+   300,
+   "Ferata na Češko kočo",
+   "C/D",
+   "exploreslovenia.si (OSM: D/E)"
+  ],
+  [
+   46.43025,
+   14.23769,
+   200,
+   "Ferata Spodnji plot (Zelenica)",
+   "B/E",
+   "exploreslovenia.si (OSM: C–E)"
+  ],
+  [
+   46.49064,
+   14.87472,
+   300,
+   "Ferata Mučevo",
+   "B/E",
+   "exploreslovenia.si (OSM: E/C)"
+  ],
+  [
+   46.472,
+   14.84,
+   600,
+   "Ferata Olimpline",
+   "C/F",
+   "exploreslovenia.si"
+  ],
+  [
+   46.44508,
+   13.65279,
+   300,
+   "Via Italiana (Mangart)",
+   "C",
+   "bergsteigen.com (OSM: C+)"
+  ]
+ ],
+ "closed": [
+  {
+   "name": "Pot čez Žrelo",
+   "lat": 46.3716,
+   "lon": 14.5459,
+   "r": 1500,
+   "why": "zaprta (hribi.net, 2026)"
+  }
+ ]
+}

@@ -90,38 +90,51 @@ function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.relo
 
 // ---------- 2) first-use guide ----------
 const PHONE = () => innerWidth <= 700;
+const LAYERS = sel => PHONE() ? '#tabbar [data-t="layers"]' : document.body.classList.contains('lclosed') ? '#ltab' : sel;
 const STEPS = [
-  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu. Kratek vodič v 6 korakih — lahko ga kadarkoli preskočiš.', lang:true},
-  {t:'Seznam vrhov', d:'Glavni seznam: 98 prominentnih dvatisočakov. Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos).', sel:()=>PHONE()?'#tabbar [data-t="peaks"]':'#ptab'},
-  {t:'Klikni vrh na karti', d:'Odpre se okno z višino in prominenco. »Poti na vrh« pokaže poti s parkirišč (PZS oznaka, T-lestvica, čas hoje, GPX). »360° razgled« te postavi na vrh.', sel:()=>'#map', center:true},
-  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn'},
-  {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, sneg. Tu je tudi velikost besedila in jezik.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':document.body.classList.contains('lclosed')?'#ltab':'.panel .grp'},
-  {t:'Kot aplikacija, tudi brez signala', d:'V »⚙ Nastavitve → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.', sel:()=>PHONE()?'#tabbar [data-t="settings"]':'#gearBtn'},
-  {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v ⚙ Nastavitve → Vodič.'}
+  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 11 korakih — lahko ga kadarkoli preskočiš.', lang:true},
+  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.', sel:()=>PHONE()?'#tabbar [data-t="peaks"]':'#ptab'},
+  {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true},
+  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#map', center:true},
+  {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'#map', center:true},
+  {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>LAYERS('#wxChk')},
+  {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>LAYERS('input[name=base][value=snow]')},
+  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':document.body.classList.contains('lclosed')?'#ltab':'#drawBtn'},
+  {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':document.body.classList.contains('lclosed')?'#ltab':'.panel .grp'},
+  {t:'⚙ Nastavitve in moj profil', d:'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Tu so tudi napredne nastavitve: hitri teren, namestitev aplikacije, območja brez signala in ta vodič.', sel:()=>PHONE()?'#tabbar [data-t="settings"]':'#gearBtn'},
+  {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitve → Vodič.'}
 ];
 Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
-  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu. Kratek vodič v 6 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain. A short 6-step guide — skip it any time.',
+  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 11 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 11-step guide — skip it any time.',
   'Seznam vrhov':'Peak list',
-  'Glavni seznam: 98 prominentnih dvatisočakov. Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos).':'The main list: the 98 prominent 2000 m peaks. Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it).',
+  '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters.',
   'Klikni vrh na karti':'Click a peak on the map',
-  'Odpre se okno z višino in prominenco. »Poti na vrh« pokaže poti s parkirišč (PZS oznaka, T-lestvica, čas hoje, GPX). »360° razgled« te postavi na vrh.':'A window shows height and prominence. "Routes to the top" lists routes from parkings (PZS marking, T scale, walking time, GPX). "360° view" puts you on the summit.',
+  'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.':'The window shows height, prominence, the difficulty of the normal route (easy / demanding / very demanding) and today\'s weather. From here open the routes or the 360° view.',
+  'Poti na vrh':'Routes to the top',
+  'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.':'Routes from trailheads (parkings): PZS marking and route name, huts on the way, T scale, via ferratas, walking time for your fitness and a height profile. "⛰ Side view" turns the map to face the route, "GPX" downloads it. "⚠ above your limit" means harder than your profile.',
+  '360° razgled z vrha':'360° view from the summit',
+  'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.':'Puts you on the summit: drag to turn, click a name to jump to that peak. "☀ Day" shows sunrise and sunset — the sun hides behind ridges, like in reality.',
+  'Vreme na vrhovih':'Summit weather',
+  'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.':'A 0–100 day rating for every peak (07–17 h): storms, wind, precipitation, cloud, new snow and cold on the summit. Harder peak = stricter rating. Green / amber / red on the map; ⤢ opens a big hourly view for 4 days.',
+  'Snežna karta':'Snow map',
+  'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.':'How much snow is where: the Sentinel-2 satellite shows where snow lies, our model (daily, corrected with ARSO measurements) how deep it is — today and 4 days ahead. Hover (or tap) to read the depth.',
   'Riši svojo pot':'Draw your own route',
   'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.':'Click points — the line follows trails and roads by itself. Move or delete points; export to GPX.',
   'Podlage in sloji':'Base maps and layers',
-  'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, sneg. Tu je tudi velikost besedila in jezik.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, snow. Text size and language are here too.',
-  'Kot aplikacija, tudi brez signala':'As an app, even without signal',
-  'V »⚙ Nastavitve → Aplikacija in brez signala« lahko stran namestiš na začetni zaslon in preneseš območje (teren, poti, vrhovi) za hribe brez signala.':'In "⚙ Settings → App & offline" you can install the site to your home screen and download an area (terrain, trails, peaks) for mountains without signal.',
+  'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, parkings, via ferratas, snow and weather; text size. On a computer the panel hides with the blue tab on the left edge.',
+  '⚙ Nastavitve in moj profil':'⚙ Settings and my profile',
+  'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Tu so tudi napredne nastavitve: hitri teren, namestitev aplikacije, območja brez signala in ta vodič.':'Winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings. Advanced settings live here too: fast terrain, installing the app, offline areas and this guide.',
   'Srečno na poti!':'Have a good hike!',
-  'Podatki so samodejni (OSM, LiDAR, model snega) — pred turo vedno preveri razmere. Vodič ponoviš v ⚙ Nastavitve → Vodič.':'The data is automatic (OSM, LiDAR, snow model) — always check conditions before you go. Replay the guide in ⚙ Settings → Guide.'
+  'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitve → Vodič.':'The data is automatic (OSM, LiDAR, weather model, satellite, snow model) — always check conditions before you go. The site updates itself. Replay the guide in ⚙ Settings → Guide.'
 });
 let step = 0, ov = null;
-function tour(start){ step = start || 0; if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
+function tour(start){ step = start || 0; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
   document.body.classList.remove('menu'); showStep(); }
 function endTour(){ if (ov){ ov.remove(); ov = null; } LS('dvat3d_tour_done', '1'); }
 function showStep(){
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
-  let r = null; if (S.sel){ const el = document.querySelector(S.sel()); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
+  let r = null; if (S.sel){ const el = document.querySelector(S.sel()); if (el && el.closest('.panel')) el.scrollIntoView({block:'center'}); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
   if (r && S.center){ const w = Math.min(260, r.width*0.5), h = Math.min(200, r.height*0.4); r = {left:r.left+r.width/2-w/2, top:r.top+r.height/2-h/2, width:w, height:h}; }
   if (r){ hole.style.cssText = `display:block;left:${r.left-6}px;top:${r.top-6}px;width:${r.width+12}px;height:${r.height+12}px`; } else hole.style.cssText = 'display:block;left:50%;top:40%;width:0;height:0';
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
