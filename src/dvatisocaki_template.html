@@ -59,13 +59,15 @@
     #ptab em{font-style:normal;font-weight:500;font-size:calc(13px * var(--ui,1));background:rgba(255,255,255,.22);border-radius:10px;padding:8px 2px}
     #ptab:hover{filter:brightness(1.08)}
     #ptab .chev{writing-mode:horizontal-tb;font-size:calc(16px * var(--ui,1));line-height:1}
-    body.dopen #ptab{right:360px}
+    body.dopen #ptab{right:400px}
+    #drawer{width:400px}
+    .panel,#drawer{font-size:calc(16px * var(--ui,1))}
     body.in360 #ptab{display:none}
-    body.dopen .maplibregl-ctrl-top-right{right:362px;transition:right .25s}
-    body.dopen #snowleg{right:372px}
+    body.dopen .maplibregl-ctrl-top-right{right:402px;transition:right .25s}
+    body.dopen #snowleg{right:412px}
     /* layers & maps: roll-out sheet on the left edge with its own pull tab (same as the peak list) */
-    :root{--lw:262px} body.lclosed{--lw:0px}
-    .panel{top:0;left:0;bottom:0;width:262px;max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
+    :root{--lw:300px} body.lclosed{--lw:0px}
+    .panel{top:0;left:0;bottom:0;width:300px;max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
       padding:14px 16px;transition:transform .25s,visibility .25s;z-index:10}
     body.lclosed .panel{transform:translateX(-105%);visibility:hidden}
     #ltab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;left:var(--lw);transform:translateY(-50%);z-index:11;
@@ -121,7 +123,7 @@
   #dfoot .fnote{margin-left:auto;color:var(--mute)}
   #dfoot button{font:inherit;font-size:0.857em;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .ok{color:#2e7d32}.warn{color:#b26a00}
-  .maplibregl-popup-content{font:calc(13px * var(--ui,1))/1.4 system-ui,sans-serif;color:#1d2321;padding:10px 12px}
+  .maplibregl-popup-content{font:calc(14px * var(--ui,1))/1.45 system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#1d2321;padding:10px 12px}
   .maplibregl-popup-content button{margin-top:6px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;cursor:pointer}
   .card{position:absolute;left:12px;bottom:34px;width:330px;max-width:calc(100% - 24px);max-height:55vh;overflow:auto;background:var(--panel);backdrop-filter:blur(6px);
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.2);display:none;z-index:6;font-size:calc(13px * var(--ui,1))}
@@ -1000,7 +1002,7 @@ function openPeak(id,fly){
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   if(popup) popup.remove();
-  popup=new maplibregl.Popup({offset:10,maxWidth:'300px',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
+  popup=new maplibregl.Popup({offset:10,maxWidth:'330px',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
 }
 function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }
 
@@ -1089,6 +1091,9 @@ document.getElementById('labels').onchange=e=>vis('pk-lbl',e.target.checked);
 refresh(); // list does not depend on the map (works even if map tiles fail / offline)
 
 map.on('error',e=>console.warn('map error',e.error&&e.error.message));
+// popups on whole pixels: MapLibre centres them with translate(-50%,-100%), which leaves a half pixel on odd sizes and blurs the text
+map.on('render',()=>{ for(const el of document.querySelectorAll('.maplibregl-popup')){ el.style.margin='0'; const r=el.getBoundingClientRect();
+  const dx=Math.round(r.left)-r.left, dy=Math.round(r.top)-r.top; if(Math.abs(dx)>0.01||Math.abs(dy)>0.01){ el.style.marginLeft=dx+'px'; el.style.marginTop=dy+'px'; } } });
 </script>
 <script type="text/plain" id="osmpack"__PACKSRC__>__OSMPACK__</script>
 <script>__PACKJS__

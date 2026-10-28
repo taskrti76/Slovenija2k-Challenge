@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.30 — 2026-10-28
+- Via ferrata signs: only pieces of the same path are joined (same name, or unnamed bits touching it); differently named ferratas stay
+  separate even when they meet (82 -> 73 signs: only true duplicates removed). Hardest grade kept.
+- Peak popup sharper: placed on whole pixels (MapLibre's centring left half pixels that blurred the text), text 14 px, 330 px wide.
+- PC: bigger text in the "Karta in sloji" panel and the peak list (16 px base), both wider (300 / 400 px).
+- Popup snow says "v zavetju na višini vrha" - the depth in sheltered spots at summit height; the snow map shows the exposed top itself.
+
 ## web-v0.29 — 2026-10-28
 - Via ferrata signs: one sign per ferrata (82 -> 62). Pieces that touch (ends within 40 m) or share a name within 1.5 km are joined,
   wherever map-grid edges fall; the name is the longest named piece (+ a second name if the pieces carry two); the grade shown is the

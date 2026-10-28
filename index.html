@@ -59,13 +59,15 @@
     #ptab em{font-style:normal;font-weight:500;font-size:calc(13px * var(--ui,1));background:rgba(255,255,255,.22);border-radius:10px;padding:8px 2px}
     #ptab:hover{filter:brightness(1.08)}
     #ptab .chev{writing-mode:horizontal-tb;font-size:calc(16px * var(--ui,1));line-height:1}
-    body.dopen #ptab{right:360px}
+    body.dopen #ptab{right:400px}
+    #drawer{width:400px}
+    .panel,#drawer{font-size:calc(16px * var(--ui,1))}
     body.in360 #ptab{display:none}
-    body.dopen .maplibregl-ctrl-top-right{right:362px;transition:right .25s}
-    body.dopen #snowleg{right:372px}
+    body.dopen .maplibregl-ctrl-top-right{right:402px;transition:right .25s}
+    body.dopen #snowleg{right:412px}
     /* layers & maps: roll-out sheet on the left edge with its own pull tab (same as the peak list) */
-    :root{--lw:262px} body.lclosed{--lw:0px}
-    .panel{top:0;left:0;bottom:0;width:262px;max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
+    :root{--lw:300px} body.lclosed{--lw:0px}
+    .panel{top:0;left:0;bottom:0;width:300px;max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
       padding:14px 16px;transition:transform .25s,visibility .25s;z-index:10}
     body.lclosed .panel{transform:translateX(-105%);visibility:hidden}
     #ltab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;left:var(--lw);transform:translateY(-50%);z-index:11;
@@ -121,7 +123,7 @@
   #dfoot .fnote{margin-left:auto;color:var(--mute)}
   #dfoot button{font:inherit;font-size:0.857em;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .ok{color:#2e7d32}.warn{color:#b26a00}
-  .maplibregl-popup-content{font:calc(13px * var(--ui,1))/1.4 system-ui,sans-serif;color:#1d2321;padding:10px 12px}
+  .maplibregl-popup-content{font:calc(14px * var(--ui,1))/1.45 system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#1d2321;padding:10px 12px}
   .maplibregl-popup-content button{margin-top:6px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;cursor:pointer}
   .card{position:absolute;left:12px;bottom:34px;width:330px;max-width:calc(100% - 24px);max-height:55vh;overflow:auto;background:var(--panel);backdrop-filter:blur(6px);
     border:1px solid var(--line);border-radius:10px;padding:10px 12px;box-shadow:0 4px 18px rgba(0,0,0,.2);display:none;z-index:6;font-size:calc(13px * var(--ui,1))}
@@ -1000,7 +1002,7 @@ function openPeak(id,fly){
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   if(popup) popup.remove();
-  popup=new maplibregl.Popup({offset:10,maxWidth:'300px',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
+  popup=new maplibregl.Popup({offset:10,maxWidth:'330px',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
 }
 function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }
 
@@ -1089,6 +1091,9 @@ document.getElementById('labels').onchange=e=>vis('pk-lbl',e.target.checked);
 refresh(); // list does not depend on the map (works even if map tiles fail / offline)
 
 map.on('error',e=>console.warn('map error',e.error&&e.error.message));
+// popups on whole pixels: MapLibre centres them with translate(-50%,-100%), which leaves a half pixel on odd sizes and blurs the text
+map.on('render',()=>{ for(const el of document.querySelectorAll('.maplibregl-popup')){ el.style.margin='0'; const r=el.getBoundingClientRect();
+  const dx=Math.round(r.left)-r.left, dy=Math.round(r.top)-r.top; if(Math.abs(dx)>0.01||Math.abs(dy)>0.01){ el.style.marginLeft=dx+'px'; el.style.marginTop=dy+'px'; } } });
 </script>
 <script type="text/plain" id="osmpack" data-src="dvat-osm.json.gz"></script>
 <script>// ---------- compact OSM pack (shared by packer tool + site) ----------
@@ -1750,23 +1755,25 @@ async function build(poi,tr,src){
     const vfNum=v=>{ const m=String(v).match(/[0-6](?:\.5)?|[A-Fa-f]/g); if(!m) return -1; return Math.max(...m.map(x=>/[A-F]/i.test(x)?VF.indexOf(x.toUpperCase())+1:+x)); };
     const vfTxt=v=>{ const t=String(v).trim(); if(t==='0') return 'lahka';
       return t.replace(/([1-6])\.5/g,(m,a)=>VF[a-1]+'/'+VF[a]).replace(/[1-6]/g,d=>VF[d-1]).replace(/-/g,'–'); };
-    // one sign per ferrata: pieces that touch (ends within 40 m) or share a name within 1.5 km are one ferrata; grade = hardest piece
+    // one sign per ferrata: pieces of the same path are joined - same name within 1.5 km, or touching (ends within 40 m) where at
+    // most one name is involved (unnamed bits join the path they continue). Differently named paths stay separate. Grade = hardest piece.
     const FP=[];
     for(const w of ways){ const t=w.tags||{}; if(t.highway!=='via_ferrata'&&t.via_ferrata_scale==null) continue; const g=(w.geometry||[]).filter(Boolean); if(g.length<2) continue;
       let nm=t.name||''; if(!nm&&w.rel) for(const ri of w.rel){ const R=RELS[ri]; if(R&&R.name&&!relLong(R)){ nm=R.name; break; } }
       let L=0; for(let i=1;i<g.length;i++) L+=hav(g[i-1].lat,g[i-1].lon,g[i].lat,g[i].lon);
       FP.push({g, nm, L, sac:SACN[t.sac_scale]||0, fs:t.via_ferrata_scale!=null?vfNum(t.via_ferrata_scale):-1, raw:t.via_ferrata_scale!=null?String(t.via_ferrata_scale):''}); }
-    const par=FP.map((_,i)=>i), root=i=>par[i]===i?i:(par[i]=root(par[i])), join=(a,b)=>{ a=root(a); b=root(b); if(a!==b) par[a]=b; };
+    const par=FP.map((_,i)=>i), nmOf=FP.map(f=>f.nm), root=i=>par[i]===i?i:(par[i]=root(par[i]));
+    const join=(a,b)=>{ a=root(a); b=root(b); if(a===b) return; if(nmOf[a]&&nmOf[b]&&nmOf[a]!==nmOf[b]) return; par[a]=b; nmOf[b]=nmOf[b]||nmOf[a]; };
+    FP.forEach((f,i)=>{ if(!f.nm) return; FP.forEach((h,k)=>{ if(k>i&&h.nm===f.nm&&hav(f.g[0].lat,f.g[0].lon,h.g[0].lat,h.g[0].lon)<1500) join(i,k); }); });
     const EG=new Map(), ck=(la,lo)=>Math.floor(la/0.0006)+','+Math.floor(lo/0.0009);
     FP.forEach((f,i)=>{ for(const e of [f.g[0],f.g[f.g.length-1]]){ const y=Math.floor(e.lat/0.0006), x=Math.floor(e.lon/0.0009);
       for(let a=-1;a<=1;a++) for(let b=-1;b<=1;b++) for(const [k,q] of EG.get((y+a)+','+(x+b))||[]) if(hav(e.lat,e.lon,q.lat,q.lon)<40) join(i,k);
       const kk=ck(e.lat,e.lon); let arr=EG.get(kk); if(!arr) EG.set(kk,arr=[]); arr.push([i,e]); } });
-    FP.forEach((f,i)=>{ if(!f.nm) return; FP.forEach((h,k)=>{ if(k>i&&h.nm===f.nm&&hav(f.g[0].lat,f.g[0].lon,h.g[0].lat,h.g[0].lon)<1500) join(i,k); }); });
     FP.forEach((f,i)=>{ const r=root(i); let o=FG[r]; if(!o) o=FG[r]={names:new Map(),best:f.g,bl:0,len:0,sac:0,fs:-1};
       o.len+=f.L; if(f.L>o.bl){ o.bl=f.L; o.best=f.g; } if(f.nm) o.names.set(f.nm,(o.names.get(f.nm)||0)+f.L); o.sac=Math.max(o.sac,f.sac); if(f.fs>o.fs||(f.fs===o.fs&&/\+/.test(f.raw))){ o.fs=f.fs; o.raw=f.raw; } });
     const hardest=(f,raw)=>{ if(f<0) return ''; if(f===0) return 'lahka'; const m=[...String(raw||'').matchAll(/([0-6](?:\.5)?)\s*([+-]?)/g)].find(x=>+x[1]===f);
       return (Number.isInteger(f)?VF[f-1]:VF[Math.floor(f)-1]+'/'+VF[Math.floor(f)])+(m&&m[2]?(m[2]==='-'?'–':'+'):''); };
-    const ff=[]; for(const o of Object.values(FG)){ o.name=[...o.names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(' / '); if(o.len<(o.name?60:120)) continue; // tiny secured bits on normal paths: no sign
+    const ff=[]; for(const o of Object.values(FG)){ o.name=[...o.names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(' / '); if(!o.name&&o.len<120) continue;
       if((FIX.closed||[]).some(c=>o.names.has(c.name))) o.name+=' (del zaprt)';
       const q=o.best[Math.floor(o.best.length/2)]; o.fsTxt=hardest(o.fs,o.raw);
       const fx=(FIX.ferratas||[]).find(f=>hav(q.lat,q.lon,f[0],f[1])<f[2]); if(fx){ if(fx[3]) o.name=fx[3]; if(fx[4]){ o.fs=0; o.fsTxt=fx[4]; } }
@@ -2713,7 +2720,7 @@ function day(s, d, elev, cls){
   if (o.c != null) add(o.cloudLM ? (o.c >= 90 ? 20 : o.c >= 70 ? 8 : 0) : (o.c >= 95 ? 12 : o.c >= 85 ? 5 : 0),
     o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
   if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
-  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm${o.sat ? ', satellite' : ''})`, 'snow');
+  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm v zavetju na višini vrha${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm in sheltered spots at summit height${o.sat ? ', satellite' : ''})`, 'snow');
   if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
@@ -2805,7 +2812,7 @@ window.wxBox = p => {
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)}°</button>`).join('')}</div>
       <div class="wxs">${clsLine(p, o)}<span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
         🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C · 💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
-        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm` : ''}</div>
+        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · <span title="${L('v zavetju na višini vrha; na izpostavljenem vrhu ga veter odpihne (snežna karta)','in sheltered spots at summit height; the wind strips the exposed top (snow map)')}">❄ ${o.snowcm} cm ${L('v zavetju','sheltered')}</span>` : ''}</div>
       <details class="wxdt"${OPENH ? ' open' : ''}><summary>${L('Po urah','Hourly')}</summary><div class="wxt">${hrs.map(h => { const k = si*nh + s.hours.indexOf(h); if (s.hours.indexOf(h) < 0 || !s.T || s.T[k] == null) return '';
         return `<div>${h}h<i>${ICON(s.X && s.X[k])}</i>${Math.round(s.T[k])}°<br>${r1(s.W && s.W[k])} ${DIR(s.D && s.D[k])}</div>`; }).join('')}</div></details>
       <div class="wxf">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>${s.gen ? ' · ' + new Date(s.gen.replace('Z', ':00Z')).toLocaleString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday:'short', hour:'2-digit', minute:'2-digit'}) : ''} · ${L('ocena za 7–17 h; model, ne meritev','rating for 7–17 h; model, not a measurement')}</div>`;

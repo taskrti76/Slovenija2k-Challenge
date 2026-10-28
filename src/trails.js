@@ -606,23 +606,25 @@ async function build(poi,tr,src){
     const vfNum=v=>{ const m=String(v).match(/[0-6](?:\.5)?|[A-Fa-f]/g); if(!m) return -1; return Math.max(...m.map(x=>/[A-F]/i.test(x)?VF.indexOf(x.toUpperCase())+1:+x)); };
     const vfTxt=v=>{ const t=String(v).trim(); if(t==='0') return 'lahka';
       return t.replace(/([1-6])\.5/g,(m,a)=>VF[a-1]+'/'+VF[a]).replace(/[1-6]/g,d=>VF[d-1]).replace(/-/g,'–'); };
-    // one sign per ferrata: pieces that touch (ends within 40 m) or share a name within 1.5 km are one ferrata; grade = hardest piece
+    // one sign per ferrata: pieces of the same path are joined - same name within 1.5 km, or touching (ends within 40 m) where at
+    // most one name is involved (unnamed bits join the path they continue). Differently named paths stay separate. Grade = hardest piece.
     const FP=[];
     for(const w of ways){ const t=w.tags||{}; if(t.highway!=='via_ferrata'&&t.via_ferrata_scale==null) continue; const g=(w.geometry||[]).filter(Boolean); if(g.length<2) continue;
       let nm=t.name||''; if(!nm&&w.rel) for(const ri of w.rel){ const R=RELS[ri]; if(R&&R.name&&!relLong(R)){ nm=R.name; break; } }
       let L=0; for(let i=1;i<g.length;i++) L+=hav(g[i-1].lat,g[i-1].lon,g[i].lat,g[i].lon);
       FP.push({g, nm, L, sac:SACN[t.sac_scale]||0, fs:t.via_ferrata_scale!=null?vfNum(t.via_ferrata_scale):-1, raw:t.via_ferrata_scale!=null?String(t.via_ferrata_scale):''}); }
-    const par=FP.map((_,i)=>i), root=i=>par[i]===i?i:(par[i]=root(par[i])), join=(a,b)=>{ a=root(a); b=root(b); if(a!==b) par[a]=b; };
+    const par=FP.map((_,i)=>i), nmOf=FP.map(f=>f.nm), root=i=>par[i]===i?i:(par[i]=root(par[i]));
+    const join=(a,b)=>{ a=root(a); b=root(b); if(a===b) return; if(nmOf[a]&&nmOf[b]&&nmOf[a]!==nmOf[b]) return; par[a]=b; nmOf[b]=nmOf[b]||nmOf[a]; };
+    FP.forEach((f,i)=>{ if(!f.nm) return; FP.forEach((h,k)=>{ if(k>i&&h.nm===f.nm&&hav(f.g[0].lat,f.g[0].lon,h.g[0].lat,h.g[0].lon)<1500) join(i,k); }); });
     const EG=new Map(), ck=(la,lo)=>Math.floor(la/0.0006)+','+Math.floor(lo/0.0009);
     FP.forEach((f,i)=>{ for(const e of [f.g[0],f.g[f.g.length-1]]){ const y=Math.floor(e.lat/0.0006), x=Math.floor(e.lon/0.0009);
       for(let a=-1;a<=1;a++) for(let b=-1;b<=1;b++) for(const [k,q] of EG.get((y+a)+','+(x+b))||[]) if(hav(e.lat,e.lon,q.lat,q.lon)<40) join(i,k);
       const kk=ck(e.lat,e.lon); let arr=EG.get(kk); if(!arr) EG.set(kk,arr=[]); arr.push([i,e]); } });
-    FP.forEach((f,i)=>{ if(!f.nm) return; FP.forEach((h,k)=>{ if(k>i&&h.nm===f.nm&&hav(f.g[0].lat,f.g[0].lon,h.g[0].lat,h.g[0].lon)<1500) join(i,k); }); });
     FP.forEach((f,i)=>{ const r=root(i); let o=FG[r]; if(!o) o=FG[r]={names:new Map(),best:f.g,bl:0,len:0,sac:0,fs:-1};
       o.len+=f.L; if(f.L>o.bl){ o.bl=f.L; o.best=f.g; } if(f.nm) o.names.set(f.nm,(o.names.get(f.nm)||0)+f.L); o.sac=Math.max(o.sac,f.sac); if(f.fs>o.fs||(f.fs===o.fs&&/\+/.test(f.raw))){ o.fs=f.fs; o.raw=f.raw; } });
     const hardest=(f,raw)=>{ if(f<0) return ''; if(f===0) return 'lahka'; const m=[...String(raw||'').matchAll(/([0-6](?:\.5)?)\s*([+-]?)/g)].find(x=>+x[1]===f);
       return (Number.isInteger(f)?VF[f-1]:VF[Math.floor(f)-1]+'/'+VF[Math.floor(f)])+(m&&m[2]?(m[2]==='-'?'–':'+'):''); };
-    const ff=[]; for(const o of Object.values(FG)){ o.name=[...o.names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(' / '); if(o.len<(o.name?60:120)) continue; // tiny secured bits on normal paths: no sign
+    const ff=[]; for(const o of Object.values(FG)){ o.name=[...o.names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]).join(' / '); if(!o.name&&o.len<120) continue;
       if((FIX.closed||[]).some(c=>o.names.has(c.name))) o.name+=' (del zaprt)';
       const q=o.best[Math.floor(o.best.length/2)]; o.fsTxt=hardest(o.fs,o.raw);
       const fx=(FIX.ferratas||[]).find(f=>hav(q.lat,q.lon,f[0],f[1])<f[2]); if(fx){ if(fx[3]) o.name=fx[3]; if(fx[4]){ o.fs=0; o.fsTxt=fx[4]; } }

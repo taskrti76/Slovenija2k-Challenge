@@ -95,7 +95,7 @@ function day(s, d, elev, cls){
   if (o.c != null) add(o.cloudLM ? (o.c >= 90 ? 20 : o.c >= 70 ? 8 : 0) : (o.c >= 95 ? 12 : o.c >= 85 ? 5 : 0),
     o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
   if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
-  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm${o.sat ? ', satellite' : ''})`, 'snow');
+  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm v zavetju na višini vrha${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm in sheltered spots at summit height${o.sat ? ', satellite' : ''})`, 'snow');
   if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
@@ -187,7 +187,7 @@ window.wxBox = p => {
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)}°</button>`).join('')}</div>
       <div class="wxs">${clsLine(p, o)}<span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
         🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C · 💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
-        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm` : ''}</div>
+        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · <span title="${L('v zavetju na višini vrha; na izpostavljenem vrhu ga veter odpihne (snežna karta)','in sheltered spots at summit height; the wind strips the exposed top (snow map)')}">❄ ${o.snowcm} cm ${L('v zavetju','sheltered')}</span>` : ''}</div>
       <details class="wxdt"${OPENH ? ' open' : ''}><summary>${L('Po urah','Hourly')}</summary><div class="wxt">${hrs.map(h => { const k = si*nh + s.hours.indexOf(h); if (s.hours.indexOf(h) < 0 || !s.T || s.T[k] == null) return '';
         return `<div>${h}h<i>${ICON(s.X && s.X[k])}</i>${Math.round(s.T[k])}°<br>${r1(s.W && s.W[k])} ${DIR(s.D && s.D[k])}</div>`; }).join('')}</div></details>
       <div class="wxf">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>${s.gen ? ' · ' + new Date(s.gen.replace('Z', ':00Z')).toLocaleString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday:'short', hour:'2-digit', minute:'2-digit'}) : ''} · ${L('ocena za 7–17 h; model, ne meritev','rating for 7–17 h; model, not a measurement')}</div>`;
