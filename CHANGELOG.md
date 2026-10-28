@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.28 — 2026-10-28
+- Position check of all 2000 m peaks against the OSM summits (what OpenTopoMap shows) and hribi.net: 295 of 352 agree within 60 m.
+  Fixed (src/peaks_final.json, reason in each peak's notes):
+  - moved to the summit OSM and hribi.net agree on: Plaski Vogel, Stol, Kredarica, Štruca, Škednjovec, Spodnja Vrbanova špica, Kalška gora;
+  - wrong top: Špiček (was on Nad steno), Hudičev steber (was on Mali Prisank), Lučka Baba (was on Kalški greben) -> Lučka Brana (Baba);
+  - names: Veliki vrh (Dleskovec) -> Veliki vrh (Veža); Goličica 2076 -> Goličica (Prisank);
+  - positions added for peaks that had none: Konjc, Celovška špica, Ostrv, Turn pod Črnim voglom, Slovenski turnc; Vrh Labrja merged
+    with the duplicate Vrh Labrje.
+- Peak difficulty classes recomputed for all peaks after the moves (data/peak_tech*.json).
+
 ## web-v0.27 — 2026-10-28
 - Data check against hribi.net, bergsteigen.com, via-ferrata.de, exploreslovenia.si (report: docs/data-check-2026-10.md):
   - peak difficulty class from hribi.net (PZS categories) for 42 of 84 checked peaks (data/tech_overrides.json; overrides now merge per key);

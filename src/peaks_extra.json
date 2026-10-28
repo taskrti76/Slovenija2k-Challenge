@@ -5606,24 +5606,6 @@
 "tier": "2000"
 },
 {
-"id": "vrh-labrje-2325",
-"name": "Vrh Labrje",
-"pb_name": "",
-"elev": 2324.7,
-"prom": 31,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "yes",
-"lat": 46.342106,
-"lon": 13.75528,
-"dem_h": 2324.7,
-"coord_status": "ok",
-"coord_src": "osm-lidar",
-"notes": "OSM 5040720301",
-"tier": "2000"
-},
-{
 "id": "vrh-polic-2086",
 "name": "Vrh Polic",
 "pb_name": "",
