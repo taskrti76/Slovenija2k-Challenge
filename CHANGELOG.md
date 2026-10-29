@@ -2,6 +2,9 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.34 — 2026-10-29
+- 360: satellite tiles around you one level sharper - z18 on PC, z17 on phone (was z17 / z16); ring prefetch follows.
+
 ## web-v0.33 — 2026-10-29
 - 360 loading (step A1–A6):
   - two passes: arrive with coarse tiles everywhere (a few dozen requests -> the whole view at once, no beige holes), then switch to the

@@ -32,7 +32,7 @@ const PF = {key:null, ctl:null, done:new Set()};
 async function prefetch(p, full){
   const key = p.id + (full?':full':':far'); if (PF.key === key) return; if (PF.ctl) PF.ctl.abort(); PF.key = key; const ctl = PF.ctl = new AbortController();
   // popup: far satellite ring only (z10–11, ~2–3 MB); 360: heights + all satellite levels, phones without the two sharpest near ones
-  const urls = full ? [...ringTiles(p,'dem', window.IS_PHONE ? 11 : 12, 9), ...ringTiles(p,'sat', window.IS_PHONE ? 16 : 17, 10)] : ringTiles(p,'sat',11,10);
+  const urls = full ? [...ringTiles(p,'dem', window.IS_PHONE ? 11 : 12, 9), ...ringTiles(p,'sat', window.IS_PHONE ? 17 : 18, 10)] : ringTiles(p,'sat',11,10);
   const todo = urls.filter(u => !PF.done.has(u)); let i = 0;
   const worker = async () => { while (i < todo.length && !ctl.signal.aborted){ const u = todo[i++];
     try{ const r = await fetch(u, {signal:ctl.signal, priority:'low'}); if (r.ok){ await r.arrayBuffer(); PF.done.add(u); } }catch(_){} } };
@@ -167,9 +167,9 @@ function enter360_(id){
   S.hidden.forEach(id => map.setLayoutProperty(id,'visibility','none'));
   S.dpr = map.getPixelRatio ? map.getPixelRatio() : devicePixelRatio;
   applyQuality();
-  // satellite: no z18–19 (0.3–0.6 m) tiles for the rocks under your feet - ~100–200 requests less per view; from 5 m above you only
+  // satellite near you: up to z18 (0.6 m) on PC, z17 (1.2 m) on phone; z19 (0.3 m) was ~100 extra requests per view; from 5 m above you only
   // see that ground at grazing angles, where 1 m tiles look the same
-  { const ss = map.getSource('sat'); if (ss){ S.satMax = ss.maxzoom; ss.maxzoom = window.IS_PHONE ? 16 : 17; } }
+  { const ss = map.getSource('sat'); if (ss){ S.satMax = ss.maxzoom; ss.maxzoom = window.IS_PHONE ? 17 : 18; } }
   S.maxZoom = map.getMaxZoom(); map.setMaxZoom(24); S.bounds = map.getMaxBounds(); map.setMaxBounds(null);
   map.setMaxPitch(150); if (map.setCenterClampedToGround) map.setCenterClampedToGround(false);
   map.getCanvasContainer().style.touchAction='none';
