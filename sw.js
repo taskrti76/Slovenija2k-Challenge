@@ -1,13 +1,13 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
 // - map tiles cached as you view them (LRU-trimmed), terrain areas downloaded on request live in "dvat-region"
-const VER = 'a4e4f1a57e';
+const VER = '3bf1600af5';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
   'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf', 'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/256-511.pbf',
   'https://tiles.mapterhorn.com/tilejson.json'];
-const MAX_TILES = 4000;
+const MAX_TILES = 8000;   // ~150–250 MB on disk: a few 360 panoramas + browsing; oldest dropped first
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(SHELL).then(c => Promise.all(SHELL_URLS.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))));

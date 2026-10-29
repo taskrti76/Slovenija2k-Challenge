@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.33 — 2026-10-29
+- 360 loading (step A1–A6):
+  - two passes: arrive with coarse tiles everywhere (a few dozen requests -> the whole view at once, no beige holes), then switch to the
+    chosen quality - sharp tiles replace the coarse ones;
+  - ring prefetch into the browser / service-worker cache: far satellite ring (z10–11, ~2–3 MB) as soon as a peak popup opens, the full
+    ring (heights z9–12, satellite z10–17; phone z10–16) after arriving in 360, coarse levels first - turning is served from the cache;
+  - 48 parallel tile requests on PC, 24 on phone (was 16);
+  - satellite capped at z17 in 360 (phone z16): the z18–19 tiles under your feet were ~100–200 requests per view;
+  - service-worker tile cache 4000 -> 8000 tiles;
+  - "⏳ nalagam … N s · hiter pregled" / "✓ naloženo v N s" readout in 360 (real load times to compare);
+  - (hillshade, relief, trails etc. were already hidden in 360.)
+
 ## web-v0.32 — 2026-10-28
 - Text size rescaled: 1.0 = the old 1.4; slider 0.6–1.4 (map labels unchanged at 1.0).
 - Snow in the peak popup / day rating = the most snow anywhere along the routes to that peak (snow-map values sampled every ~150 m,
