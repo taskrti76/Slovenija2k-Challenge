@@ -1,7 +1,7 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
 // - map tiles cached as you view them (LRU-trimmed), terrain areas downloaded on request live in "dvat-region"
-const VER = 'a9ae5ad97f';
+const VER = '291866f0ec';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
@@ -17,17 +17,25 @@ self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('dvat-shell-') && k !== SHELL).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|tiles\.openfreemap\.org\/fonts\//.test(u);
-let trimming = false;
+// Esri satellite comes from two hosts (server. / services.arcgisonline.com - twice the parallel downloads); cached under one name
+const keyOf = u => u.replace('//services.arcgisonline.com/', '//server.arcgisonline.com/');
+// trimming the tile cache lists every key (thousands) - done once a while after loading calms down, not after every tile
+let trimT = 0, trimming = false;
+function trimLater(){ clearTimeout(trimT); trimT = setTimeout(trim, 20000); }
 async function trim(){ if (trimming) return; trimming = true;
-  try{ const c = await caches.open(TILES), ks = await c.keys(); for (let i = 0; i < ks.length - MAX_TILES; i++) await c.delete(ks[i]); } finally { trimming = false; } }
+  try{ const c = await tilesC(), ks = await c.keys(), n = ks.length - Math.round(MAX_TILES * 0.9);
+    if (ks.length > MAX_TILES) for (let i = 0; i < n; i += 50) await Promise.all(ks.slice(i, Math.min(n, i + 50)).map(k => c.delete(k))); }
+  finally { trimming = false; } }
+let tc = null; const tilesC = () => tc || (tc = caches.open(TILES).catch(e => { tc = null; throw e; }));
 self.addEventListener('fetch', e => {
   const r = e.request; if (r.method !== 'GET') return;
   const u = r.url;
   if (/api\.open-meteo\.com|overpass/.test(u)) return;                       // live data: network only
-  if (isTile(u)){                                                             // tiles: cache first (downloaded area, then viewed tiles)
+  if (isTile(u) && r.cache !== 'no-store'){                                  // tiles: cache first (viewed tiles, then downloaded area)
     e.respondWith((async () => {
-      const hit = await caches.match(r, {ignoreVary:true}); if (hit) return hit;
-      try{ const res = await fetch(r); if (res.ok || res.type === 'opaque'){ const c = await caches.open(TILES); c.put(r, res.clone()); trim(); } return res; }
+      const k = keyOf(u), c = await tilesC();
+      const hit = (await c.match(k, {ignoreVary:true})) || (await caches.match(k, {ignoreVary:true, cacheName:REGION})); if (hit) return hit;
+      try{ const res = await fetch(r); if (res.ok || res.type === 'opaque'){ c.put(k, res.clone()).catch(() => {}); trimLater(); } return res; }
       catch(err){ return new Response('', {status:504}); }
     })()); return;
   }

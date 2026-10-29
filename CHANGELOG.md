@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.35 — 2026-10-29
+- Tile cache (service worker): trimming no longer lists all ~8000 cached tiles after every new tile - once, 20 s after loading calms down. Was likely a big part of slow 360 loading once the cache filled up.
+- Satellite from two Esri hosts (server. + services.arcgisonline.com) = twice the parallel downloads; cached under one name; falls back to one host if the second does not answer.
+- 360 Visoka: far satellite a bit softer (LOD 6 -> 6.2), ~470 instead of ~720 tiles per view.
+- 360: counts as loaded at 97 % of tiles; all-around prefetch starts only after the view you look at is loaded (max 60 s).
+- 360 readout while loading: tiles in / needed, tiles per second, frames per second.
+
 ## web-v0.34 — 2026-10-29
 - 360: satellite tiles around you one level sharper - z18 on PC, z17 on phone (was z17 / z16); ring prefetch follows.
 

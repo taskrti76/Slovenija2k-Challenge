@@ -12,7 +12,7 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 //    service-worker cache. Coarse far ring already when a peak popup opens (~2 MB), the full ring once 360 starts.
 //    Turning later is then served from the cache (milliseconds) instead of the network.
 // 2) two passes: arrive with coarse tiles (few, fast) so the whole view is there at once, then switch to the chosen quality.
-const SAT_URL = (z,x,y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+const SAT_URL = (z,x,y) => `https://${(x+y)%2?'services':'server'}.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;   // same host split as the map
 const DEM_URL = (z,x,y) => `https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`;
 // [zoom, from km, to km] - tile zoom the 360 view asks for at each distance (one zoom level per doubling of distance;
 // satellite measured at Visoka: z11–z18 within ~70 km, height tiles z12 near … z8 at 100+ km)
@@ -44,11 +44,23 @@ window.prefetch360 = id => { const p = byId[id]; if (p && p.lat != null && !S.on
 const LD = document.createElement('div'); LD.id = 'v360load'; $$('v360').append(LD);
 const ldCss = document.createElement('style'); ldCss.textContent = '#v360load{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:20;background:rgba(20,22,22,.72);color:#fff;font:600 calc(12px * var(--ui,1)) system-ui,sans-serif;padding:5px 11px;border-radius:14px;display:none;pointer-events:none}body.in360 #v360load.on{display:block}';
 document.head.append(ldCss);
-let ldT = 0, ldTimer = 0;
-function loadWatch(){ clearInterval(ldTimer); ldT = performance.now(); LD.classList.add('on'); LD.textContent = '⏳ ' + T('nalagam …');
-  ldTimer = setInterval(() => { if (!S.on){ clearInterval(ldTimer); LD.classList.remove('on'); return; } const s = Math.round((performance.now() - ldT)/1000);
-    if (map.areTilesLoaded() && S.full){ clearInterval(ldTimer); LD.textContent = '✓ ' + T('naloženo v') + ' ' + s + ' s'; console.info('360 loaded', s, 's'); setTimeout(() => LD.classList.remove('on'), 2500); }
-    else LD.textContent = '⏳ ' + T('nalagam …') + ' ' + s + ' s' + (S.full ? '' : ' · ' + T('hiter pregled')); }, 500); }
+let ldT = 0, ldTimer = 0, ldPrev = null, fps = 0, frames = 0;
+map.on('render', () => { if (S.on) frames++; });
+// tiles the view needs right now (satellite + heights): how many there are, how many arrived
+function tileStats(){ let n = 0, ok = 0;
+  for (const id of ['sat','dem_terrain']){ try{ const tm = map.style.tileManagers[id]; for (const t of tm._inViewTiles.getAllTiles()){ n++; if (t.state === 'loaded' || t.state === 'errored') ok++; } }catch(_){} }
+  return {n, ok}; }
+// "loaded" = every tile in, or 97 % in and the rest still missing after the others (the last few far tiles change a few pixels
+// but used to take half the waiting time); the readout also shows tiles/s and frames/s - slow tiles + fast frames = network, the
+// other way round = graphics card
+function loadWatch(){ clearInterval(ldTimer); ldT = performance.now(); ldPrev = null; frames = 0; LD.classList.add('on'); LD.textContent = '⏳ ' + T('nalagam …');
+  ldTimer = setInterval(() => { if (!S.on){ clearInterval(ldTimer); LD.classList.remove('on'); return; }
+    const now = performance.now(), s = Math.round((now - ldT)/1000), st = tileStats();
+    const rate = ldPrev ? Math.max(0, (st.ok - ldPrev.ok) / ((now - ldPrev.t)/1000)) : 0; fps = ldPrev ? frames / ((now - ldPrev.t)/1000) : 0; frames = 0; ldPrev = {ok: st.ok, t: now};
+    const all = map.areTilesLoaded(), most = st.n > 0 && st.ok >= st.n * 0.97;
+    if (S.full && (all || most)){ clearInterval(ldTimer); LD.textContent = '✓ ' + T('naloženo v') + ' ' + s + ' s';
+      console.info('360 loaded', s, 's', st); setTimeout(() => LD.classList.remove('on'), 2500); if (S.onLoaded) S.onLoaded(); }
+    else LD.textContent = '⏳ ' + T('nalagam …') + ' ' + s + ' s' + (S.full ? ` · ${st.ok}/${st.n} · ${Math.round(rate)}/s · ${Math.round(fps)} fps` : ' · ' + T('hiter pregled')); }, 1000); }
 const T = s => (window.T || (x => x))(s);
 
 let pending=false;
@@ -143,7 +155,9 @@ function goTo(p){
   S.full = false; applyQuality(); loadWatch();
   const done = () => { if (!S.flying || S.p !== p) return; S.flying = false; if (!S.on) return; ready = true; apply();
     // coarse view first; once it is complete (or after 5 s) switch to the chosen quality - sharp tiles replace coarse ones
-    let sw = false; const sharp = () => { if (sw || !S.on || S.p !== p) return; sw = true; S.full = true; applyQuality(); schedule(); prefetch(p, true); };
+    // the all-around prefetch (for turning) starts only once the view you look at is in - it no longer competes for the same connections
+    let sw = false; const sharp = () => { if (sw || !S.on || S.p !== p) return; sw = true; S.full = true; applyQuality(); schedule();
+      const pf = () => { S.onLoaded = null; clearTimeout(S.pfT); if (S.on && S.p === p) prefetch(p, true); }; S.onLoaded = pf; S.pfT = setTimeout(pf, 60000); };
     map.once('idle', sharp); setTimeout(sharp, 5000); };
   map.once('moveend', done); setTimeout(done, 2200);
 }
@@ -233,7 +247,7 @@ document.addEventListener('keydown', e => { if (!S.on) return;
 const Q = [
   {n:'Nizka',   pr:0.75,sat:[16,1.3], dem:[16,1.3]},
   {n:'Srednja', pr:1.5, sat:[7.5,3.8],dem:[8,3.5]},
-  {n:'Visoka',  pr:2.0, sat:[6,4.5],  dem:[7,4]} ];
+  {n:'Visoka',  pr:2.0, sat:[6.2,4.5],dem:[7,4]} ];   // sat 6.2 (was 6): ~470 instead of ~720 tiles per view, distance a bit softer
 const COARSE = {sat:[16,1.0], dem:[16,1.0]};
 const MOBILE = matchMedia('(pointer:coarse)').matches;
 let qi = window.LITE_ON ? 0 : 1; if(!window.LITE_ON) try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}

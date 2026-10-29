@@ -414,7 +414,7 @@ const style = {
   sources:{
     dem_terrain:DEM, dem_hs:DEM, // relief + snow map share the hillshade source (one DEM copy less in memory)
     sat:{type:"raster",tileSize:256,maxzoom:19,
-      tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+      tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}","https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
       attribution:"Esri, Maxar, Earthstar Geographics"},
     topo:{type:"raster",tileSize:256,maxzoom:17,
       tiles:["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
@@ -482,6 +482,9 @@ window.applyTerrainLOD=()=>{ const t=map.terrain, tm=t&&t.tileManager; if(!tm||!
   if(tm.deltaZoom!==d){ tm.deltaZoom=d; tm.tileManager.tileSize=tm.tileSize*2**extra; tm._sourceTileCache={}; try{ tm.freeRtt(); }catch(_){} map.triggerRepaint(); }
   try{ if(!window.LITE_ON) map.setSourceTileLodParams(9.314, window.FAST_T?2:3, 'dem_hs'); }catch(_){} };
 map.on('terrain',()=>setTimeout(window.applyTerrainLOD,0)); map.once('load',()=>window.applyTerrainLOD());
+// second satellite host answers? (two hosts = twice the parallel downloads) - if not, back to the one we know works
+map.once('load',()=>{ const u=map.getStyle().sources.sat.tiles; if(u.length<2) return;
+  fetch(u[1].replace('{z}/{y}/{x}','3/2/4'),{mode:'cors',cache:'no-store'}).then(r=>{ if(!r.ok) throw 0; }).catch(()=>{ try{ map.getSource('sat').setTiles([u[0]]); }catch(_){} }); });
 (function(){ const c=$id('fastChk'); if(!c) return; c.checked=window.FAST_T;
   c.onchange=()=>{ window.FAST_T=c.checked; try{ localStorage.setItem('dvat3d_fastterrain',c.checked?'1':'0'); }catch(_){} window.applyTerrainLOD(); }; })();
 (function(){
