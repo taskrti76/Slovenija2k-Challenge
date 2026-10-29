@@ -205,7 +205,7 @@ window.exit360 = () => {
   if (window.__dim && P.dim === 2) window.__dim.set(2, true);
   else map.setTerrain({source:'dem_terrain', exaggeration:+$$('exag').value});
   const r = document.querySelector(`input[name=base][value=${P.base}]`); if (r){ r.checked = true; r.dispatchEvent(new Event('change')); }
-  window.TERRAIN_DELTA = null;
+  window.TERRAIN_DELTA = null; rttOn(false);
   try{ localStorage.removeItem('dvat3d_in360'); }catch(_){}
   document.body.classList.remove('in360'); map.getCanvasContainer().style.touchAction=''; LBL.innerHTML=''; LB=[];
   // zoom out from the last viewed summit (keeps the direction you were looking)
@@ -259,6 +259,7 @@ function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.c
   if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 function applyQuality(){ const q=Q[qi];
   window.TERRAIN_DELTA = S.on ? (qi===2 ? 0 : qi===1 ? 1 : 2) : null; window.applyTerrainLOD && window.applyTerrainLOD();
+  rttOn(S.on);
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
   const L = S.on && !S.full ? COARSE : q;   // first pass: coarse tiles everywhere
   try{ map.setSourceTileLodParams(L.sat[0], L.sat[1], 'sat'); map.setSourceTileLodParams(L.dem[0], L.dem[1], 'dem_terrain'); }catch(_){}
@@ -276,6 +277,34 @@ try{ const c=localStorage.getItem('dvat3d_in360'); if (c!==null){ localStorage.r
 map.on('webglcontextlost', () => { if (!S.on) return; if (qi>0){ qi--; try{ localStorage.setItem('dvat3d_q360',qi); }catch(_){} }
   window.toastErr && toastErr('Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na '+Q[qi].n+'.'); try{ exit360(); }catch(_){} });
 applyQuality.restore = ()=>{};
+
+// ---------- smooth frames: terrain textures ----------
+// MapLibre paints the satellite onto the 3D terrain through one texture per terrain tile (2048² px, from a pool of 30).
+// Measured at Stenar: Visoka needed 43 terrain tiles -> pool overflow -> all textures repainted every frame (<10 fps);
+// and any tile arriving or leaving the view while turning repainted every big far tile (each holding hundreds of photos).
+// 1) no terrain tiles finer than the sharpest satellite needs (near the eye it went down to z20–22: 17 tiny tiles)
+// 2) pool never smaller than the view needs - no overflow
+// 3) at most a few texture repaints per frame (oldest first); the others show their previous picture a few frames longer
+const RTT = {pool:null, orig:null};
+function rttOn(on){
+  const rt = map.painter && map.painter.renderToTexture, tm = map.terrain && map.terrain.tileManager; if (!rt || !tm) return;
+  const cap = on ? (window.IS_PHONE ? 14 : 15) : 22;
+  if (tm.maxzoom !== cap){ tm.maxzoom = cap; try{ tm.freeRtt(); }catch(_){} map.triggerRepaint(); }
+  if (on && !rt.__prep){ const prep = rt.__prep = rt.prepareForRender;
+    rt.prepareForRender = function(style, zoom){
+      let tiles = [], saved = [];
+      try{ tiles = this.terrain.tileManager.getRenderableTiles(); saved = tiles.map(t => t && t.rtt && t.rtt.length ? t.rtt.slice() : null);
+      // (with the cap above Stenar Visoka needs 19 tiles; PC may grow to 36 if a view ever needs more, phones stay at 30)
+      if (!window.IS_PHONE && this.pool._size < Math.min(36, tiles.length + 2)) this.pool._size = Math.min(36, tiles.length + 2); }catch(_){}
+      prep.call(this, style, zoom);
+      try{ const now = performance.now(), stale = [];
+      tiles.forEach((t, i) => { if (!t) return; if (saved[i] && !t.rtt.length){ t.__st = t.__st || now; stale.push([t, saved[i]]); } else if (t.rtt.length) t.__st = 0; });
+      const K = window.IS_PHONE ? 2 : 4;
+      if (stale.length > K){ stale.sort((a, b) => a[0].__st - b[0].__st); for (const [t, r] of stale.slice(K)) t.rtt = r; map.triggerRepaint(); } }catch(_){} };
+  }
+  if (!on && rt.__prep){ rt.prepareForRender = rt.__prep; delete rt.__prep;
+    if (rt.pool._size > 30){ const P0 = rt.pool; rt.pool = new P0.constructor(P0._context, 30, P0._tileSize); P0.destruct(); try{ tm.freeRtt(); }catch(_){} } }
+}
 // adaptive resolution: render lighter while turning, full sharpness ~0.35 s after you stop
 let still=0;
 // while turning: Visoka renders at Srednja's resolution (pixel ratio only - the loaded tiles stay, nothing reloads);
