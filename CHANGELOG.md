@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.37 — 2026-10-29
+- Snowpack job twice a day: 09:20 (today's ARSO 07:00 readings) and 19:07 (+ new satellite map). A second run the same day starts
+  again from the end of yesterday (state keeps a 'base' copy), so nothing is counted twice. Station reading time = the one most stations have.
+- Satellite snow: + Copernicus CLMS Gap-filled Fractional Snow Cover (GFSC, Sentinel-1 radar + Sentinel-2, 60 m, daily) through the
+  same CDSE login - fills pixels where our own Sentinel-2 look is older or clouded. Falls back to Sentinel-2 only if GFSC fails.
+- Snow map note mentions GFSC and ARSO.
+
 ## web-v0.36 — 2026-10-29
 - 360 frame rate: terrain tiles capped at z15 (phone z14) - near the eye MapLibre made 17 tiny z20–22 tiles. Stenar Visoka 43 -> 19 terrain
   textures, so the 30-texture pool no longer overflows (it repainted every texture every frame). At most 4 (phone 2) texture repaints per

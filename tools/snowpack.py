@@ -16,7 +16,7 @@ Steps every hour (standard methods from snow hydrology):
   7. settling: density relaxes towards 300 kg/m³ (cold) / 500 kg/m³ (wet) with a 200 h time scale (Essery 2015, FSM)
   8. satellite check (once a day, before the new day): Copernicus Sentinel-2 snowsat.png + DEM heights/aspects -> where a band of
      a cell is seen bare (<10 % snow) the snow there is removed; where it is seen white (>60 %) but the model has none, 10 cm are added
-  9. station measurements (ARSO, ~20 mountain stations, morning reading): Kalman-filter update at the time of the reading -
+  9. station measurements (ARSO, ~20 mountain stations, morning reading; runs twice a day - morning + evening): Kalman-filter update at the time of the reading -
      every point keeps an error variance that grows each day and shrinks near stations; the increment spreads with distance and
      height (see analysis())
 State is kept in data/snowpack_state.json (the season builds up from 1 October). Output snowpack.json for the page:
@@ -328,6 +328,14 @@ def main():
               's': [[new_state() for _ in VARIANTS] for _ in pts], 'hist': {}}
     done = datetime.date.fromisoformat(st['done']); S = st['s']
     PV = st.get('pv') or [100.0] * len(pts)                                  # error variance (cm²) per point, flat surface
+    # two runs a day (morning: today's ARSO reading; evening: + the new satellite map). The saved state is "end of today" with a
+    # forecast for the rest of the day, so a second run the same day starts again from the end of yesterday (kept in 'base') -
+    # nothing is counted twice, today is recomputed with all that is known now.
+    yday = today - datetime.timedelta(days=1); base = st.get('base')
+    if done == today and base and base.get('done') == yday.isoformat():
+        S = st['s'] = [[dict(x) for x in row] for row in base['s']]; PV = list(base['pv']); done = yday
+        print('second run today: recomputing today from the end of yesterday')
+    if done == yday: st['base'] = {'done': yday.isoformat(), 's': [[dict(x) for x in row] for row in S], 'pv': list(PV)}
     if (today - done).days <= 3: satellite_check(pts, S, today)
     V = BASE + accepted(pts[len(pts) // 2]); print('variables:', V)
     past = min(92, max(1, (today - done).days))
@@ -362,12 +370,16 @@ def main():
                     if dd <= today:
                         S[i] = [dict(s) for s in cur[i]]
                         dn = depth_cm(cur[i][0]); PV[i] = min(2500.0, PV[i] + 4 + (0.3 * max(0, dn - prev[i])) ** 2); prev[i] = dn
+                if dd == yday: st['base'] = {'done': d, 's': [[dict(x) for x in row] for row in S], 'pv': list(PV)}
 
     # stations: assimilate at the time of their reading (normally 06 UTC today), if that is after the saved state
     obs = arso_obs(); used = []
     k_obs = None
     if obs:
-        vd = max(o['valid'] for o in obs)[:13]                              # e.g. 2026-10-28T06
+        # the reading time most stations have (normally today 06 UTC = 07:00); a few automatic stations may report later
+        cnt = {}
+        for o in obs: cnt[o['valid'][:13]] = cnt.get(o['valid'][:13], 0) + 1
+        vd = max(cnt, key=lambda k: (k[:10], cnt[k]))                     # newest day, then most stations
         obs = [o for o in obs if o['valid'][:13] == vd]
         k_obs = next((k for k, t in enumerate(times) if t[:13] == vd), None)
         if k_obs is not None and datetime.date.fromisoformat(vd[:10]) <= done: k_obs = None; print('stations', vd, 'already assimilated')

@@ -3,7 +3,8 @@
 Copernicus Sentinel-2 L2A via the Copernicus Data Space Sentinel Hub Process API (free account, OAuth client in GitHub secrets
 CDSE_CLIENT_ID / CDSE_CLIENT_SECRET). For every pixel (40 m) the newest cloud-free look of the last LOOKBACK days decides:
 snow (Sentinel-2 scene classification "snow", or NDSI > 0.42 on bright ground) or no snow. Clouds / no clear look = unknown.
-Output: snowsat.png (R = 0 unknown / 1 no snow / 2 snow, G = age of that look in days) + snowsat.json (bounds, date).
+Then CLMS Gap-filled Fractional Snow Cover (Sentinel-1 + 2, 60 m, daily) fills pixels with a fresher answer (see GFSC below).
+Output: snowsat.png (R = 0 unknown / 1 no snow / 2 snow, G = age of that look in days, B = 1 from GFSC) + snowsat.json (bounds, date).
 The page combines it with the snow model: the satellite says WHERE snow lies, the model how deep and what is new.
 Needs: Python 3.9+, Pillow.
 """
@@ -30,6 +31,25 @@ function evaluatePixel(samples, scenes){
     const snow = c === 11 || (ndsi > 0.42 && s.B03 > 0.15);
     const age = Math.max(0, Math.min(254, Math.floor((NOW - Date.parse(scenes.orbits[i].dateFrom)) / 864e5)));
     return [snow ? 2 : 1, age, 0];
+  }
+  return [0, 255, 0];
+}"""
+
+# Copernicus Land Monitoring Service "Gap-filled Fractional Snow Cover" (GFSC, 60 m, daily, Europe): every day merges all
+# Sentinel-1 radar (sees wet snow through clouds) + Sentinel-2 looks of the previous 7 days. Same Process API, same login.
+# GF = snow % 0–100 (205 cloud, 210 water); GF_QA 0 high … 3 minimal. Fills pixels our own Sentinel-2 look has no fresh answer for.
+GFSC = 'byoc-0b5265f5-3664-44c2-96ab-e91aba67b0c3'
+GFSC_DAYS = 4                                 # newest GFSC day within this many days
+EVAL_GFSC = """//VERSION=3
+function setup(){ return {input:[{bands:["GF","GF_QA","dataMask"]}], output:{bands:3, sampleType:"UINT8"}, mosaicking:"ORBIT"}; }
+function preProcessScenes(c){ c.scenes.orbits.sort((a,b)=>new Date(b.dateFrom)-new Date(a.dateFrom)); return c; }
+const NOW = __NOW__;
+function evaluatePixel(samples, scenes){
+  for (let i = 0; i < samples.length; i++){
+    const s = samples[i]; if (!s.dataMask || s.GF > 100 || s.GF_QA > 1) continue;      // cloud / water / no data / low quality
+    // the value may come from a look up to 7 days back: medium quality counts as 2 days older
+    const age = Math.max(0, Math.floor((NOW - Date.parse(scenes.orbits[i].dateFrom)) / 864e5)) + (s.GF_QA === 1 ? 2 : 0);
+    return [s.GF >= 50 ? 2 : 1, Math.min(254, age), s.GF];
   }
   return [0, 255, 0];
 }"""
@@ -80,11 +100,37 @@ def main():
                    'evalscript': ev}
             png = post(PROCESS_URL, json.dumps(req).encode(), {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json', 'Accept': 'image/png'})
             im = Image.open(io.BytesIO(png)).convert('RGB'); out.paste(im, (x0, y0)); print('tile', i, j, im.size)
+    # second source: GFSC - per pixel the fresher answer wins (B = 1 marks a GFSC pixel); any failure -> Sentinel-2 only
+    gdate, filled = None, 0
+    try:
+        g0 = (now - datetime.timedelta(days=GFSC_DAYS)).strftime('%Y-%m-%dT00:00:00Z'); gev = EVAL_GFSC.replace('__NOW__', str(int(now.timestamp() * 1000)))
+        gim = Image.new('RGB', (W, H))
+        for j in range(ny):
+            for i in range(nx):
+                x0, x1 = i * W // nx, (i + 1) * W // nx; y0, y1 = j * H // ny, (j + 1) * H // ny
+                bb = [w + (e - w) * x0 / W, n - (n - s) * y1 / H, w + (e - w) * x1 / W, n - (n - s) * y0 / H]
+                req = {'input': {'bounds': {'bbox': bb, 'properties': {'crs': 'http://www.opengis.net/def/crs/EPSG/0/4326'}},
+                                 'data': [{'type': GFSC, 'dataFilter': {'timeRange': {'from': g0, 'to': t1}}}]},
+                       'output': {'width': x1 - x0, 'height': y1 - y0, 'responses': [{'identifier': 'default', 'format': {'type': 'image/png'}}]},
+                       'evalscript': gev}
+                png = post(PROCESS_URL, json.dumps(req).encode(), {'Authorization': 'Bearer ' + tok, 'Content-Type': 'application/json', 'Accept': 'image/png'})
+                gim.paste(Image.open(io.BytesIO(png)).convert('RGB'), (x0, y0)); print('GFSC tile', i, j)
+        a, b = list(out.getdata()), list(gim.getdata()); ga = 255
+        for k in range(len(a)):
+            if b[k][0] and (not a[k][0] or b[k][1] < a[k][1]):
+                if not a[k][0]: filled += 1
+                a[k] = (b[k][0], b[k][1], 1); ga = min(ga, b[k][1])
+        out.putdata(a)
+        if ga < 255: gdate = (now - datetime.timedelta(days=ga)).strftime('%Y-%m-%d')
+        print(f'GFSC: newest {gdate}, {100*filled/len(a):.1f} % of the area filled where Sentinel-2 had no clear look')
+    except Exception as ex:
+        print('::warning::GFSC not used:', ex)
     px = out.getdata(); tot = len(px); snow = sum(1 for p in px if p[0] == 2); bare = sum(1 for p in px if p[0] == 1)
     out.save(os.path.join(R, 'snowsat.png'), optimize=True)
     json.dump({'date': now.strftime('%Y-%m-%d'), 'from': t0[:10], 'bbox': BBOX, 'w': W, 'h': H, 'res_m': RES_M,
                'snow_pct': round(100 * snow / tot, 1), 'clear_pct': round(100 * (snow + bare) / tot, 1),
-               'source': 'Copernicus Sentinel-2 L2A (CDSE)'}, open(os.path.join(R, 'snowsat.json'), 'w'), separators=(',', ':'))
+               'source': 'Copernicus Sentinel-2 L2A' + (' + CLMS GFSC (Sentinel-1/2, 60 m)' if gdate else '') + ' (CDSE)', 'gfsc': gdate,
+               'gfsc_filled_pct': round(100 * filled / tot, 1)}, open(os.path.join(R, 'snowsat.json'), 'w'), separators=(',', ':'))
     print(f'snow {100*snow/tot:.1f} %, no snow {100*bare/tot:.1f} %, unknown (cloud) {100*(tot-snow-bare)/tot:.1f} %;',
           os.path.getsize(os.path.join(R, 'snowsat.png')) // 1024, 'kB')
 
