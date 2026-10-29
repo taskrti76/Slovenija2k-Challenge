@@ -1,1 +1,1 @@
-{"date":"2026-10-28","from":"2026-10-18","bbox":[13.35,46.15,15.02,46.62],"w":3206,"h":1308,"res_m":40,"snow_pct":4.8,"clear_pct":81.9,"source":"Copernicus Sentinel-2 L2A (CDSE)"}
+{"date":"2026-10-29","from":"2026-10-19","bbox":[13.35,46.15,15.02,46.62],"w":3206,"h":1308,"res_m":40,"snow_pct":1.2,"clear_pct":83.8,"source":"Copernicus Sentinel-2 L2A + CLMS GFSC (Sentinel-1/2, 60 m) (CDSE)","gfsc":"2026-10-28","gfsc_filled_pct":0.4}
