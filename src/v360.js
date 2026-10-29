@@ -4,7 +4,7 @@ const $$ = id => document.getElementById(id);
 const S = {on:false, raf:0};
 const DIRS = ['S','SV','V','JV','J','JZ','Z','SZ'];
 const HANDLERS = ['dragPan','dragRotate','scrollZoom','touchZoomRotate','touchPitch','keyboard','doubleClickZoom','boxZoom'];
-const HEAVY = ['snowobs','snowobs-lbl','pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing','water-fill','water-line','water-lbl','water-name','falls','falls-lbl'];
+const HEAVY = ['snowobs','snowobs-lbl','pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing','water-fill','water-line','water-lbl','water-name','water-name-l','falls','falls-lbl'];
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
 // ---------- fast loading ----------
@@ -290,6 +290,7 @@ function rttOn(on){
   const cap = on ? (window.IS_PHONE ? 14 : 15) : 22;
   if (tm.maxzoom !== cap){ tm.maxzoom = cap; try{ tm.freeRtt(); }catch(_){} map.triggerRepaint(); }
   // repaint budget + pool size live in the page (rttPatch); 360 is a bit stricter, PC may grow the pool to 36
+  window.SKIRT_MIN = on ? 800 : 0; map.triggerRepaint();   // 360: 800 m skirts (MapLibre gave ~2 m at the 360 zoom -> sky through cracks)
   window.RTT_K = on ? (window.IS_PHONE ? 2 : 4) : (window.IS_PHONE ? 3 : 6); window.RTT_POOL_MAX = on && !window.IS_PHONE ? 36 : 30;
   if (!on && rt.pool._size > 30){ const P0 = rt.pool; rt.pool = new P0.constructor(P0._context, 30, P0._tileSize); P0.destruct(); try{ tm.freeRtt(); }catch(_){} }
 }

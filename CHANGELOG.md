@@ -2,6 +2,15 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.39 — 2026-10-29
+- 360: no more sky showing through cracks in the terrain - tile-edge "skirts" were sized from the map zoom (~0.5 m at the 360 zoom), now at least 800 m.
+- Snow legend top = deepest snow of the shown day (was the next round number); deeper drifts get the darkest colour ("41+ cm").
+- Water: lakes drawn over the river lines (no line through a lake), lake names bigger, big lakes named along their middle;
+  waterfalls from falls.json (new monthly GitHub Action tools/falls_fetch.py), Overpass only as a fallback and an empty answer is never kept.
+- Popups: small round × in the corner, the title keeps clear of it (the generic popup button style no longer applies to it).
+- supabase/01_schema.sql: accounts phase 1 (profiles, ascents with route, routes with private / link / public), row-level security
+  tested on Postgres 16 (other users cannot read or change your rows, role cannot be raised from the page, account delete removes everything).
+
 ## web-v0.38 — 2026-10-29
 - 3D map on phones (low-angle crashes): ground layers kept in one render stack (the drawing tool's lines sat above the labels and
   doubled the terrain textures), phone terrain textures 1536² instead of 2048² (-44 % graphics memory), at most 3 (phone) / 6 (PC)
