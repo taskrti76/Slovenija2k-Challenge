@@ -1,0 +1,25 @@
+name: OSM extras (waterfalls)
+on:
+  schedule:
+    - cron: '43 3 2 * *'   # monthly, 2nd day ~04:43 Slovenian winter time
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: { group: data-commit, cancel-in-progress: false }
+jobs:
+  falls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python tools/falls_fetch.py
+      - name: Commit falls.json
+        run: |
+          git config user.name  "osm-bot"
+          git config user.email "osm-bot@users.noreply.github.com"
+          git add falls.json
+          git diff --cached --quiet && exit 0
+          git commit -m "falls: $(date -u +%F)"
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
