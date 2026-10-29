@@ -1,7 +1,8 @@
 name: Snowpack model
 on:
   schedule:
-    - cron: '7 18 * * *'   # daily, after the satellite job (17:23) so its snow map can correct the model
+    - cron: '20 8 * * *'   # morning: today's ARSO station readings (07:00) - ~09:20 Slovenian winter time
+    - cron: '7 18 * * *'   # evening: + the satellite job's new snow map (17:23); recomputes today from the end of yesterday
   workflow_dispatch: {}
 permissions:
   contents: write
