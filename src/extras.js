@@ -48,7 +48,7 @@ const EN = Object.assign({}, RANGE_EN, {
   // extras
   'Aplikacija in brez signala':'App & offline', 'Namesti aplikacijo':'Install app', 'Prenesi to območje za brez signala':'Download this area for offline use', 'Izbriši shranjena območja':'Delete saved areas',
   'Vrhovi (':'Peaks (', 'Vrhovi 1500–2000\u00a0m (':'Peaks 1500–2000\u00a0m (', 'Vrhovi 1500–2000 m (':'Peaks 1500–2000 m (',
-  'Vodič':'Guide', 'Ferata':'Via ferrata', 'lahka':'easy', 'Ime poti':'Route name', 'Prekliči':'Cancel', 'Izbriši':'Delete', 'Naprej':'Next', 'Nazaj':'Back', 'Preskoči':'Skip', 'Začni':'Start', 'Konec':'Done'
+  'nalagam …':'loading …', 'naloženo v':'loaded in', 'hiter pregled':'quick view', 'Vodič':'Guide', 'Ferata':'Via ferrata', 'lahka':'easy', 'Ime poti':'Route name', 'Prekliči':'Cancel', 'Izbriši':'Delete', 'Naprej':'Next', 'Nazaj':'Back', 'Preskoči':'Skip', 'Začni':'Start', 'Konec':'Done'
 });
 const RX = [
   [/^iz (.+)$/, 'from $1'], [/^čez (.+)$/, 'via $1'], [/^pri (.+)$/, 'near $1'],

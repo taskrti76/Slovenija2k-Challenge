@@ -7,6 +7,50 @@ const HANDLERS = ['dragPan','dragRotate','scrollZoom','touchZoomRotate','touchPi
 const HEAVY = ['snowobs','snowobs-lbl','pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing'];
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
+// ---------- fast loading ----------
+// 1) ring prefetch: the satellite + height tiles a 360 view needs all around the summit, nearest first, into the browser /
+//    service-worker cache. Coarse far ring already when a peak popup opens (~2 MB), the full ring once 360 starts.
+//    Turning later is then served from the cache (milliseconds) instead of the network.
+// 2) two passes: arrive with coarse tiles (few, fast) so the whole view is there at once, then switch to the chosen quality.
+const SAT_URL = (z,x,y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+const DEM_URL = (z,x,y) => `https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`;
+// [zoom, from km, to km] - tile zoom the 360 view asks for at each distance (one zoom level per doubling of distance;
+// satellite measured at Visoka: z11–z18 within ~70 km, height tiles z12 near … z8 at 100+ km)
+const RING = {
+  sat: [[18,0,0.5],[17,0.5,1],[16,1,2],[15,2,4],[14,4,8],[13,8,16],[12,16,32],[11,32,64],[10,64,100]],
+  dem: [[12,0,8],[11,8,16],[10,16,40],[9,40,90]] };
+function ringTiles(p, kind, maxZ, minZ){ const out=[], n=z=>2**z, X=(lon,z)=>(lon+180)/360*n(z), Y=(lat,z)=>{ const r=lat*D2R; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n(z); };
+  for (const [z,a,b] of RING[kind]){ if (z>maxZ || z<minZ) continue; const kx=111.32*Math.cos(p.lat*D2R), dl=b/kx, dt=b/111.32;
+    const x0=Math.floor(X(p.lon-dl,z)), x1=Math.floor(X(p.lon+dl,z)), y0=Math.floor(Y(p.lat+dt,z)), y1=Math.floor(Y(p.lat-dt,z));
+    for (let x=x0;x<=x1;x++) for (let y=y0;y<=y1;y++){ // tile centre distance
+      const lon=(x+.5)/n(z)*360-180, t=Math.PI*(1-2*(y+.5)/n(z)), lat=Math.atan(Math.sinh(t))/D2R, d=Math.hypot((lon-p.lon)*kx,(lat-p.lat)*111.32);
+      const half=Math.hypot(360/n(z)*kx, 360/n(z)*111.32*Math.cos(lat*D2R))/2;   // tile half-diagonal (km)
+      if (d+half>=a && d-half<=b) out.push([d,z,x,y]); } }
+  // coarse levels first (whole circle blurry-but-complete quickly), sharper levels after, nearest first within a level
+  return out.sort((u,v)=>u[1]-v[1]||u[0]-v[0]).map(([d,z,x,y])=>kind==='sat'?SAT_URL(z,x,y):DEM_URL(z,x,y)); }
+const PF = {key:null, ctl:null, done:new Set()};
+async function prefetch(p, full){
+  const key = p.id + (full?':full':':far'); if (PF.key === key) return; if (PF.ctl) PF.ctl.abort(); PF.key = key; const ctl = PF.ctl = new AbortController();
+  // popup: far satellite ring only (z10–11, ~2–3 MB); 360: heights + all satellite levels, phones without the two sharpest near ones
+  const urls = full ? [...ringTiles(p,'dem', window.IS_PHONE ? 11 : 12, 9), ...ringTiles(p,'sat', window.IS_PHONE ? 16 : 17, 10)] : ringTiles(p,'sat',11,10);
+  const todo = urls.filter(u => !PF.done.has(u)); let i = 0;
+  const worker = async () => { while (i < todo.length && !ctl.signal.aborted){ const u = todo[i++];
+    try{ const r = await fetch(u, {signal:ctl.signal, priority:'low'}); if (r.ok){ await r.arrayBuffer(); PF.done.add(u); } }catch(_){} } };
+  await Promise.all(Array.from({length: window.IS_PHONE ? 4 : 8}, worker));   // few at a time: the map's own requests go first
+  if (PF.key === key) PF.key = key + ':ok'; }
+window.prefetch360 = id => { const p = byId[id]; if (p && p.lat != null && !S.on && !window.LITE_ON) prefetch(p, false); };
+
+// loading readout: "nalagam …" while tiles are coming, then "naloženo v N s" for a moment (also tells us real load times)
+const LD = document.createElement('div'); LD.id = 'v360load'; $$('v360').append(LD);
+const ldCss = document.createElement('style'); ldCss.textContent = '#v360load{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:20;background:rgba(20,22,22,.72);color:#fff;font:600 calc(12px * var(--ui,1)) system-ui,sans-serif;padding:5px 11px;border-radius:14px;display:none;pointer-events:none}body.in360 #v360load.on{display:block}';
+document.head.append(ldCss);
+let ldT = 0, ldTimer = 0;
+function loadWatch(){ clearInterval(ldTimer); ldT = performance.now(); LD.classList.add('on'); LD.textContent = '⏳ ' + T('nalagam …');
+  ldTimer = setInterval(() => { if (!S.on){ clearInterval(ldTimer); LD.classList.remove('on'); return; } const s = Math.round((performance.now() - ldT)/1000);
+    if (map.areTilesLoaded() && S.full){ clearInterval(ldTimer); LD.textContent = '✓ ' + T('naloženo v') + ' ' + s + ' s'; console.info('360 loaded', s, 's'); setTimeout(() => LD.classList.remove('on'), 2500); }
+    else LD.textContent = '⏳ ' + T('nalagam …') + ' ' + s + ' s' + (S.full ? '' : ' · ' + T('hiter pregled')); }, 500); }
+const T = s => (window.T || (x => x))(s);
+
 let pending=false;
 function schedule(){ if(pending) return; pending=true; requestAnimationFrame(()=>{ pending=false; if(S.on) apply(); }); }
 // eye point fixed 5 m above the summit (center elevation set explicitly, not clamped to ground);
@@ -96,8 +140,11 @@ function goTo(p){
   buildLabels(); fitFov();
   S.flying = true;
   map.flyTo(Object.assign(cam(), {duration:1600, essential:true}));
+  S.full = false; applyQuality(); loadWatch();
   const done = () => { if (!S.flying || S.p !== p) return; S.flying = false; if (!S.on) return; ready = true; apply();
-};
+    // coarse view first; once it is complete (or after 5 s) switch to the chosen quality - sharp tiles replace coarse ones
+    let sw = false; const sharp = () => { if (sw || !S.on || S.p !== p) return; sw = true; S.full = true; applyQuality(); schedule(); prefetch(p, true); };
+    map.once('idle', sharp); setTimeout(sharp, 5000); };
   map.once('moveend', done); setTimeout(done, 2200);
 }
 window.enter360 = id => { try { enter360_(id); } catch (err) { console.error(err); window.toastErr && toastErr('360: ' + err.message); try { exit360(); } catch(_){} } };
@@ -120,6 +167,9 @@ function enter360_(id){
   S.hidden.forEach(id => map.setLayoutProperty(id,'visibility','none'));
   S.dpr = map.getPixelRatio ? map.getPixelRatio() : devicePixelRatio;
   applyQuality();
+  // satellite: no z18–19 (0.3–0.6 m) tiles for the rocks under your feet - ~100–200 requests less per view; from 5 m above you only
+  // see that ground at grazing angles, where 1 m tiles look the same
+  { const ss = map.getSource('sat'); if (ss){ S.satMax = ss.maxzoom; ss.maxzoom = window.IS_PHONE ? 16 : 17; } }
   S.maxZoom = map.getMaxZoom(); map.setMaxZoom(24); S.bounds = map.getMaxBounds(); map.setMaxBounds(null);
   map.setMaxPitch(150); if (map.setCenterClampedToGround) map.setCenterClampedToGround(false);
   map.getCanvasContainer().style.touchAction='none';
@@ -128,7 +178,8 @@ function enter360_(id){
   goTo(p);
 }
 window.exit360 = () => {
-  if (!S.on) return; setSun(0); S.on = false; setAuto(false); stopInertia(); const P = S.prev; movingPR=false;
+  if (!S.on) return; if (PF.ctl) PF.ctl.abort(); PF.key = null;
+  { const ss = map.getSource('sat'); if (ss && S.satMax) ss.maxzoom = S.satMax; } setSun(0); S.on = false; setAuto(false); stopInertia(); const P = S.prev; movingPR=false;
   (S.hidden||[]).forEach(id => map.getLayer(id) && map.setLayoutProperty(id,'visibility','visible'));
   if (map.setPixelRatio && S.dpr) map.setPixelRatio(S.dpr);
   try{ map.setSourceTileLodParams(9.314, 3, 'sat'); map.setSourceTileLodParams(9.314, 3, 'dem_terrain'); }catch(_){}
@@ -183,6 +234,7 @@ const Q = [
   {n:'Nizka',   pr:0.75,sat:[16,1.3], dem:[16,1.3]},
   {n:'Srednja', pr:1.5, sat:[7.5,3.8],dem:[8,3.5]},
   {n:'Visoka',  pr:2.0, sat:[6,4.5],  dem:[7,4]} ];
+const COARSE = {sat:[16,1.0], dem:[16,1.0]};
 const MOBILE = matchMedia('(pointer:coarse)').matches;
 let qi = window.LITE_ON ? 0 : 1; if(!window.LITE_ON) try{ const r=localStorage.getItem('dvat3d_q360'); const s=parseInt(r,10); if (r!==null && s>=0 && s<Q.length) qi=s; }catch(_){}
 let movingPR=false;
@@ -194,7 +246,8 @@ function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.c
 function applyQuality(){ const q=Q[qi];
   window.TERRAIN_DELTA = S.on ? (qi===2 ? 0 : qi===1 ? 1 : 2) : null; window.applyTerrainLOD && window.applyTerrainLOD();
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
-  try{ map.setSourceTileLodParams(q.sat[0], q.sat[1], 'sat'); map.setSourceTileLodParams(q.dem[0], q.dem[1], 'dem_terrain'); }catch(_){}
+  const L = S.on && !S.full ? COARSE : q;   // first pass: coarse tiles everywhere
+  try{ map.setSourceTileLodParams(L.sat[0], L.sat[1], 'sat'); map.setSourceTileLodParams(L.dem[0], L.dem[1], 'dem_terrain'); }catch(_){}
   $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi)); }
 $$('v360q').innerHTML=(window.LITE_ON?Q.slice(0,1):Q).map((q,i)=>`<button data-i="${i}">${q.n}${window.LITE_ON?' (varčno)':''}</button>`).join('');
 $$('v360q').onclick = e => { const b=e.target.closest('button'); if(!b) return; qi=+b.dataset.i;

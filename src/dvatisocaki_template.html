@@ -459,6 +459,8 @@ const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.
 const SL_LOCALE=(()=>{ try{ return (localStorage.getItem('dvat3d_lang')||((navigator.language||'sl').toLowerCase().startsWith('sl')?'sl':'en'))==='sl'; }catch(_){ return true; } })()
   ? {'NavigationControl.ZoomIn':'Približaj','NavigationControl.ZoomOut':'Oddalji','NavigationControl.ResetBearing':'Povleci za vrtenje, klik = sever','FullscreenControl.Enter':'Celozaslonski način','FullscreenControl.Exit':'Izhod iz celozaslonskega načina','GeolocateControl.FindMyLocation':'Moja lokacija','GeolocateControl.LocationNotAvailable':'Lokacija ni na voljo','Popup.Close':'Zapri','AttributionControl.ToggleAttribution':'Viri','ScaleControl.Meters':'m','ScaleControl.Kilometers':'km'} : undefined;
 const IS_PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<900; window.IS_PHONE=IS_PHONE;
+// more tiles in flight at once (default 16): 360 views need hundreds; phones keep fewer (mobile networks choke on many)
+try{ maplibregl.setMaxParallelImageRequests(IS_PHONE?24:48); }catch(_){}
 const map = new maplibregl.Map({ locale:SL_LOCALE,
   container:"map", style,
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
@@ -1021,6 +1023,7 @@ function openPeak(id,fly){
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   if(popup) popup.remove();
+  if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   popup=new maplibregl.Popup({offset:10,maxWidth:'calc(275px * var(--ui,1))',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
 }
 function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }

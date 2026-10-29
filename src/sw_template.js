@@ -7,7 +7,7 @@ const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webm
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
   'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf', 'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/256-511.pbf',
   'https://tiles.mapterhorn.com/tilejson.json'];
-const MAX_TILES = 4000;
+const MAX_TILES = 8000;   // ~150–250 MB on disk: a few 360 panoramas + browsing; oldest dropped first
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(SHELL).then(c => Promise.all(SHELL_URLS.map(u => c.add(new Request(u, {cache:'reload'})).catch(() => {})))));
