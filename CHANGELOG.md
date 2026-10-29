@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.38 — 2026-10-29
+- 3D map on phones (low-angle crashes): ground layers kept in one render stack (the drawing tool's lines sat above the labels and
+  doubled the terrain textures), phone terrain textures 1536² instead of 2048² (-44 % graphics memory), at most 3 (phone) / 6 (PC)
+  texture repaints per frame. Phone at 80° tilt: 26 -> 13 textures, ~0.8 GB -> ~0.26 GB, repaints per frame 26 -> under 3.
+  The 360 view uses the same code (budget 2 / 4).
+- New layer "Vode": rivers, streams, canals, lakes with names (OpenFreeMap vector tiles, cached like other tiles) + waterfalls with
+  name and height (OSM via Overpass, kept 30 days). Hidden in 360.
+
 ## web-v0.37 — 2026-10-29
 - Snowpack job twice a day: 09:20 (today's ARSO 07:00 readings) and 19:07 (+ new satellite map). A second run the same day starts
   again from the end of yesterday (state keeps a 'base' copy), so nothing is counted twice. Station reading time = the one most stations have.

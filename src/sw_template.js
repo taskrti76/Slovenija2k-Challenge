@@ -16,7 +16,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('dvat-shell-') && k !== SHELL).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
-const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|tiles\.openfreemap\.org\/fonts\//.test(u);
+const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|tiles\.openfreemap\.org\/(fonts|planet)\//.test(u);
 // Esri satellite comes from two hosts (server. / services.arcgisonline.com - twice the parallel downloads); cached under one name
 const keyOf = u => u.replace('//services.arcgisonline.com/', '//server.arcgisonline.com/');
 // trimming the tile cache lists every key (thousands) - done once a while after loading calms down, not after every tile

@@ -4,7 +4,7 @@ const $$ = id => document.getElementById(id);
 const S = {on:false, raf:0};
 const DIRS = ['S','SV','V','JV','J','JZ','Z','SZ'];
 const HANDLERS = ['dragPan','dragRotate','scrollZoom','touchZoomRotate','touchPitch','keyboard','doubleClickZoom','boxZoom'];
-const HEAVY = ['snowobs','snowobs-lbl','pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing'];
+const HEAVY = ['snowobs','snowobs-lbl','pk-wx','cont-line','cont-lbl','pk','pk-lbl','hs','tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr','poi-hut','poi-park','poi-spring','rt-alt','rt-sel-c','rt-sel','rt-gap','ferr-sign','my-rt','dr-line-c','dr-line','dr-hit','dr-pts','border-casing','water-fill','water-line','water-lbl','water-name','falls','falls-lbl'];
 const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 
 // ---------- fast loading ----------
@@ -285,25 +285,13 @@ applyQuality.restore = ()=>{};
 // 1) no terrain tiles finer than the sharpest satellite needs (near the eye it went down to z20–22: 17 tiny tiles)
 // 2) pool never smaller than the view needs - no overflow
 // 3) at most a few texture repaints per frame (oldest first); the others show their previous picture a few frames longer
-const RTT = {pool:null, orig:null};
 function rttOn(on){
   const rt = map.painter && map.painter.renderToTexture, tm = map.terrain && map.terrain.tileManager; if (!rt || !tm) return;
   const cap = on ? (window.IS_PHONE ? 14 : 15) : 22;
   if (tm.maxzoom !== cap){ tm.maxzoom = cap; try{ tm.freeRtt(); }catch(_){} map.triggerRepaint(); }
-  if (on && !rt.__prep){ const prep = rt.__prep = rt.prepareForRender;
-    rt.prepareForRender = function(style, zoom){
-      let tiles = [], saved = [];
-      try{ tiles = this.terrain.tileManager.getRenderableTiles(); saved = tiles.map(t => t && t.rtt && t.rtt.length ? t.rtt.slice() : null);
-      // (with the cap above Stenar Visoka needs 19 tiles; PC may grow to 36 if a view ever needs more, phones stay at 30)
-      if (!window.IS_PHONE && this.pool._size < Math.min(36, tiles.length + 2)) this.pool._size = Math.min(36, tiles.length + 2); }catch(_){}
-      prep.call(this, style, zoom);
-      try{ const now = performance.now(), stale = [];
-      tiles.forEach((t, i) => { if (!t) return; if (saved[i] && !t.rtt.length){ t.__st = t.__st || now; stale.push([t, saved[i]]); } else if (t.rtt.length) t.__st = 0; });
-      const K = window.IS_PHONE ? 2 : 4;
-      if (stale.length > K){ stale.sort((a, b) => a[0].__st - b[0].__st); for (const [t, r] of stale.slice(K)) t.rtt = r; map.triggerRepaint(); } }catch(_){} };
-  }
-  if (!on && rt.__prep){ rt.prepareForRender = rt.__prep; delete rt.__prep;
-    if (rt.pool._size > 30){ const P0 = rt.pool; rt.pool = new P0.constructor(P0._context, 30, P0._tileSize); P0.destruct(); try{ tm.freeRtt(); }catch(_){} } }
+  // repaint budget + pool size live in the page (rttPatch); 360 is a bit stricter, PC may grow the pool to 36
+  window.RTT_K = on ? (window.IS_PHONE ? 2 : 4) : (window.IS_PHONE ? 3 : 6); window.RTT_POOL_MAX = on && !window.IS_PHONE ? 36 : 30;
+  if (!on && rt.pool._size > 30){ const P0 = rt.pool; rt.pool = new P0.constructor(P0._context, 30, P0._tileSize); P0.destruct(); try{ tm.freeRtt(); }catch(_){} }
 }
 // adaptive resolution: render lighter while turning, full sharpness ~0.35 s after you stop
 let still=0;

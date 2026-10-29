@@ -10,7 +10,7 @@ const RANGE_EN = {'Julijske Alpe':'Julian Alps','Kamniško-Savinjske Alpe':'Kamn
 const EN = Object.assign({}, RANGE_EN, {
   'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
-  'Državna meja':'National border', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
+  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
   'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
   'Pretiravanje višin':'Height exaggeration', '1.0 = realno':'1.0 = real', 'Klik na teren':'Click on terrain', 'Klikni kamorkoli za višino DEM.':'Click anywhere for the terrain height.',
   'Napredno':'Advanced', 'Osveži podatke OSM':'Refresh OSM data', 'Naloži ceste':'Load roads', 'Razširi na 20 km (PC)':'Extend to 20 km (PC)', 'Izvozi paket podatkov':'Export data pack',
