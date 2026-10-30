@@ -1120,7 +1120,9 @@ function openPeak(id,fly){
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   popup=new maplibregl.Popup({offset:10,maxWidth:'calc(275px * var(--ui,1))',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
 }
-function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); }
+function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); window.onTicks&&window.onTicks([id],on); }
+// for the account sync (account.js): read / replace the ticked peaks
+window.TICKS={get:()=>new Set(visited), set:ids=>{ visited=new Set(ids.filter(id=>byId[id])); saveV(); refresh(); }};
 
 // --- drawer
 const $=id=>document.getElementById(id), drawer=$('drawer');
@@ -1197,7 +1199,7 @@ $('vexp').onclick=()=>{const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify({visited:[...visited],date:new Date().toISOString()},null,1)],{type:'application/json'}));
   a.download='moji-dvatisocaki.json'; a.click();};
 $('vimp').onclick=()=>$('vfile').click();
-$('vfile').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text()); (j.visited||[]).forEach(id=>byId[id]&&visited.add(id)); saveV(); refresh();}catch(err){alert('Neveljavna datoteka.');}};
+$('vfile').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text()); const ids=(j.visited||[]).filter(id=>byId[id]); ids.forEach(id=>visited.add(id)); saveV(); refresh(); window.onTicks&&window.onTicks(ids,true);}catch(err){alert('Neveljavna datoteka.');}};
 document.getElementById('peaks').onchange=e=>['pk','pk-lbl'].forEach(id=>vis(id,e.target.checked));
 document.getElementById('peaks15').onchange=()=>refreshMap();
 $('tiers').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; TIER=b.dataset.t; try{ localStorage.setItem('dvat3d_tier',TIER); }catch(_){} refresh(); };

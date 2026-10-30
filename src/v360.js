@@ -102,7 +102,10 @@ function placeLabels(){
   if (!ready){ LB.forEach(o=>o.div.style.display='none'); return; }
   const W=LBL.clientWidth, H=LBL.clientHeight, f=(H/2)/Math.tan(S.fov*D2R/2), B=S.brg*D2R, Lk=S.look*D2R;
   const F=[Math.cos(Lk)*Math.sin(B), Math.cos(Lk)*Math.cos(B), Math.sin(Lk)], Rt=[Math.cos(B), -Math.sin(B), 0], U=[-Math.sin(Lk)*Math.sin(B), -Math.sin(Lk)*Math.cos(B), Math.cos(Lk)];
-  const boxes=[];
+  // the 360 controls (name, quality buttons, hint, loading note) count as taken space - no peak name on top of them
+  const L0=LBL.getBoundingClientRect(), boxes=[];
+  for (const el of document.querySelectorAll('#v360 .vt, #v360 .vb, #v360 .vh, #v360load')){ const r=el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+    boxes.push([r.left-L0.left-6, r.top-L0.top-6, r.right-L0.left+6, r.bottom-L0.top+6]); }
   for (const o of LB){
     const v=[Math.cos(o.el)*Math.sin(o.az), Math.cos(o.el)*Math.cos(o.az), Math.sin(o.el)];
     const zc=v[0]*F[0]+v[1]*F[1]+v[2]*F[2]; let show=o.vis && zc>0.08;

@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.40 — 2026-10-30
+- Accounts (Supabase): username + password with a Cloudflare Turnstile "not a robot" check, no email. 👤 button next to ⚙ (PC),
+  account row at the top of ⚙ Nastavitve (phone), "prijava" link under the peak list. Account window: display name, log out,
+  delete account. Ticked peaks sync to the account (offline-first; unsent changes kept until online; first login in a browser
+  uploads the ticks made there before; log out = the browser forgets them, they stay in the account). No library - plain fetch.
+- 360: peak names no longer drawn over the controls (name bar, quality buttons, hint, loading note).
+
 ## web-v0.39 — 2026-10-29
 - 360: no more sky showing through cracks in the terrain - tile-edge "skirts" were sized from the map zoom (~0.5 m at the 360 zoom), now at least 800 m.
 - Snow legend top = deepest snow of the shown day (was the next round number); deeper drifts get the darkest colour ("41+ cm").

@@ -51,7 +51,7 @@ win.querySelectorAll('.chips').forEach(c => c.onclick = e => { const b = e.targe
 paintChips();
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
 const close = () => win.classList.remove('on');
-window.openSettings = open;
+window.openSettings = open; window.closeSettings = close;
 win.querySelector('.x').onclick = close; win.onclick = e => { if (e.target === win) close(); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && win.classList.contains('on')) close(); });
 
