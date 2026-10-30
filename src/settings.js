@@ -9,8 +9,11 @@ let P = DEF; try{ P = Object.assign({}, DEF, JSON.parse(localStorage.getItem('dv
 const FIT_K = [1.25, 1, 0.8];
 const apply = () => { window.PROFILE = Object.assign({}, P, {fitK:FIT_K[P.fit] ?? 1}); };
 apply();
-const save = () => { try{ localStorage.setItem('dvat3d_profile', JSON.stringify(P)); }catch(_){} apply();
+const store = () => { try{ localStorage.setItem('dvat3d_profile', JSON.stringify(P)); }catch(_){} apply();
   window.rerenderRoutes && window.rerenderRoutes(); window.wxRepaint && window.wxRepaint(); };
+const save = () => { store(); window.onPrefs && window.onPrefs(P); };   // account.js keeps it in the account too
+// for account.js: settings that came from the account (another device)
+window.PREFS = {get: () => Object.assign({}, P), set: p => { P = Object.assign({}, DEF, p || {}); store(); paintChips(); }};
 
 const css = document.createElement('style'); css.textContent = `
 #setWin{position:fixed;inset:0;z-index:58;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:12px}
@@ -30,8 +33,9 @@ document.head.append(css);
 
 const win = document.createElement('div'); win.id = 'setWin';
 win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri','Close')}">×</button><h3>⚙ ${L('Nastavitve','Settings')}</h3>
+  <h4>${L('Račun','Account')}</h4><div id="accBox"></div>
   <h4>${L('Moj profil','My profile')}</h4>
-  <div class="hint">${L('Vpliva na oceno vremena, čase hoje in opozorila pri poteh. Shranjeno v tem brskalniku.','Affects the weather rating, walking times and route warnings. Saved in this browser.')}</div>
+  <div class="hint">${L('Vpliva na oceno vremena, čase hoje in opozorila pri poteh. Shranjeno v tem brskalniku (in v računu, če si prijavljen).','Affects the weather rating, walking times and route warnings. Saved in this browser (and in your account when signed in).')}</div>
   <div class="q">${L('Izkušnje z zimo','Winter experience')}</div>
   <div class="chips" data-k="winter">${[L('brez','none'), L('lažje zimske ture (dereze, cepin)','easy winter tours (crampons, axe)'), L('zimska alpinistika','winter alpinism')].map((t, i) => `<button data-v="${i}">${t}</button>`).join('')}</div>
   <div class="hint">${L('Sneg na vrhu šteje ×1,5 / ×1 / ×0,5 pri oceni dneva.','Snow on the summit counts ×1.5 / ×1 / ×0.5 in the day rating.')}</div>

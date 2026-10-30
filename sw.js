@@ -1,7 +1,7 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
 // - map tiles cached as you view them (LRU-trimmed), terrain areas downloaded on request live in "dvat-region"
-const VER = 'b51f602685';
+const VER = '0f528e8fb5';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',

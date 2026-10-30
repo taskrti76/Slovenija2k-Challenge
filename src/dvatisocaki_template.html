@@ -38,6 +38,7 @@
   #langsw button{font:600 calc(11px * var(--ui,1)) system-ui,sans-serif;padding:3px 7px;border:0;background:transparent;color:var(--mute);cursor:pointer}
   #langsw button.on{background:var(--ink);color:var(--panel)}
   #tour{position:fixed;inset:0;z-index:50}
+  #tour .tacc{display:flex;gap:8px;margin:0 0 12px}#tour .tacc button{flex:1;border:0;border-radius:9px;background:#1565c0;color:#fff;font:600 1em system-ui,sans-serif;padding:9px;cursor:pointer}#tour .tacc button+button{background:transparent;color:var(--ink);border:1px solid var(--line)}
   #tour .th{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,14,13,.62);transition:all .25s;pointer-events:none;outline:2px solid #ffb300}
   #tour .tc{position:fixed;box-sizing:border-box;background:var(--panel);color:var(--ink);border-radius:14px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:calc(14px * var(--ui,1));backdrop-filter:blur(8px)}
   #tour h3{margin:2px 0 6px;font-size:1.15em}#tour p{margin:0 0 12px;line-height:1.45;color:var(--ink)}#tour .ts{font-size:.8em;color:var(--mute)}
@@ -1110,12 +1111,12 @@ function openPeak(id,fly){
   const lab=document.createElement('label'); lab.style.marginTop='6px';
   const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=visited.has(id);
   cb.onchange=()=>toggleV(id,cb.checked); lab.append(cb,' Obiskal sem');
-  box.append(lab);
+  box.append(lab); if(window.visitBox) box.append(visitBox(p,cb));   // date / route / note of the climb (account.js)
   if(window.wxBox) box.append(wxBox(p));
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
-  row.append(rb,vb); box.append(row);
+  row.append(rb,vb); box.append(row); if(window.pubRoutesBox) box.append(pubRoutesBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   popup=new maplibregl.Popup({offset:10,maxWidth:'calc(275px * var(--ui,1))',anchor:'bottom'}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
@@ -1174,7 +1175,7 @@ function renderList(){
     h+=`<div class="rg${closed?' closed':''}" data-r="${r}" style="color:${c}"><span class="chev">▾</span>${r}<span class="cnt">${cntV(all)} / ${all.length}</span></div>`;
     if(closed) continue;
     h+=L.map(p=>{const v=visited.has(p.id);return `<div class="it${isMain(p)?'':' sub'}${v?' done':''}"><input type="checkbox" data-id="${p.id}" ${v?'checked':''} aria-label="${p.name}">
-      <span class="nm${p.lat==null?' nc':''}" data-id="${p.id}" ${p.lat==null?'title="Lega še ni določena"':''}>${p.name}</span>
+      <span class="nm${p.lat==null?' nc':''}" data-id="${p.id}" ${p.lat==null?'title="Lega še ni določena"':''}>${p.name}${v&&window.VINFO?VINFO.short(p.id):''}</span>
       ${p.rank?`<span class="rk">#${p.rank}</span>`:p.rank15?`<span class="rk" title="rang po prominenci med 1500–2000 m">#${p.rank15}</span>`:''}${TIER==='all'&&p.tier==='1500'?'<span class="t15">1500</span>':''}<span class="el">${Math.round(p.elev)} m</span></div>`;}).join('');
   }
   $('dlist').innerHTML=h||'<div class="empty">Ni zadetkov.</div>';

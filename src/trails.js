@@ -721,7 +721,12 @@ window.__peakRouteLines = async function(id){ if(RL.has(id)) return RL.get(id); 
   const nearPark=(la,lo)=>STARTS.some(x=>hav(x.lat,x.lon,la,lo)<300);
   const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:nearPark(la,lo)?1:0;
   const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
-  const L=res?res.routes.filter((r,i,a)=>r.stats.len/1000<=22||a.length===1).map(r=>r.coords):[]; RL.set(id,L); return L; };
+  const RR=res?res.routes.filter((r,i,a)=>r.stats.len/1000<=22||a.length===1):[], L=RR.map(r=>r.coords); RL.set(id,L); RN.set(id,RR.map(routeLabel)); return L; };
+// names of those routes, as the route card writes them ("iz Krme · Tominškova pot") - for "climbed by which route"
+const RN=new Map();
+window.__peakRouteNames = async function(id){ if(!RN.has(id)) await window.__peakRouteLines(id); return RN.get(id)||[]; };
+function routeLabel(r){ const s=r.stats, ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null, nm=R?relName(R):r.fname;
+  return 'iz '+r.start.name.replace(/^pri /,'')+(nm?' · '+nm:''); }
 // fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
 function routePad(){ const c=rcard(), W=innerWidth, H=innerHeight;
   const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}
@@ -760,10 +765,11 @@ function renderRoutes(){
         ${!R&&r.fname?`<div class="rp">⛓ ${esc(r.fname)}</div>`:''}${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
         <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(walkTime(P.km,P.up,P.down)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}</div>`:'')+
-    `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button></div>
+    `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button><button onclick="routeClimbed()" title="Odkljukaj vrh in shrani to pot kot tvojo">✓ Šel sem po tej poti</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
   c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }
+window.routeClimbed=()=>{ if(!RT) return; const r=RT.routes[RT.sel]; window.climbedVia&&window.climbedVia(RT.peak.id, routeLabel(r)); };
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };
 window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name} iz ${r.start.name.replace(/^pri /,'')}`;
   download(slug(nm)+'.gpx', toGPX(nm, P?P.pts:r.coords, P?P.z:null, [{lat:RT.peak.lat,lon:RT.peak.lon,ele:RT.peak.elev,name:RT.peak.name},{lat:r.start.lat,lon:r.start.lon,name:r.start.name}])); };
@@ -773,7 +779,12 @@ window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name
 const D={pts:[],segs:[],follow:true,P:null,hist:[],sel:-1,edit:-1,min:false};
 const MYKEY='dvat3d_myroutes_v1';
 let MY=[]; try{ MY=JSON.parse(localStorage.getItem(MYKEY)||'[]'); }catch(e){}
-const saveMy=()=>{ try{ localStorage.setItem(MYKEY,JSON.stringify(MY)); }catch(e){} };
+const newId=()=>crypto.randomUUID?crypto.randomUUID():'10000000-1000-4000-8000-100000000000'.replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+const saveMy0=()=>{ try{ localStorage.setItem(MYKEY,JSON.stringify(MY)); }catch(e){} };
+const saveMy=()=>{ MY.forEach(r=>{ if(!r.id) r.id=newId(); }); saveMy0(); window.onMyRoutes&&window.onMyRoutes(); };
+// for the account sync (account.js): read / replace my routes
+window.MYR={get:()=>MY, newId, set:list=>{ MY=list; saveMy0(); myRender(); if(window.DRAW_ON) drawRender(); },
+  add:(name,coords)=>{ MY.push({id:newId(),name,coords,date:Date.now()}); saveMy(); myRender(); }};
 const drawCoords=()=>!D.segs.length?D.pts.slice():D.segs.reduce((a,s,i)=>a.concat(i?s.c.slice(1):s.c),[]);
 const pushHist=()=>{ D.hist.push(JSON.stringify({p:D.pts,s:D.segs})); if(D.hist.length>100) D.hist.shift(); };
 function makeSeg(a,b){ const c=(D.follow&&G&&inG(a[1],a[0])&&inG(b[1],b[0]))?routeBetween(G,a,b,150):null; return {c:c||[a,b], f:!!c}; }
@@ -829,7 +840,7 @@ function drawRender(){
     ${profBlock}
     ${D.edit>=0?'<div class="rb"><button onclick="drawSaveNew()">Shrani kot novo</button></div>':''}
     <details class="hlp"><summary>Pomoč</summary>Vleci točko = premakni · klik na črto = vrini točko · klik na točko = izberi; Delete / desni klik / dvoklik = izbriši · Ctrl+Z razveljavi. Polna črta = po poti, črtkana = ravna črta.</details>
-    ${MY.length?`<div class="rg2">Moje poti</div>`+MY.map((r,i)=>`<div class="my"><span>${r.name}</span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}`;
+    ${MY.length?`<div class="rg2">Moje poti</div>`+MY.map((r,i)=>`<div class="my"><span>${r.name}</span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}`;
   el('dfollow').onchange=e=>{ D.follow=e.target.checked; };
 }
 addEventListener('resize',()=>{ if(window.DRAW_ON) drawRender(); });
@@ -873,6 +884,7 @@ window.drawSave=()=>{ if(D.edit>=0){ MY[D.edit].coords=packCoords(); MY[D.edit].
 window.drawSaveNew=async()=>{ const n=await askText('Ime poti', 'Moja pot '+(MY.length+1)); if(!n) return; MY.push({name:n,coords:packCoords(),date:Date.now()}); D.edit=MY.length-1; saveMy(); myRender(); drawRender(); };
 window.myShow=i=>{ const b=new maplibregl.LngLatBounds(); MY[i].coords.forEach(x=>b.extend(x)); map.fitBounds(b,{padding:80,maxZoom:15}); };
 window.myEdit=i=>{ loadIntoEditor(MY[i].coords,i); if(!window.DRAW_ON) startDraw(); myShow(i); drawChanged(); };
+window.coordsGPX=async(name,coords)=>{ const P=await profile(coords); download(slug(name)+'.gpx', toGPX(name,P.pts,P.z)); };
 window.myGPX=async i=>{ const r=MY[i], P=await profile(r.coords); download(slug(r.name)+'.gpx', toGPX(r.name,P.pts,P.z)); };
 window.myDel=async i=>{ if(!(await askText(`Izbrišem "${MY[i].name}"?`, null))) return; MY.splice(i,1); if(D.edit===i) D.edit=-1; else if(D.edit>i) D.edit--; saveMy(); myRender(); drawRender(); };
 window.routeToDraw=()=>{ const r=RT.routes[RT.sel]; loadIntoEditor(r.coords,-1); closeRoutes(); startDraw(); drawChanged(); };
