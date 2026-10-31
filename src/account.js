@@ -88,17 +88,23 @@ window.climbedVia = (id, label) => { const p = byId[id]; if (!p) return;
 // in the peak window, under "Obiskal sem": "📅 12. 8. 2026 · iz Krme · Tominškova pot ✎", editable
 window.visitBox = (p, cb) => {
   const box = document.createElement('div'); box.className = 'vbox';
+  // "☐ danes": one tap = climbed today (no date is set by ticking alone)
+  const todayBox = (checked, cls) => `<label class="vtd ${cls || ''}"><input type="checkbox" ${checked ? 'checked' : ''}> ${L('danes','today')}</label>`;
   const show = () => { const v = VI[p.id];
     if (!cb.checked){ box.innerHTML = ''; return; }
-    box.innerHTML = v && (v.d || v.r || v.n) ? `<span class="vtxt">📅 ${esc([v.d && fmtD(v.d), v.r].filter(Boolean).join(' · ') || '')}${v.n ? ` · <i>${esc(v.n)}</i>` : ''}</span> <a class="vlnk">✎</a>`
-      : `<a class="vlnk">📅 ${L('dodaj datum in pot', 'add date and route')}</a>`;
-    box.querySelector('.vlnk').onclick = edit; };
-  const edit = async () => { const v = VI[p.id] || {}, lid = 'vrl' + Math.random().toString(36).slice(2);
-    box.innerHTML = `<div class="vform"><label>${L('Datum','Date')}<input type="date" class="vd" max="${today()}" value="${esc(v.d || '')}"></label>
+    const has = v && (v.d || v.r || v.n);
+    box.innerHTML = has ? `<span class="vtxt">📅 ${esc([v.d ? fmtD(v.d) : L('brez datuma','no date'), v.r].filter(Boolean).join(' · '))}${v.n ? ` · <i>${esc(v.n)}</i>` : ''}</span> <a class="vlnk">✎</a>${!v.d ? ' ' + todayBox(false, 'q') : ''}`
+      : `<a class="vlnk">📅 ${L('dodaj datum in pot', 'add date and route')}</a> ${todayBox(false, 'q')}`;
+    box.querySelector('.vlnk').onclick = edit;
+    const q = box.querySelector('.vtd.q input'); if (q) q.onchange = () => { if (q.checked){ VINFO.set(p.id, Object.assign({}, VI[p.id] || {}, {d: today()})); show(); } }; };
+  const edit = async () => { const v = VI[p.id] || {}, lid = 'vrl' + Math.random().toString(36).slice(2), isT = v.d === today();
+    box.innerHTML = `<div class="vform"><label>${L('Datum','Date')}<span class="vdr"><input type="date" class="vd" max="${today()}" value="${esc(v.d || '')}">${todayBox(isT)}</span></label>
       <label>${L('Pot','Route')}<input type="text" class="vr" list="${lid}" maxlength="160" value="${esc(v.r || '')}" placeholder="${L('npr. iz Krme','e.g. from Krma')}"><datalist id="${lid}"></datalist></label>
       <label>${L('Opomba','Note')}<input type="text" class="vn" maxlength="200" value="${esc(v.n || '')}"></label>
       <div class="vb"><button class="vs">${L('Shrani','Save')}</button><button class="vc">${L('Prekliči','Cancel')}</button></div></div>`;
-    box.querySelector('.vs').onclick = () => { VINFO.set(p.id, {d: box.querySelector('.vd').value, r: box.querySelector('.vr').value, n: box.querySelector('.vn').value}); show(); };
+    const vd = box.querySelector('.vd'), td = box.querySelector('.vtd input');
+    td.onchange = () => { vd.value = td.checked ? today() : ''; }; vd.oninput = () => { td.checked = vd.value === today(); };
+    box.querySelector('.vs').onclick = () => { VINFO.set(p.id, {d: vd.value, r: box.querySelector('.vr').value, n: box.querySelector('.vn').value}); show(); };
     box.querySelector('.vc').onclick = show;
     try{ const names = window.__peakRouteNames ? await window.__peakRouteNames(p.id) : []; const dl = box.querySelector('datalist');
       if (dl) dl.innerHTML = [...new Set(names)].map(n => `<option value="${esc(n)}">`).join(''); }catch(_){} };
@@ -231,11 +237,13 @@ const css = document.createElement('style'); css.textContent = `
 #accBox .chk{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;font-size:.92em;font-weight:400}
 #accBox .chk input{margin-top:3px}
 #dfoot .fnote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#accBox .ah a{color:#1565c0}
 #dfoot .fnote a,.vlnk,.prt a{color:inherit;text-decoration:underline;cursor:pointer}
 .it .nm .vi{color:var(--mute);font-size:.82em;margin-left:6px}
 .vbox{font-size:.88em;margin:2px 0 0 22px;color:#3d4643}.vbox .vlnk{color:#1565c0}
 .vform label{display:block;font-size:.85em;margin:5px 0 0;color:#5b6461}.vform input{display:block;width:100%;box-sizing:border-box;font:inherit;padding:4px 6px;border:1px solid #b9c1bd;border-radius:6px;margin-top:1px}
 .vform .vb{display:flex;gap:6px;margin-top:6px}
+.vdr{display:flex;gap:8px;align-items:center}.vdr input[type=date]{flex:1}.vtd{display:inline-flex!important;gap:4px;align-items:center;white-space:nowrap;margin:0!important;color:#3d4643!important;font-size:.92em!important}.vtd input{width:auto!important;display:inline!important;margin:0!important}
 .prt{font-size:.86em;margin-top:6px;border-top:1px solid #e3e7e5;padding-top:5px;color:#3d4643}.prt b{font-weight:600}.prt div{margin:2px 0}
 #accWin{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:12px}
 #accWin.on{display:flex}
@@ -285,8 +293,9 @@ function draw(){
       <label class="chk"><input type="checkbox" id="accPub" ${S.public ? 'checked' : ''}><span>${L('Javni profil: drugi vidijo seznam mojih vrhov z datumi in potmi','Public profile: others can see my list of peaks with dates and routes')}</span></label>
       ${S.public ? `<div class="ah">${L('Povezava do profila:','Profile link:')} <a href="${esc(link)}" target="_blank">${esc(link.replace(/^https?:\/\//, ''))}</a></div>` : ''}
       <div class="err" id="accErr"></div>
-      <div class="row"><button class="alt" id="accSave">${L('Shrani','Save')}</button><button class="alt" id="accOut">${L('Odjava','Log out')}</button></div>
+      <div class="row"><button class="alt" id="accSave">${L('Shrani','Save')}</button><button class="alt" id="accOut">${L('Odjava','Log out')}</button><button class="alt" id="accExp">⬇ ${L('Izvozi moje podatke','Export my data')}</button></div>
       <div class="ah">${L('Ob odjavi ta brskalnik pozabi tvoje kljukice in poti – ostanejo v računu.','On log-out this browser forgets your ticks and routes - they stay in your account.')}</div>
+      <div class="ah" style="margin-top:6px"><a href="privacy.html" target="_blank">${L('Zasebnost – kaj shranjujemo','Privacy - what we store')}</a></div>
       <details style="margin-top:10px"><summary style="cursor:pointer;color:#b3261e;font-size:.9em">${L('Izbriši račun','Delete account')}</summary>
         <div class="ah">${L('Izbriše račun, vrhove in poti. Za potrditev vpiši uporabniško ime.','Deletes the account, peaks and routes. Type your username to confirm.')}</div>
         <input type="text" id="accDelU" autocomplete="off" placeholder="${esc(S.username || '')}"><div class="row"><button class="alt danger" id="accDel">${L('Trajno izbriši','Delete for good')}</button></div></details>`;
@@ -297,6 +306,11 @@ function draw(){
         catch(e){ if (lst !== (S.listed !== false)) throw e; await patch({display_name: v || null, public: pub}); }   // 04 not run yet
         S.display_name = v; S.public = pub; S.listed = lst; put(AK, S); paint(); draw(); toast(L('Shranjeno.', 'Saved.')); }catch(e){ $a('accErr').textContent = errText(e); } };
     $a('accOut').onclick = async () => { $a('accOut').disabled = true; await signOut(); draw(); };
+    $a('accExp').onclick = async () => { $a('accErr').textContent = '';
+      try{ const [pr, asc, rts] = await Promise.all([call(`/rest/v1/profiles?id=eq.${S.uid}&select=*`), call('/rest/v1/ascents?select=*&limit=5000'), call('/rest/v1/routes?select=*&limit=1000')]);
+        const blob = new Blob([JSON.stringify({exported: new Date().toISOString(), profile: pr && pr[0], ascents: asc, routes: rts}, null, 1)], {type: 'application/json'});
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `dvatisocaki-${S.username}-${today()}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      }catch(e){ $a('accErr').textContent = errText(e); } };
     $a('accDel').onclick = async () => { if ($a('accDelU').value.trim().toLowerCase() !== S.username){ $a('accErr').textContent = L('Uporabniško ime se ne ujema.', 'Username does not match.'); return; }
       try{ await rpc('delete_me', {}, true); forgetLocal(); paint(); draw(); toast(L('Račun je izbrisan.', 'Account deleted.')); }catch(e){ $a('accErr').textContent = errText(e); } };
     return; }
@@ -318,7 +332,8 @@ function draw(){
       <div class="err" id="accErr"></div>
       <button class="go" id="accGo" type="submit" disabled>${up ? L('Ustvari račun','Create account') : L('Prijava','Sign in')}</button>
     </form>
-    ${up ? '' : `<div class="ah" style="margin-top:8px">${L('Pozabljeno geslo? Piši skrbniku strani.','Forgot your password? Contact the site admin.')}</div>`}`;
+    ${up ? '' : `<div class="ah" style="margin-top:8px">${L('Pozabljeno geslo? Piši skrbniku strani.','Forgot your password? Contact the site admin.')}</div>`}
+    <div class="ah" style="margin-top:6px"><a href="privacy.html" target="_blank">${L('Zasebnost – kaj shranjujemo','Privacy - what we store')}</a></div>`;
   box.querySelector('.tabs').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.m !== mode){ mode = b.dataset.m; draw(); } };
   $a('accU').oninput = e => { const v = e.target.value.toLowerCase().replace(/\s/g, ''); if (v !== e.target.value) e.target.value = v; };
   $a('accForm').onsubmit = async e => { e.preventDefault(); const err = $a('accErr'); err.textContent = '';
@@ -373,8 +388,8 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage .lbt{display:flex;align-items:center;gap:10px}#lbPage .lbt h3{margin:0;font-size:1.3em;flex:1}
 #lbPage .lbx{border:0;background:rgba(0,0,0,.06);width:32px;height:32px;border-radius:50%;font-size:1.3em;cursor:pointer;color:#444}
 #lbPage .lbs{color:#5b6461;font-size:.86em;margin:3px 0 10px}
-#lbPage .lbtabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px}#lbPage .lbtabs::-webkit-scrollbar{display:none}
-#lbPage .lbtabs button{flex:none;border:1px solid #d3d9d6;background:#fff;color:#1d2321;border-radius:18px;padding:6px 12px;font:600 .88em system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#lbPage .lbtabs{display:flex;flex-wrap:wrap;gap:6px}
+#lbPage .lbtabs button{flex:0 1 auto;border:1px solid #d3d9d6;background:#fff;color:#1d2321;border-radius:18px;padding:6px 12px;font:600 .88em system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 #lbPage .lbtabs button.on{background:#1d2321;border-color:#1d2321;color:#fff}
 #lbPage .lbq{width:100%;box-sizing:border-box;margin-top:10px;font:inherit;padding:8px 12px;border:1px solid #c9d0cc;border-radius:10px}
 #lbPage .lbb{flex:1;overflow:auto;padding:6px 18px 12px;overscroll-behavior:contain}
@@ -399,7 +414,7 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}#lbPage .grid div{background:#f6f8f7;border-radius:10px;padding:8px;text-align:center}
 #lbPage .grid b{display:block;font-size:1.25em;font-variant-numeric:tabular-nums}#lbPage .grid small{color:#5b6461;font-size:.78em}
 #lbPage .pk{display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-bottom:1px solid #eef1ef;cursor:pointer}#lbPage .pk span{color:#5b6461;font-size:.86em;text-align:right}
-@media (max-width:700px){ #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
+@media (max-width:700px){ #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
 document.head.append(lbCss);
 const LB = {board: 'p2000', q: '', off: 0, rows: [], tot: 0, busy: false};
 const boardMax = () => (BOARDS.find(b => b[0] === LB.board) || BOARDS[0])[2];

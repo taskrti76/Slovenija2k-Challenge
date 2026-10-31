@@ -808,9 +808,9 @@ function makeMovable(id,handle='.rh'){ const card=el(id); if(!card) return; cons
     const up=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up); card.classList.remove('dragging');
       try{ localStorage.setItem(key,JSON.stringify([parseInt(card.style.left),parseInt(card.style.top)])); }catch(_){} };
     addEventListener('pointermove',mv); addEventListener('pointerup',up); });
-  card.addEventListener('dblclick',e=>{ if(!DESK()||!e.target.closest(handle)||e.target.closest('button')) return; try{ localStorage.removeItem(key); }catch(_){} card.style.left=''; card.style.top=''; card.style.bottom=''; card.style.right=''; });
+  card.addEventListener('dblclick',e=>{ if(!DESK()||!e.target.closest(handle)||e.target.closest('button')) return; try{ localStorage.removeItem(key); }catch(_){} card.style.left=''; card.style.top=''; card.style.bottom=''; card.style.right=''; window.placeLegends&&placeLegends(); });
 }
-makeMovable('dcard'); makeMovable('rcard'); makeMovable('dprof','.ps'); makeMovable('snowleg','.lh');
+makeMovable('dcard'); makeMovable('rcard'); makeMovable('dprof','.ps'); makeMovable('snowleg','.lh'); makeMovable('hleg','.lh');
 function drawRender(){
   setDrawData();
   const card=el('dcard'), strip=el('dprof');

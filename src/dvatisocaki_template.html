@@ -40,7 +40,7 @@
   #tour{position:fixed;inset:0;z-index:50}
   #tour .tacc{display:flex;gap:8px;margin:0 0 12px}#tour .tacc button{flex:1;border:0;border-radius:9px;background:#1565c0;color:#fff;font:600 1em system-ui,sans-serif;padding:9px;cursor:pointer}#tour .tacc button+button{background:transparent;color:var(--ink);border:1px solid var(--line)}
   #tour .th{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,14,13,.62);transition:all .25s;pointer-events:none;outline:2px solid #ffb300}
-  #tour .tc{position:fixed;box-sizing:border-box;background:var(--panel);color:var(--ink);border-radius:14px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:calc(14px * var(--ui,1));backdrop-filter:blur(8px)}
+  #tour .tc{position:fixed;box-sizing:border-box;max-height:calc(100dvh - 24px);overflow:auto;background:var(--panel);color:var(--ink);border-radius:14px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:calc(14px * var(--ui,1));backdrop-filter:blur(8px)}
   #tour h3{margin:2px 0 6px;font-size:1.15em}#tour p{margin:0 0 12px;line-height:1.45;color:var(--ink)}#tour .ts{font-size:.8em;color:var(--mute)}
   #tour .tbtns{display:flex;gap:8px;align-items:center}#tour .tbtns span{flex:1}
   #tour button{font:inherit;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
@@ -65,7 +65,6 @@
     #drawer{width:var(--dw)}
     body.in360 #ptab{display:none}
     body.dopen .maplibregl-ctrl-top-right{right:calc(var(--dw) + 2px);transition:right .25s}
-    body.dopen #snowleg,body.dopen #hleg{right:calc(var(--dw) + 12px)}
     /* layers & maps: roll-out sheet on the left edge with its own pull tab (same as the peak list) */
     :root{--pw:min(calc(245px * var(--ui,1)),35vw);--lw:var(--pw)} body.lclosed{--lw:0px}
     .panel{top:0;left:0;bottom:0;width:var(--pw);max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
@@ -170,7 +169,7 @@
   #v360 .seg{display:flex;border-radius:24px;overflow:hidden;background:rgba(20,22,22,.78);backdrop-filter:blur(6px)}
   #v360 .vb .seg button{border-radius:0;background:transparent;padding:11px 12px;min-width:0;font-weight:600;color:#cfd3d1}
   #v360 .vb .seg button.on{background:#1565c0;color:#fff}
-  #snowleg{display:none;position:absolute;right:12px;bottom:118px;width:200px;background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
+  #snowleg{display:none;position:absolute;right:12px;bottom:118px;width:calc(140px + 60px * var(--ui,1));background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
     border-radius:10px;padding:8px 10px;font-size:calc(12px * var(--ui,1));color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5}
   #snowleg #snowlegdate{color:var(--mute);font-size:calc(11px * var(--ui,1))}
   #snowlegbar{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
@@ -185,13 +184,15 @@
   #snowleg.min .lb,#snowleg.min #snowlegdate{display:none}
   #snowleg.dragging{opacity:.85}
   @media (max-width:700px){#snowleg{bottom:132px;right:8px}}
-  #hleg{display:none;position:absolute;right:12px;bottom:118px;width:210px;background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
-    border-radius:10px;padding:7px 12px 6px;font-size:calc(12px * var(--ui,1));color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5;pointer-events:none}
+  #hleg{display:none;position:absolute;right:12px;bottom:118px;width:max-content;min-width:calc(150px + 40px * var(--ui,1));background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
+    border-radius:10px;padding:7px 10px 6px;font-size:calc(12px * var(--ui,1));color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5}
+  #hleg .lh{display:flex;align-items:center;gap:5px;cursor:move;user-select:none}#hleg .lh b{white-space:nowrap}#hleg .lh .u{color:var(--mute);font-size:.9em}
+  #hleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:calc(15px * var(--ui,1));line-height:1;padding:2px 4px;cursor:pointer}
+  #hleg.min{width:auto;padding:5px 8px}#hleg.min .lb,#hleg.min .u{display:none}#hleg.dragging{opacity:.85}
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
-  #hleg .hl{position:relative;height:1.3em;font-size:calc(10.5px * var(--ui,1));color:var(--mute)}#hleg .hl span{position:absolute;transform:translateX(-50%);white-space:nowrap}
-  #hleg .hl span:first-child{transform:none}#hleg .hl span:last-child{transform:translateX(-100%)}
+  #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
   body.in360 #hleg{display:none!important}
-  @media (max-width:700px){#hleg{bottom:132px;right:8px;width:190px}}
+  @media (max-width:700px){#hleg{bottom:132px;right:8px} body.pop #hleg,body.pop #snowleg{display:none!important}}
   /* 360 view */
   #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
   body.in360 #v360{display:block}
@@ -578,13 +579,32 @@ const vis=(id,on)=>{ if(window.LITE_ON&&on&&(id==='hs'||id==='trails')) return; 
 // height legend for the colour relief (with the relief base map; the snow legend takes its place when that is on)
 const HSTOPS=[[0,"#7fae6a"],[400,"#a9c483"],[800,"#d8d89c"],[1200,"#e4cf98"],[1600,"#d2b07f"],[1900,"#bfa38a"],[2200,"#c9c3bb"],[2500,"#e6e3df"],[2900,"#ffffff"]];
 const hleg=document.createElement('div'); hleg.id='hleg';
-hleg.innerHTML=`<b>⛰ Nadmorska višina</b><div class="hb" style="background:linear-gradient(90deg,${HSTOPS.map(([h,c])=>`${c} ${(h/2900*100).toFixed(1)}%`).join(',')})"></div>
-  <div class="hl">${[0,1000,2000].map(h=>`<span style="left:${(h/2900*100).toFixed(1)}%">${h}</span>`).join('')}<span style="left:100%">2900 m</span></div>`;
+// labels evenly spaced (0 · 1000 · 2000 · 2900): the colour bar is stretched piecewise so each label sits exactly on its height
+const hpos=h=>h<=2000?h/2000*66.667:66.667+(h-2000)/900*33.333;
+hleg.innerHTML=`<div class="lh"><b>⛰ Nadmorska višina</b> <span class="u">(m)</span><button id="hlegx" title="Skrij / pokaži legendo">–</button></div>
+  <div class="lb"><div class="hb" style="background:linear-gradient(90deg,${HSTOPS.map(([h,c])=>`${c} ${hpos(h).toFixed(1)}%`).join(',')})"></div>
+  <div class="hl"><span>0</span><span>1000</span><span>2000</span><span>2900</span></div></div>`;
 document.body.append(hleg);
 function updH(){ const b=(document.querySelector('input[name=base]:checked')||{}).value, sl=document.getElementById('snowleg');
   hleg.style.display=b==='relief'&&!(sl&&sl.style.display==='block')?'block':'none'; }
 document.querySelectorAll('input[name=base]').forEach(r=>r.addEventListener('change',()=>setTimeout(updH,0)));
 new MutationObserver(updH).observe(document.getElementById('snowleg'),{attributes:true,attributeFilter:['style']}); updH();
+{ const x=document.getElementById('hlegx'), setMin=v=>{ hleg.classList.toggle('min',v); x.textContent=v?'▸':'–'; try{ localStorage.setItem('dvat3d_hlegmin',v?'1':'0'); }catch(_){} };
+  try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; }
+// legends (snow, height) stay clear of the peak list and its red tab on the right (unless you dragged them somewhere yourself)
+function placeLegends(){ for(const L of [document.getElementById('snowleg'),hleg]){ if(!L||L.style.left) continue;
+    let right=innerWidth>700?12:8;
+    if(innerWidth>700){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
+      if(dr&&dr.classList.contains('open')) right=Math.max(right,innerWidth-dr.getBoundingClientRect().left+12);
+      if(pt&&getComputedStyle(pt).display!=='none'){ const r=pt.getBoundingClientRect(); if(r.width) right=Math.max(right,innerWidth-r.left+10); } }
+    L.style.right=right+'px'; } }
+window.placeLegends=placeLegends;
+// phone: a peak window and a legend do not fit together - the legend steps aside while a window is open
+new MutationObserver(()=>document.body.classList.toggle('pop',!!map.getContainer().querySelector('.maplibregl-popup'))).observe(map.getContainer(),{childList:true});
+addEventListener('resize',placeLegends);
+{ const mo=new MutationObserver(()=>{ placeLegends(); setTimeout(placeLegends,380); });
+  mo.observe(document.getElementById('drawer'),{attributes:true,attributeFilter:['class']}); mo.observe(document.body,{attributes:true,attributeFilter:['class']}); }
+setTimeout(placeLegends,300);
 document.getElementById('hs').onchange=e=>vis('hs',e.target.checked);
 document.getElementById('trails').onchange=e=>vis('trails',e.target.checked);
 
@@ -1173,9 +1193,7 @@ function openPeak(id,fly){
 // nothing may scroll the page or the map box (they are fixed / overflow hidden, but focus() and scrollIntoView still can)
 addEventListener('scroll',()=>{ if(scrollX||scrollY) scrollTo(0,0); },true);
 document.addEventListener('scroll',e=>{ const t=e.target; if(t===document||t===document.documentElement||t===document.body||t===map.getContainer()||(t.classList&&t.classList.contains('maplibregl-canvas-container'))){ const el=t===document?document.scrollingElement:t; if(el&&(el.scrollTop||el.scrollLeft)){ el.scrollTop=0; el.scrollLeft=0; } } },true);
-function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); window.onTicks&&window.onTicks([id],on);
-  // ticking = climbed today (change it under "Obiskal sem"); unticking drops a date that was only that automatic guess
-  if(window.VINFO){ const v=VINFO.get(id)||{}; if(on&&!v.d) VINFO.set(id,Object.assign({},v,{d:VINFO.today()})); else if(!on&&v.d&&!v.r&&!v.n) VINFO.set(id,{}); } }
+function toggleV(id,on){ on?visited.add(id):visited.delete(id); saveV(); refresh(); window.onTicks&&window.onTicks([id],on); }
 // for the account sync (account.js): read / replace the ticked peaks
 window.TICKS={get:()=>new Set(visited), set:ids=>{ visited=new Set(ids.filter(id=>byId[id])); saveV(); refresh(); }};
 

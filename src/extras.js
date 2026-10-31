@@ -92,7 +92,7 @@ function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.relo
 const PHONE = () => innerWidth <= 700;
 const LAYERS = sel => PHONE() ? '#tabbar [data-t="layers"]' : document.body.classList.contains('lclosed') ? '#ltab' : sel;
 const STEPS = [
-  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 12 korakih — lahko ga kadarkoli preskočiš.', lang:true},
+  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 13 korakih — lahko ga kadarkoli preskočiš.', lang:true},
   {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.', sel:()=>PHONE()?'#tabbar [data-t="peaks"]':'#ptab'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true},
   {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#map', center:true},
@@ -102,12 +102,13 @@ const STEPS = [
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':document.body.classList.contains('lclosed')?'#ltab':'#drawBtn'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.', sel:()=>PHONE()?'#tabbar [data-t="layers"]':document.body.classList.contains('lclosed')?'#ltab':'.panel .grp'},
   {t:'⚙ Nastavitve in moj profil', d:'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Tu so tudi napredne nastavitve: hitri teren, namestitev aplikacije, območja brez signala in ta vodič.', sel:()=>PHONE()?'#tabbar [data-t="settings"]':'#gearBtn'},
+  {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
   {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitve → Vodič.'},
   {t:'Račun (neobvezno)', d:'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo in se pridružiš lestvici. Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.', acc:true}
 ];
 Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
-  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 12 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 12-step guide — skip it any time.',
+  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 13 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 13-step guide — skip it any time.',
   'Seznam vrhov':'Peak list',
   '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters.',
   'Klikni vrh na karti':'Click a peak on the map',
@@ -127,6 +128,8 @@ Object.assign(EN, {
   '⚙ Nastavitve in moj profil':'⚙ Settings and my profile',
   'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Tu so tudi napredne nastavitve: hitri teren, namestitev aplikacije, območja brez signala in ta vodič.':'Winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings. Advanced settings live here too: fast terrain, installing the app, offline areas and this guide.',
   'Srečno na poti!':'Have a good hike!',
+  'Namigi':'Tips',
+  '• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.':'• <b>Legends</b> (height, snow): on a computer drag them by the title, double-click the title to put them back; – shrinks them to a small button.<br>• <b>Tilt and north</b>: right mouse button or two fingers tilt the map, the compass turns it back to north, 2D/3D switches the view.<br>• <b>My peaks</b>: click a name in the list to fly there; under "Obiskal sem" add the date (☐ today), route and a note; "✓ Šel sem po tej poti" in a route card ticks the peak with that route.<br>• <b>Sharing</b>: ✎ Draw → My routes → ⤴ (link or public). 🏆 Leaderboard sits next to your progress in the peak list.<br>• Route and profile windows on a computer also move by their title.',
   'Račun (neobvezno)':'Account (optional)',
   'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo in se pridružiš lestvici. Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.':'With an account (username + password) your climbed peaks, dates and routes, your drawn routes and settings are on your phone and computer, you can share routes by link and join the leaderboard. Without one everything works and is saved in this browser. Manage it in ⚙ Settings.',
   'Ne zdaj':'Not now',
@@ -154,13 +157,15 @@ function showStep(){
   if (nx) nx.onclick = () => { step++; showStep(); }; if (bk) bk.onclick = () => { step--; showStep(); };
   card.querySelectorAll('.tl button').forEach(b => b.onclick = () => { LS('dvat3d_tour_step', '1'); setLang(b.dataset.l); });
   // place the card next to the highlighted element (or centred)
-  const cw = Math.min(360, innerWidth-24); card.style.width = cw+'px';
+  const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px';
   let x = innerWidth/2-cw/2, y = innerHeight/2-120;
   if (r && !S.center){ const right = r.left+r.width+16, left = r.left-cw-16;
     if (PHONE()){ x = 12; y = Math.max(12, r.top-12-240); }
     else if (right+cw < innerWidth) { x = right; y = Math.max(12, Math.min(innerHeight-260, r.top)); }
     else if (left > 0) { x = left; y = Math.max(12, Math.min(innerHeight-260, r.top)); } }
   else if (r && S.center){ x = r.left+r.width/2-cw/2; y = Math.max(12, r.top+r.height/2-120); }
+  // long cards (tips, big text): keep the whole card on screen
+  const ch = card.offsetHeight; if (y + ch > innerHeight - 12) y = Math.max(12, innerHeight - 12 - ch);
   card.style.left = x+'px'; card.style.top = y+'px'; }
 window.startTour = () => tour(0);
 addEventListener('resize', () => { if (ov) showStep(); });

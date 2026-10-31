@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zasebnost · Slovenski 2000-čaki</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root{--ink:#1d2321;--mute:#5b6461;--line:#dfe4e1;--bg:#f6f7f5;--card:#fff;--acc:#c62828}
+  @media (prefers-color-scheme:dark){:root{--ink:#e7ebe9;--mute:#a3aca8;--line:#38403d;--bg:#1b1f1e;--card:#232826}}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+  main{max-width:760px;margin:0 auto;padding:28px 18px 60px}
+  h1{font-size:1.7em;margin:0 0 4px}h2{font-size:1.15em;margin:28px 0 8px;border-top:1px solid var(--line);padding-top:18px}
+  p,li{margin:6px 0}ul{padding-left:20px}.mute{color:var(--mute)}a{color:var(--acc)}
+  table{border-collapse:collapse;width:100%;font-size:.94em;background:var(--card);border-radius:10px;overflow:hidden}
+  td,th{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}th{font-weight:600}
+  .lang{float:right;font-size:.9em}.back{display:inline-block;margin-bottom:14px}
+  section[lang=en]{display:none}body.en section[lang=sl]{display:none}body.en section[lang=en]{display:block}
+</style>
+</head>
+<body>
+<main>
+<a class="back" href="./">‹ Nazaj na karto / back to the map</a>
+<span class="lang"><a href="#" onclick="document.body.classList.remove('en');return false">SL</a> · <a href="#" onclick="document.body.classList.add('en');return false">EN</a></span>
+
+<section lang="sl">
+<h1>Zasebnost</h1>
+<p class="mute">Slovenski 2000-čaki · posodobljeno 1. 11. 2026</p>
+<p>Stran je nekomercialen hobi projekt. Ni oglasov, ni analitike, ni sledilnih piškotkov. Shranjujemo samo, kar je nujno, da stran deluje.</p>
+
+<h2>Brez računa</h2>
+<p>Vse (odkljukani vrhovi, datumi in poti vzponov, narisane poti, nastavitve, jezik, velikost besedila) ostane <b>samo v tvojem brskalniku</b> (localStorage). Nihče drug tega ne vidi. Izbrišeš z brisanjem podatkov strani v brskalniku; »Izvozi« v seznamu vrhov naredi kopijo.</p>
+
+<h2>Z računom</h2>
+<table>
+<tr><th>Kaj</th><th>Zakaj</th><th>Kdo vidi</th></tr>
+<tr><td>uporabniško ime, geslo (shranjeno samo kot zgoščena vrednost), prikazno ime, datum nastanka računa</td><td>prijava</td><td>ime in prikazno ime: lestvica (če je ne izklopiš)</td></tr>
+<tr><td>odkljukani vrhovi z datumom, potjo in opombo</td><td>da jih imaš na vseh napravah</td><td>samo ti; seznam vrhov drugi vidijo le, če vklopiš »Javni profil«; na lestvici je samo število</td></tr>
+<tr><td>nastavitve profila (zima, kondicija, najtežja pot, ferate)</td><td>enake nastavitve na vseh napravah</td><td>samo ti</td></tr>
+<tr><td>narisane poti (ime, črta, dolžina, vrhovi na poti)</td><td>shranjevanje in deljenje</td><td>samo ti; »povezava«: kdor ima povezavo; »javno«: vsi (v oknu vrha)</td></tr>
+</table>
+<p>Računi nimajo e-pošte. Podatke hrani <b>Supabase</b> (podatkovni center v EU). Vsako noč se naredi <b>šifrirana</b> varnostna kopija, ki se po 30 dneh izbriše.</p>
+<p><b>Tvoje pravice:</b> v ⚙ Nastavitve → Račun lahko podatke kadarkoli <b>izvoziš</b> (»Izvozi moje podatke«, datoteka JSON), popraviš ali <b>izbrišeš račun</b> skupaj z vsemi podatki. Za drugo piši prek <a href="https://github.com/taskrti76/Slovenija2k-Challenge/issues">GitHub</a>.</p>
+
+<h2>Zunanje storitve</h2>
+<p>Pri nalaganju karte in podatkov tvoj brskalnik neposredno pokliče te storitve; vidijo tvoj IP naslov in kateri del karte gledaš, ne pa tvojega računa:</p>
+<ul>
+<li><b>GitHub Pages</b> – sama stran in podatki o vremenu in snegu</li>
+<li><b>Mapterhorn</b> (višine terena), <b>Esri</b> (satelitska slika), <b>OpenFreeMap</b> (vode, kraji, pisave), <b>OpenTopoMap</b>, <b>Waymarked Trails</b> – slike in podatki karte</li>
+<li><b>jsDelivr</b> – knjižnice (MapLibre)</li>
+<li><b>Open-Meteo</b> (sloj »Višina snega«), <b>Overpass / OpenStreetMap</b> (državna meja, slapovi, če niso shranjeni)</li>
+<li><b>Cloudflare Turnstile</b> – preverjanje »nisem robot« ob prijavi in registraciji (samo takrat)</li>
+<li><b>Supabase</b> – samo, če imaš račun ali odpreš lestvico / deljeno pot</li>
+</ul>
+
+<h2>Kontakt</h2>
+<p>Upravljavec: avtor projekta Slovenski 2000-čaki · <a href="https://github.com/taskrti76/Slovenija2k-Challenge">github.com/taskrti76/Slovenija2k-Challenge</a></p>
+</section>
+
+<section lang="en">
+<h1>Privacy</h1>
+<p class="mute">Slovenian 2000ers · updated 1 November 2026</p>
+<p>This site is a non-commercial hobby project. No ads, no analytics, no tracking cookies. Only what the site needs to work is stored.</p>
+
+<h2>Without an account</h2>
+<p>Everything (ticked peaks, dates and routes of climbs, drawn routes, settings, language, text size) stays <b>only in your browser</b> (localStorage). Nobody else sees it. Clear it by clearing this site's data in your browser; "Export" in the peak list makes a copy.</p>
+
+<h2>With an account</h2>
+<table>
+<tr><th>What</th><th>Why</th><th>Who sees it</th></tr>
+<tr><td>username, password (stored only as a hash), display name, account creation date</td><td>sign-in</td><td>name and display name: the leaderboard (unless you switch it off)</td></tr>
+<tr><td>ticked peaks with date, route and note</td><td>to have them on all your devices</td><td>only you; others see the list only if you turn on "Public profile"; the leaderboard shows only the number</td></tr>
+<tr><td>profile settings (winter, fitness, hardest route, via ferratas)</td><td>same settings on all devices</td><td>only you</td></tr>
+<tr><td>drawn routes (name, line, length, peaks on the way)</td><td>saving and sharing</td><td>only you; "link": whoever has the link; "public": everyone (in the peak window)</td></tr>
+</table>
+<p>Accounts have no email. The data is kept by <b>Supabase</b> (EU data centre). An <b>encrypted</b> backup is made every night and deleted after 30 days.</p>
+<p><b>Your rights:</b> in ⚙ Settings → Account you can <b>export</b> your data at any time ("Export my data", a JSON file), correct it, or <b>delete the account</b> with all its data. For anything else, write via <a href="https://github.com/taskrti76/Slovenija2k-Challenge/issues">GitHub</a>.</p>
+
+<h2>Outside services</h2>
+<p>When the map and data load, your browser calls these services directly; they see your IP address and which part of the map you look at, not your account:</p>
+<ul>
+<li><b>GitHub Pages</b> – the site itself and the weather and snow data</li>
+<li><b>Mapterhorn</b> (terrain heights), <b>Esri</b> (satellite image), <b>OpenFreeMap</b> (water, places, fonts), <b>OpenTopoMap</b>, <b>Waymarked Trails</b> – map images and data</li>
+<li><b>jsDelivr</b> – libraries (MapLibre)</li>
+<li><b>Open-Meteo</b> (layer "Snow depth"), <b>Overpass / OpenStreetMap</b> (border, waterfalls, if not stored)</li>
+<li><b>Cloudflare Turnstile</b> – the "not a robot" check when signing in or up (only then)</li>
+<li><b>Supabase</b> – only if you have an account or open the leaderboard / a shared route</li>
+</ul>
+
+<h2>Contact</h2>
+<p>Controller: the author of the Slovenian 2000ers project · <a href="https://github.com/taskrti76/Slovenija2k-Challenge">github.com/taskrti76/Slovenija2k-Challenge</a></p>
+</section>
+</main>
+<script>try{ if((localStorage.getItem('dvat3d_lang')||'').replace(/"/g,'')==='en' || location.hash==='#en') document.body.classList.add('en'); }catch(_){}</script>
+</body>
+</html>

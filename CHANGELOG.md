@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.43 — 2026-10-31
+- Height legend: evenly spaced labels 0 · 1000 · 2000 · 2900 (colour bar stretched to match), "(m)" in the title; movable (PC, drag the
+  title, double-click = back) and collapsible (–), like the snow legend. Both legends scale with the text size.
+- Legends sit left of the peak list and its red tab (open or closed) unless you moved them; on phones they step aside while a peak window is open.
+- Guide: new step "Namigi" (legends, tilt / north, list → peak, date / route, sharing, leaderboard); long cards always fit on screen.
+- Leaderboard: all four boards visible (tabs wrap; 2 × 2 on phones).
+- Climb date: no longer set by ticking; "☐ danes" next to it (in the peak window and in the editor) sets today in one tap.
+- Housekeeping: GitHub Action "Supabase keep-alive" (daily ping, the free plan pauses after 7 idle days); "Supabase backup"
+  (nightly, encrypted pg_dump of accounts + our tables, 30-day artifact; needs secrets SUPABASE_DB_URL + BACKUP_PASSPHRASE;
+  restore tested on Postgres 16); privacy.html (SL / EN: what is stored, who sees it, outside services, rights);
+  account: "⬇ Izvozi moje podatke" (JSON) + privacy link.
+
 ## web-v0.42 — 2026-10-31
 - Phone: tapping a peak in the list no longer shifts the whole page (map half off-screen, tab bar at the top): the popup no
   longer takes focus while still off-screen, and nothing may scroll the page or the map box. The peak flies to the middle of the
