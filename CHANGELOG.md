@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.42 — 2026-10-31
+- Phone: tapping a peak in the list no longer shifts the whole page (map half off-screen, tab bar at the top): the popup no
+  longer takes focus while still off-screen, and nothing may scroll the page or the map box. The peak flies to the middle of the
+  free part of the screen (a bit low, so its window fits above) and the window opens when the flight ends.
+- Ticking a peak = climbed today (date shown under "Obiskal sem", editable); unticking drops that automatic date.
+- New layers: "Kraji (mesta, vasi)" (OpenFreeMap, on) and "Izohipse (plastnice)" on any base map (off); height legend for the colour relief.
+- 🏆 Leaderboard v2: everybody with an account is listed with name + numbers (switch off in the account settings), the list of
+  peaks only for public profiles. Big window (PC) / full page (phone): totals, 4 boards (prominent 2000 / all 2000+ / prominent
+  1500–2000 / all), user search, podium, progress bars, "Ti: n. mesto", paging, profile view with 4 counters. Button next to the
+  progress in the peak list. Database: supabase/04_leaderboard.sql.
+- Guide: map steps light up the whole map; peak list footer shows the account status in one line; green confirmation toasts.
+
 ## web-v0.41 — 2026-10-30
 - Account moved into ⚙ Nastavitve (top section "Račun"); the guide ends with an optional step "Račun (neobvezno)" (Ustvari račun / Prijava / Ne zdaj).
 - Climb details: under "Obiskal sem" in the peak window - date, route (suggestions = the computed routes to that peak), note;

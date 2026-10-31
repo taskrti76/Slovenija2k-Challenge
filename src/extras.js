@@ -10,7 +10,7 @@ const RANGE_EN = {'Julijske Alpe':'Julian Alps','Kamniško-Savinjske Alpe':'Kamn
 const EN = Object.assign({}, RANGE_EN, {
   'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
-  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
+  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
   'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
   'Pretiravanje višin':'Height exaggeration', '1.0 = realno':'1.0 = real', 'Klik na teren':'Click on terrain', 'Klikni kamorkoli za višino DEM.':'Click anywhere for the terrain height.',
   'Napredno':'Advanced', 'Osveži podatke OSM':'Refresh OSM data', 'Naloži ceste':'Load roads', 'Razširi na 20 km (PC)':'Extend to 20 km (PC)', 'Izvozi paket podatkov':'Export data pack',
@@ -139,7 +139,11 @@ function endTour(){ if (ov){ ov.remove(); ov = null; } LS('dvat3d_tour_done', '1
 function showStep(){
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
   let r = null; if (S.sel){ const el = document.querySelector(S.sel()); if (el && el.closest('.panel')) el.scrollIntoView({block:'center'}); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
-  if (r && S.center){ const w = Math.min(260, r.width*0.5), h = Math.min(200, r.height*0.4); r = {left:r.left+r.width/2-w/2, top:r.top+r.height/2-h/2, width:w, height:h}; }
+  // map steps: light up the whole map (minus the open side panels on PC), card in the middle
+  if (r && S.center && !PHONE()){ const pn = document.querySelector('.panel'), dr = document.getElementById('drawer');
+    const l = !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
+    r = {left:l+8, top:r.top+8, width:rt-l-16, height:r.height-16}; }
+  else if (r && S.center) r = {left:r.left+8, top:r.top+8, width:r.width-16, height:r.height-16};
   if (r){ hole.style.cssText = `display:block;left:${r.left-6}px;top:${r.top-6}px;width:${r.width+12}px;height:${r.height+12}px`; } else hole.style.cssText = 'display:block;left:50%;top:40%;width:0;height:0';
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
     (S.lang ? `<div class="tl"><button data-l="sl" class="${LANG==='sl'?'on':''}">Slovenščina</button><button data-l="en" class="${LANG==='en'?'on':''}">English</button></div>` : '')+
@@ -156,7 +160,7 @@ function showStep(){
     if (PHONE()){ x = 12; y = Math.max(12, r.top-12-240); }
     else if (right+cw < innerWidth) { x = right; y = Math.max(12, Math.min(innerHeight-260, r.top)); }
     else if (left > 0) { x = left; y = Math.max(12, Math.min(innerHeight-260, r.top)); } }
-  else if (r && S.center){ y = Math.min(innerHeight-260, r.top+r.height+16); }
+  else if (r && S.center){ x = r.left+r.width/2-cw/2; y = Math.max(12, r.top+r.height/2-120); }
   card.style.left = x+'px'; card.style.top = y+'px'; }
 window.startTour = () => tour(0);
 addEventListener('resize', () => { if (ov) showStep(); });

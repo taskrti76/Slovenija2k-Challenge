@@ -13,7 +13,7 @@ const $a = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const get = k => { try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(_){ return null; } };
 const put = (k, v) => { try{ v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); }catch(_){} };
-const toast = m => window.toastErr && toastErr(m);
+const toast = m => (window.toastOk || window.toastErr || (() => {}))(m);   // green note; errors keep using toastErr
 const AK = 'dvat3d_auth', SK = 'dvat3d_sync', VK = 'dvat3d_vinfo', PK = 'dvat3d_profile_t';
 let S = get(AK);                         // session {access_token, refresh_token, expires_at, uid, username, display_name, public}
 let SY = get(SK) || {};                  // {uid, merged, dirty:{peak: 0 ticked / 1 unticked}, idirty:{peak:1}, known:{routeId:1}, at}
@@ -76,7 +76,7 @@ const fmtD = d => d ? new Date(d + 'T12:00').toLocaleDateString(window.LANG === 
 const today = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
 const relist = () => window.TICKS && TICKS.set([...TICKS.get()]);
 window.VINFO = {
-  get: id => VI[id] || null,
+  get: id => VI[id] || null, today,
   short: id => { const v = VI[id]; if (!v || (!v.d && !v.r)) return ''; return ` <span class="vi">${esc([v.d && fmtD(v.d), v.r].filter(Boolean).join(' · '))}</span>`; },
   set(id, info){ const v = {d: (info.d || '').slice(0, 10) || null, r: (info.r || '').trim().slice(0, 160) || null, n: (info.n || '').trim().slice(0, 1000) || null};
     if (!v.d && !v.r && !v.n) delete VI[id]; else VI[id] = v; put(VK, VI);
@@ -113,10 +113,11 @@ window.onTicks = (ids, on) => { if (!S) return; fresh(); ids.forEach(id => SY.di
 window.onPrefs = () => { put(PK, Date.now()); if (S){ setState('wait'); schedule(); } };
 window.onMyRoutes = () => { if (S){ setState('wait'); schedule(); } };
 async function syncProfile(){
-  let r; try{ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name,prefs,prefs_at,public`); }
-  catch(e){ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name`); }   // 02_profile_routes.sql not run yet
+  let r; try{ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name,prefs,prefs_at,public,listed`); }
+  catch(e){ try{ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name,prefs,prefs_at,public`); }   // 04 not run yet
+    catch(e2){ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name`); } }   // 02 not run yet
   const pr = r && r[0]; if (!pr) return;
-  Object.assign(S, {username: pr.username || S.username, display_name: pr.display_name, public: !!pr.public}); put(AK, S);
+  Object.assign(S, {username: pr.username || S.username, display_name: pr.display_name, public: !!pr.public, listed: pr.listed !== false}); put(AK, S);
   if (!('prefs_at' in pr) || !window.PREFS) return;
   const lt = get(PK) || 0, st = pr.prefs_at ? Date.parse(pr.prefs_at) : 0;
   if (pr.prefs && st > lt){ PREFS.set(pr.prefs); put(PK, st); }
@@ -229,13 +230,13 @@ const css = document.createElement('style'); css.textContent = `
 #accBox .st{font-size:.85em;color:#5b6461}
 #accBox .chk{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;font-size:.92em;font-weight:400}
 #accBox .chk input{margin-top:3px}
+#dfoot .fnote{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #dfoot .fnote a,.vlnk,.prt a{color:inherit;text-decoration:underline;cursor:pointer}
 .it .nm .vi{color:var(--mute);font-size:.82em;margin-left:6px}
 .vbox{font-size:.88em;margin:2px 0 0 22px;color:#3d4643}.vbox .vlnk{color:#1565c0}
 .vform label{display:block;font-size:.85em;margin:5px 0 0;color:#5b6461}.vform input{display:block;width:100%;box-sizing:border-box;font:inherit;padding:4px 6px;border:1px solid #b9c1bd;border-radius:6px;margin-top:1px}
 .vform .vb{display:flex;gap:6px;margin-top:6px}
 .prt{font-size:.86em;margin-top:6px;border-top:1px solid #e3e7e5;padding-top:5px;color:#3d4643}.prt b{font-weight:600}.prt div{margin:2px 0}
-#lbBtn{margin:6px 14px 0;border:1px solid var(--line);border-radius:16px;background:transparent;color:inherit;font:600 .86em system-ui,sans-serif;padding:4px 11px;cursor:pointer}
 #accWin{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:12px}
 #accWin.on{display:flex}
 #accWin .acard{background:#fff;color:#1d2321;border-radius:14px;width:min(460px,100%);max-height:100%;overflow:auto;padding:16px 18px 18px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:calc(14px*var(--ui,1))}
@@ -280,7 +281,8 @@ function draw(){
     box.innerHTML = `<div class="me"><div class="av">${esc((nm.trim()[0] || '?').toUpperCase())}</div><div><b>${esc(nm)}</b><div class="st">@${esc(S.username || '')}</div></div></div>
       <div class="st" id="accSt"></div>
       <label class="f" for="accName">${L('Prikazno ime','Display name')}</label><input type="text" id="accName" maxlength="40" value="${esc(S.display_name || '')}">
-      <label class="chk"><input type="checkbox" id="accPub" ${S.public ? 'checked' : ''}><span>${L('Javni profil: pokaži me na lestvici in drugim pokaži moje osvojene vrhove (ime, datumi, poti)','Public profile: show me on the leaderboard and let others see my climbed peaks (name, dates, routes)')}</span></label>
+      <label class="chk"><input type="checkbox" id="accList" ${S.listed !== false ? 'checked' : ''}><span>${L('Prikaži me na lestvici (ime in število osvojenih vrhov)','Show me on the leaderboard (name and number of climbed peaks)')}</span></label>
+      <label class="chk"><input type="checkbox" id="accPub" ${S.public ? 'checked' : ''}><span>${L('Javni profil: drugi vidijo seznam mojih vrhov z datumi in potmi','Public profile: others can see my list of peaks with dates and routes')}</span></label>
       ${S.public ? `<div class="ah">${L('Povezava do profila:','Profile link:')} <a href="${esc(link)}" target="_blank">${esc(link.replace(/^https?:\/\//, ''))}</a></div>` : ''}
       <div class="err" id="accErr"></div>
       <div class="row"><button class="alt" id="accSave">${L('Shrani','Save')}</button><button class="alt" id="accOut">${L('Odjava','Log out')}</button></div>
@@ -289,10 +291,11 @@ function draw(){
         <div class="ah">${L('Izbriše račun, vrhove in poti. Za potrditev vpiši uporabniško ime.','Deletes the account, peaks and routes. Type your username to confirm.')}</div>
         <input type="text" id="accDelU" autocomplete="off" placeholder="${esc(S.username || '')}"><div class="row"><button class="alt danger" id="accDel">${L('Trajno izbriši','Delete for good')}</button></div></details>`;
     paintState();
-    $a('accSave').onclick = async () => { const v = $a('accName').value.trim().slice(0, 40), pub = $a('accPub').checked; $a('accErr').textContent = '';
-      try{ try{ await call(`/rest/v1/profiles?id=eq.${S.uid}`, {method: 'PATCH', body: {display_name: v || null, public: pub}, headers: {Prefer: 'return=minimal'}}); }
-        catch(e){ if (pub !== !!S.public) throw e; await call(`/rest/v1/profiles?id=eq.${S.uid}`, {method: 'PATCH', body: {display_name: v || null}, headers: {Prefer: 'return=minimal'}}); }
-        S.display_name = v; S.public = pub; put(AK, S); paint(); draw(); toast(L('Shranjeno.', 'Saved.')); }catch(e){ $a('accErr').textContent = errText(e); } };
+    $a('accSave').onclick = async () => { const v = $a('accName').value.trim().slice(0, 40), pub = $a('accPub').checked, lst = $a('accList').checked; $a('accErr').textContent = '';
+      const patch = body => call(`/rest/v1/profiles?id=eq.${S.uid}`, {method: 'PATCH', body, headers: {Prefer: 'return=minimal'}});
+      try{ try{ await patch({display_name: v || null, public: pub, listed: lst}); }
+        catch(e){ if (lst !== (S.listed !== false)) throw e; await patch({display_name: v || null, public: pub}); }   // 04 not run yet
+        S.display_name = v; S.public = pub; S.listed = lst; put(AK, S); paint(); draw(); toast(L('Shranjeno.', 'Saved.')); }catch(e){ $a('accErr').textContent = errText(e); } };
     $a('accOut').onclick = async () => { $a('accOut').disabled = true; await signOut(); draw(); };
     $a('accDel').onclick = async () => { if ($a('accDelU').value.trim().toLowerCase() !== S.username){ $a('accErr').textContent = L('Uporabniško ime se ne ujema.', 'Username does not match.'); return; }
       try{ await rpc('delete_me', {}, true); forgetLocal(); paint(); draw(); toast(L('Račun je izbrisan.', 'Account deleted.')); }catch(e){ $a('accErr').textContent = errText(e); } };
@@ -309,7 +312,8 @@ function draw(){
       <label class="f" for="accP">${L('Geslo','Password')}</label>
       <input type="password" id="accP" name="password" autocomplete="${up ? 'new-password' : 'current-password'}" required>
       ${up ? `<label class="f" for="accP2">${L('Ponovi geslo','Repeat password')}</label><input type="password" id="accP2" autocomplete="new-password" required>
-      <div class="warn">${L('Gesla ne moremo poslati po e-pošti, ker računi nimajo e-pošte – zapiši si ga ali uporabi upravitelja gesel.','We cannot email your password - accounts have no email. Write it down or use a password manager.')}</div>` : ''}
+      <div class="warn">${L('Gesla ne moremo poslati po e-pošti, ker računi nimajo e-pošte – zapiši si ga ali uporabi upravitelja gesel.','We cannot email your password - accounts have no email. Write it down or use a password manager.')}</div>
+      <div class="ah" style="margin-top:6px">${L('Na lestvici boš prikazan z imenom in številom vrhov – to lahko izklopiš v nastavitvah računa. Seznam vrhov z datumi je zaseben, dokler ne vklopiš javnega profila.','You will appear on the leaderboard with your name and number of peaks - you can turn that off in your account settings. Your list of peaks with dates stays private unless you make your profile public.')}</div>` : ''}
       <div class="ts" id="accTs"></div>
       <div class="err" id="accErr"></div>
       <button class="go" id="accGo" type="submit" disabled>${up ? L('Ustvari račun','Create account') : L('Prijava','Sign in')}</button>
@@ -337,7 +341,9 @@ const stateText = () => ({busy: L('☁ shranjujem …', '☁ saving …'), wait:
   ok: L('☁ shranjeno v računu', '☁ saved to your account') + (SY.at ? ' · ' + new Date(SY.at).toLocaleTimeString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {hour: '2-digit', minute: '2-digit'}) : '')}[state] || '');
 function paintState(){ const el = $a('accSt'); if (el) el.textContent = stateText(); }
 function paintFoot(){ const f = document.querySelector('#dfoot .fnote'); if (!f) return;
-  if (S){ f.innerHTML = `<a id="accFoot">👤 ${esc(S.display_name || S.username || '')}</a> · ${esc(stateText())}`; }
+  if (S){ const t = SY.at ? new Date(SY.at).toLocaleTimeString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {hour: '2-digit', minute: '2-digit'}) : '';
+    const sh = {busy: '☁ …', wait: '☁ ⏳', off: L('☁ brez povezave', '☁ offline'), out: L('☁ prijavi se', '☁ sign in'), ok: '☁ ✓ ' + t}[state] || '☁';
+    f.innerHTML = `<a id="accFoot">👤 ${esc(S.display_name || S.username || '')}</a> · <span title="${esc(stateText())}">${esc(sh)}</span>`; }
   else f.innerHTML = `${L('shranjeno v brskalniku', 'saved in this browser')} · <a id="accFoot">${L('prijava', 'sign in')}</a>`;
   $a('accFoot').onclick = () => openAccount('in'); }
 function paint(){ paintFoot(); if (box && !box.querySelector('#accForm')) draw(); }
@@ -350,29 +356,113 @@ const closeModal = () => win.classList.remove('on');
 win.onclick = e => { if (e.target === win) closeModal(); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && win.classList.contains('on')) closeModal(); });
 
-async function leaderboard(){
-  modal(`<h3>🏆 ${L('Lestvica','Leaderboard')}</h3><div class="sub">${L('Prominentni dvatisočaki · samo uporabniki z javnim profilom','Prominent 2000 m peaks · only users with a public profile')}</div><div id="lbList">…</div>`);
-  try{ const rows = await rpc('leaderboard', {lim: 200});
-    $a('lbList').innerHTML = rows.length ? `<table>${rows.map((r, i) => `<tr class="u${S && S.username === r.username ? ' me' : ''}" data-u="${esc(r.username)}"><td class="n">${i + 1}.</td><td><b>${esc(r.display_name || r.username)}</b> <span style="color:#5b6461">@${esc(r.username)}</span></td>
-        <td class="n" title="${L('prominentni','prominent')}">${r.prominent} / ${N_PROM}</td><td class="n" title="${L('vsi nad 2000 m','all above 2000 m')}">2000+: ${r.p2000}</td></tr>`).join('')}</table>`
-      : `<div class="sub">${L('Še nihče. Vklopi »Javni profil« v ⚙ Nastavitve → Račun.','Nobody yet. Turn on "Public profile" in ⚙ Settings → Account.')}</div>`;
-    $a('lbList').querySelectorAll('tr.u').forEach(tr => tr.onclick = () => profile(tr.dataset.u));
-    if (!S || !S.public) $a('lbList').insertAdjacentHTML('beforeend', `<div class="sub" style="margin-top:10px"><a href="#" id="lbJoin">${L('Pridruži se lestvici','Join the leaderboard')}</a></div>`);
-    const j = $a('lbJoin'); if (j) j.onclick = e => { e.preventDefault(); closeModal(); openAccount(S ? 'in' : 'up'); };
-  }catch(e){ $a('lbList').textContent = errText(e); } }
-async function profile(u){
-  modal(`<h3>@${esc(u)}</h3><div id="pfBody">…</div>`);
-  try{ const j = await rpc('public_profile', {uname: u});
-    if (!j){ $a('pfBody').innerHTML = `<div class="sub">${L('Profil ne obstaja ali ni javen.','This profile does not exist or is not public.')}</div>`; return; }
-    const A = j.ascents.filter(a => byId[a.peak_id]), prom = A.filter(a => { const p = byId[a.peak_id]; return p.tier !== '1500' && p.rank != null; }).length,
-      p2k = A.filter(a => byId[a.peak_id].tier !== '1500').length;
-    card.querySelector('h3').textContent = j.display_name || j.username;
-    $a('pfBody').innerHTML = `<div class="sub">@${esc(j.username)} · ${L('prominentni','prominent')} <b>${prom} / ${N_PROM}</b> · 2000+: <b>${p2k}</b> · ${L('vseh','all')}: ${A.length}</div>
-      ${A.map(a => { const p = byId[a.peak_id]; return `<div class="pk" data-id="${esc(a.peak_id)}"><b>${esc(p.name)} <small style="font-weight:400;color:#5b6461">${Math.round(p.elev)} m</small></b><span>${esc([a.climbed_on && fmtD(a.climbed_on), a.route_name].filter(Boolean).join(' · '))}</span></div>`; }).join('')}`;
-    $a('pfBody').querySelectorAll('.pk').forEach(d => d.onclick = () => { closeModal(); if (byId[d.dataset.id].lat != null) openPeak(d.dataset.id, true); });
-  }catch(e){ $a('pfBody').textContent = errText(e); } }
+// ---------- 🏆 leaderboard: a full page (phone) / big window (PC) ----------
+// everybody with an account is listed with name + numbers (unless they switch it off); the list of peaks only for public profiles
+const N_A2K = PEAKS.filter(p => p.tier !== '1500').length, N_P15 = PEAKS.filter(p => p.tier === '1500' && p.is_sub === 'no').length, N_ALL = PEAKS.length;
+const BOARDS = [['p2000', L('Prominentni 2000','Prominent 2000'), N_PROM], ['a2000', L('Vsi nad 2000 m','All above 2000 m'), N_A2K],
+  ['p1500', L('Prominentni 1500–2000','Prominent 1500–2000'), N_P15], ['all', L('Vsi vrhovi','All peaks'), N_ALL]];
+const COLS = ['#1565c0', '#2e7d32', '#6a1b9a', '#c62828', '#ef6c00', '#00838f', '#5d4037', '#ad1457'];
+const avc = u => COLS[[...String(u)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % COLS.length];
+const av = (u, nm, sz = 34) => `<span class="lav" style="width:${sz}px;height:${sz}px;background:${avc(u)};font-size:${Math.round(sz * .42)}px">${esc(((nm || u || '?').trim()[0] || '?').toUpperCase())}</span>`;
+const lb = document.createElement('div'); lb.id = 'lbPage'; document.body.append(lb);
+const lbCss = document.createElement('style'); lbCss.textContent = `
+#lbPage{position:fixed;inset:0;z-index:61;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+#lbPage.on{display:flex}
+#lbPage .lbc{background:#fff;color:#1d2321;border-radius:16px;width:min(760px,100%);height:min(88vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 44px rgba(0,0,0,.35);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbh{padding:14px 18px 10px;border-bottom:1px solid #e6eae8;background:linear-gradient(180deg,#fff8e6,#fff)}
+#lbPage .lbt{display:flex;align-items:center;gap:10px}#lbPage .lbt h3{margin:0;font-size:1.3em;flex:1}
+#lbPage .lbx{border:0;background:rgba(0,0,0,.06);width:32px;height:32px;border-radius:50%;font-size:1.3em;cursor:pointer;color:#444}
+#lbPage .lbs{color:#5b6461;font-size:.86em;margin:3px 0 10px}
+#lbPage .lbtabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -2px}#lbPage .lbtabs::-webkit-scrollbar{display:none}
+#lbPage .lbtabs button{flex:none;border:1px solid #d3d9d6;background:#fff;color:#1d2321;border-radius:18px;padding:6px 12px;font:600 .88em system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+#lbPage .lbtabs button.on{background:#1d2321;border-color:#1d2321;color:#fff}
+#lbPage .lbq{width:100%;box-sizing:border-box;margin-top:10px;font:inherit;padding:8px 12px;border:1px solid #c9d0cc;border-radius:10px}
+#lbPage .lbb{flex:1;overflow:auto;padding:6px 18px 12px;overscroll-behavior:contain}
+#lbPage .pod{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;margin:12px 0 8px}
+#lbPage .pd{background:#f6f8f7;border-radius:12px;padding:10px 6px 8px;text-align:center;cursor:pointer;border:1px solid #e3e8e5;min-width:0}
+#lbPage .pd .md{font-size:1.5em;line-height:1}#lbPage .pd b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
+#lbPage .pd .nn{font-size:1.35em;font-weight:800;font-variant-numeric:tabular-nums}#lbPage .pd small{color:#5b6461}
+#lbPage .pd.g1{background:linear-gradient(180deg,#fff4cc,#fffaf0);border-color:#f0d68a;padding-top:16px}#lbPage .pd.g2{background:#f2f4f6}#lbPage .pd.g3{background:#fbf1e8}
+#lbPage .lr{display:grid;grid-template-columns:34px 34px 1fr auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid #eef1ef;cursor:pointer;border-radius:8px}
+#lbPage .lr:hover{background:#f4f7f5}#lbPage .lr.me{background:#e8f0fb}
+#lbPage .rk{text-align:right;font-weight:700;color:#5b6461;font-variant-numeric:tabular-nums}
+#lbPage .who{min-width:0}#lbPage .who b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#lbPage .who small{color:#5b6461;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lbPage .bar{height:5px;background:#e8ecea;border-radius:3px;margin-top:4px;overflow:hidden}#lbPage .bar i{display:block;height:100%;background:#c62828;border-radius:3px}
+#lbPage .num{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;min-width:56px}#lbPage .num small{display:block;font-weight:400;color:#5b6461}
+#lbPage .lav{border-radius:50%;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+#lbPage .more{display:block;margin:12px auto 0;border:1px solid #c9d0cc;background:#fff;border-radius:10px;padding:8px 16px;font:600 .9em system-ui,sans-serif;cursor:pointer}
+#lbPage .lbf{border-top:1px solid #e6eae8;padding:10px 18px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;align-items:center;background:#fafbfa;font-size:.92em}
+#lbPage .lbf span{flex:1}#lbPage .lbf button{border:0;border-radius:9px;background:#1d2321;color:#fff;font:600 .9em system-ui,sans-serif;padding:8px 12px;cursor:pointer}
+#lbPage .empty{color:#5b6461;text-align:center;padding:30px 10px}
+#lbPage .pf{padding-top:8px}#lbPage .pfh{display:flex;gap:12px;align-items:center}#lbPage .pfh b{font-size:1.2em}
+#lbPage .back{border:0;background:none;font:600 .95em system-ui,sans-serif;color:#1565c0;cursor:pointer;padding:6px 0}
+#lbPage .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}#lbPage .grid div{background:#f6f8f7;border-radius:10px;padding:8px;text-align:center}
+#lbPage .grid b{display:block;font-size:1.25em;font-variant-numeric:tabular-nums}#lbPage .grid small{color:#5b6461;font-size:.78em}
+#lbPage .pk{display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-bottom:1px solid #eef1ef;cursor:pointer}#lbPage .pk span{color:#5b6461;font-size:.86em;text-align:right}
+@media (max-width:700px){ #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
+document.head.append(lbCss);
+const LB = {board: 'p2000', q: '', off: 0, rows: [], tot: 0, busy: false};
+const boardMax = () => (BOARDS.find(b => b[0] === LB.board) || BOARDS[0])[2];
+function lbShell(){
+  lb.innerHTML = `<div class="lbc"><div class="lbh"><div class="lbt"><h3>🏆 ${L('Lestvica','Leaderboard')}</h3><button class="lbx" aria-label="${L('Zapri','Close')}">×</button></div>
+    <div class="lbs" id="lbStats">…</div>
+    <div class="lbtabs">${BOARDS.map(([k, t, m]) => `<button data-b="${k}" class="${k === LB.board ? 'on' : ''}">${t} <span style="opacity:.6">${m}</span></button>`).join('')}</div>
+    <input class="lbq" id="lbQ" type="search" placeholder="${L('Išči uporabnika …','Search users …')}" value="${esc(LB.q)}" autocomplete="off"></div>
+    <div class="lbb" id="lbBody"></div><div class="lbf" id="lbFoot"></div></div>`;
+  lb.querySelector('.lbx').onclick = lbClose;
+  lb.querySelector('.lbtabs').onclick = e => { const b = e.target.closest('button'); if (!b || b.dataset.b === LB.board) return; LB.board = b.dataset.b;
+    lb.querySelectorAll('.lbtabs button').forEach(x => x.classList.toggle('on', x === b)); lbLoad(true); };
+  let qt = 0; $a('lbQ').oninput = e => { clearTimeout(qt); qt = setTimeout(() => { LB.q = e.target.value.trim().slice(0, 40); lbLoad(true); }, 300); };
+  rpc('leaderboard_stats').then(j => { const el = $a('lbStats'); if (el && j) el.textContent = `${j.users} ${L('planincev','hikers')} · ${j.ascents} ${L('osvojenih vrhov','peaks climbed')} · ${j.month} ${L('ta mesec','this month')}`; })
+    .catch(() => { const el = $a('lbStats'); if (el) el.textContent = ''; }); }
+async function lbLoad(reset){
+  if (LB.busy) return; LB.busy = true; if (reset){ LB.off = 0; LB.rows = []; $a('lbBody').innerHTML = `<div class="empty">…</div>`; }
+  try{ const rows = await rpc('leaderboard2', {board: LB.board, q: LB.q, lim: 50, off: LB.off});
+    LB.rows = LB.rows.concat(rows); LB.off += rows.length; LB.tot = rows.length ? rows[0].total_users : LB.tot; LB.more = rows.length === 50; lbList(); lbFoot(); }
+  catch(e){ $a('lbBody').innerHTML = `<div class="empty">${esc(errText(e))}${e.code === 'PGRST202' ? '<br>(supabase/04_leaderboard.sql)' : ''}</div>`; }
+  finally { LB.busy = false; } }
+function lbList(){
+  const M = boardMax(), R = LB.rows, top = !LB.q && R.length >= 3 && R[0].n > 0 ? R.slice(0, 3) : [];
+  const row = r => `<div class="lr${S && S.username === r.username ? ' me' : ''}" data-u="${esc(r.username)}"><div class="rk">${r.rnk}.</div>${av(r.username, r.display_name)}
+    <div class="who"><b>${esc(r.display_name || r.username)}</b><small>@${esc(r.username)}${r.last_climb ? ' · ' + L('zadnji vzpon','last climb') + ' ' + esc(fmtD(r.last_climb)) : ''}</small><div class="bar"><i style="width:${Math.min(100, r.n / M * 100).toFixed(1)}%"></i></div></div>
+    <div class="num">${r.n}<small>/ ${M}</small></div></div>`;
+  $a('lbBody').innerHTML = !R.length ? `<div class="empty">${LB.q ? L('Ni zadetkov.','No matches.') : L('Še nihče – bodi prvi!','Nobody yet - be the first!')}</div>`
+    : (top.length ? `<div class="pod">${[1, 0, 2].map(i => { const r = top[i]; return `<div class="pd g${i + 1}" data-u="${esc(r.username)}"><div class="md">${['🥇','🥈','🥉'][i]}</div>${av(r.username, r.display_name, i ? 38 : 46)}<b>${esc(r.display_name || r.username)}</b><div class="nn">${r.n}</div><small>/ ${M}</small></div>`; }).join('')}</div>` : '')
+      + R.slice(top.length).map(row).join('') + (LB.more ? `<button class="more" id="lbMore">${L('Pokaži več','Show more')}</button>` : '');
+  $a('lbBody').querySelectorAll('[data-u]').forEach(d => d.onclick = () => lbProfile(d.dataset.u));
+  const m = $a('lbMore'); if (m) m.onclick = () => lbLoad(false); }
+async function lbFoot(){
+  const f = $a('lbFoot'); if (!f) return;
+  if (!S){ f.innerHTML = `<span>${L('Ustvari račun in se pridruži lestvici.','Create an account and join the leaderboard.')}</span><button id="lbJ">${L('Ustvari račun','Create account')}</button>`; $a('lbJ').onclick = () => { lbClose(); openAccount('up'); }; return; }
+  if (S.listed === false){ f.innerHTML = `<span>${L('Nisi na lestvici.','You are not on the leaderboard.')}</span><button id="lbJ">${L('Nastavitve','Settings')}</button>`; $a('lbJ').onclick = () => { lbClose(); openAccount(); }; return; }
+  let me = LB.rows.find(r => r.username === S.username);
+  if (!me) try{ me = (await rpc('leaderboard2', {board: LB.board, q: S.username, lim: 5, off: 0})).find(r => r.username === S.username); }catch(_){}
+  f.innerHTML = me ? `<span>${L('Ti','You')}: <b>${me.rnk}.</b> ${L('mesto od','place of')} ${LB.tot} · <b>${me.n}</b> / ${boardMax()}</span><button id="lbJ">${L('Moj profil','My profile')}</button>`
+    : `<span>${L('Sinhroniziraj svoje vrhove, da se pojaviš na lestvici.','Sync your peaks to appear on the leaderboard.')}</span>`;
+  const j = $a('lbJ'); if (j) j.onclick = () => lbProfile(S.username); }
+async function lbProfile(u){
+  const r0 = LB.rows.find(r => r.username === u);
+  $a('lbBody').innerHTML = `<div class="pf"><button class="back" id="lbBack">‹ ${L('Nazaj na lestvico','Back to the leaderboard')}</button><div id="pfBody"><div class="empty">…</div></div></div>`;
+  $a('lbBack').onclick = lbList; $a('lbBody').scrollTop = 0;
+  let j = null; try{ j = await rpc('public_profile', {uname: u}); }catch(_){}
+  const A = j ? j.ascents.filter(a => byId[a.peak_id]) : null;
+  const cnt = A ? {p2: A.filter(a => byId[a.peak_id].tier !== '1500' && byId[a.peak_id].rank != null).length, a2: A.filter(a => byId[a.peak_id].tier !== '1500').length,
+      p15: A.filter(a => byId[a.peak_id].tier === '1500' && byId[a.peak_id].is_sub === 'no').length, all: A.length}
+    : r0 ? {p2: r0.prom2000, a2: r0.all2000, p15: r0.prom1500, all: r0.all2000 + r0.all1500} : null;
+  const nm = (j && j.display_name) || (r0 && r0.display_name) || u;
+  $a('pfBody').innerHTML = `<div class="pfh">${av(u, nm, 52)}<div><b>${esc(nm)}</b><div style="color:#5b6461">@${esc(u)}${r0 && r0.joined ? ' · ' + L('od','since') + ' ' + esc(fmtD(r0.joined)) : ''}</div></div></div>
+    ${cnt ? `<div class="grid">${[[cnt.p2, N_PROM, L('prominentni 2000','prominent 2000')], [cnt.a2, N_A2K, L('vsi nad 2000 m','all above 2000 m')], [cnt.p15, N_P15, L('prominentni 1500–2000','prominent 1500–2000')], [cnt.all, N_ALL, L('vsi vrhovi','all peaks')]]
+      .map(([v, m, t]) => `<div><b>${v}</b><small>/ ${m} · ${t}</small></div>`).join('')}</div>` : ''}
+    ${A ? (A.length ? A.map(a => { const p = byId[a.peak_id]; return `<div class="pk" data-id="${esc(a.peak_id)}"><b>${esc(p.name)} <small style="font-weight:400;color:#5b6461">${Math.round(p.elev)} m</small></b><span>${esc([a.climbed_on && fmtD(a.climbed_on), a.route_name].filter(Boolean).join(' · '))}</span></div>`; }).join('') : `<div class="empty">${L('Še brez vrhov.','No peaks yet.')}</div>`)
+      : `<div class="empty">🔒 ${L('Seznam vrhov je zaseben.','The list of peaks is private.')}${S && S.username === u ? '<br>' + L('Vklopi »Javni profil« v nastavitvah računa.','Turn on "Public profile" in your account settings.') : ''}</div>`}`;
+  $a('pfBody').querySelectorAll('.pk').forEach(d => d.onclick = () => { lbClose(); if (byId[d.dataset.id].lat != null) openPeak(d.dataset.id, true); }); }
+function leaderboard(){ lbShell(); lb.classList.add('on'); document.body.classList.remove('menu'); lbLoad(true); }
+function lbClose(){ lb.classList.remove('on'); }
+lb.onclick = e => { if (e.target === lb) lbClose(); };
+addEventListener('keydown', e => { if (e.key === 'Escape' && lb.classList.contains('on')) lbClose(); });
+async function profile(u){ lbShell(); lb.classList.add('on'); LB.rows = []; await lbProfile(u); $a('lbBack').onclick = () => lbLoad(true); }
 window.showLeaderboard = leaderboard; window.showProfile = profile;
-{ const pr = $a('progress'); if (pr){ const b = document.createElement('button'); b.id = 'lbBtn'; b.textContent = '🏆 ' + L('Lestvica', 'Leaderboard'); b.onclick = leaderboard; pr.after(b); } }
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#lbBtn')){ e.preventDefault(); leaderboard(); } });
 
 // ---------- sharing my routes ----------
 window.myShare = i => { const MY = window.MYR ? MYR.get() : [], r = MY[i]; if (!r) return;
@@ -392,7 +482,7 @@ let shared = null;
 const shCard = document.createElement('div'); shCard.id = 'shCard'; document.body.append(shCard);
 function shClear(){ shared = null; shCard.classList.remove('on'); try{ if (map.getLayer('shared-rt')) map.removeLayer('shared-rt'); if (map.getLayer('shared-rt-c')) map.removeLayer('shared-rt-c'); if (map.getSource('shared-rt')) map.removeSource('shared-rt'); }catch(_){} }
 async function showShared(tok){
-  try{ const j = await rpc('shared_route', {token: tok}); if (!j){ toast(L('Pot ne obstaja več ali ni deljena.', 'This route no longer exists or is not shared.')); return; }
+  try{ const j = await rpc('shared_route', {token: tok}); if (!j){ toastErr(L('Pot ne obstaja več ali ni deljena.', 'This route no longer exists or is not shared.')); return; }
     const c = decodeLine(j.line); if (c.length < 2) return; shClear(); shared = {name: j.name, coords: c};
     if (!map.isStyleLoaded()) await new Promise(r => map.once('load', r));
     map.addSource('shared-rt', {type: 'geojson', data: {type: 'Feature', properties: {}, geometry: {type: 'LineString', coordinates: c}}});
@@ -404,7 +494,7 @@ async function showShared(tok){
     shCard.classList.add('on'); shCard.querySelector('.x').onclick = shClear;
     $a('shGpx').onclick = () => window.coordsGPX && coordsGPX(j.name, c);
     $a('shSave').onclick = () => { if (window.MYR){ MYR.add(j.name, c); toast(L('Shranjeno med moje poti (✎ Riši).', 'Saved to my routes (✎ Draw).')); } };
-  }catch(e){ toast(errText(e)); } }
+  }catch(e){ toastErr(errText(e)); } }
 window.showShared = showShared;
 // in the peak window: public routes of other users over this peak
 const prCache = new Map();
