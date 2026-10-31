@@ -1,0 +1,58 @@
+name: Supabase backup
+# Nightly copy of the account data (encrypted), kept 30 days as a download in the Actions tab.
+# The free Supabase plan has no backups you can restore yourself - this is ours.
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     Supabase → Connect → "Session pooler" connection string (IPv4), with your database password filled in
+#   BACKUP_PASSPHRASE   any long password you keep yourself - the backup can only be opened with it
+# Without them the job just says so and stops (no error).
+# Restore: download the artifact, then  gpg -d backup-YYYY-MM-DD.sql.gz.gpg | gunzip > backup.sql
+#   new / empty project: run supabase/01–04 in the SQL Editor first, then in the SQL Editor
+#     alter table auth.users disable trigger on_auth_user_created;   (else every account would get a second, empty profile)
+#   then  psql "<connection string>" -f backup.sql   and afterwards  alter table auth.users enable trigger on_auth_user_created;
+on:
+  schedule:
+    - cron: '37 2 * * *'     # nightly ~03:37 Slovenian winter time
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check secrets
+        id: chk
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PW: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PW" ]; then echo "::notice::SUPABASE_DB_URL / BACKUP_PASSPHRASE not set - no backup made."; echo "ok=0" >> $GITHUB_OUTPUT; else echo "ok=1" >> $GITHUB_OUTPUT; fi
+      - name: Install pg_dump 17
+        if: steps.chk.outputs.ok == '1'
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -sSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Dump + encrypt
+        if: steps.chk.outputs.ok == '1'
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PW: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -o pipefail
+          F=backup-$(date -u +%F).sql
+          # our tables (data only - the structure is in supabase/01–04) + the accounts (auth.users / auth.identities)
+          # accounts first (our tables point to them)
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --data-only --no-owner --no-privileges --table=auth.users --table=auth.identities > "$F"
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --data-only --no-owner --no-privileges --schema=public --exclude-table-data=public.peaks >> "$F"
+          echo "rows: $(grep -c '^' "$F") lines, $(du -h "$F" | cut -f1)"
+          gzip -9 "$F"
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PW" --symmetric --cipher-algo AES256 -o "$F.gz.gpg" "$F.gz"
+          rm "$F.gz"; ls -la
+      - uses: actions/upload-artifact@v4
+        if: steps.chk.outputs.ok == '1'
+        with:
+          name: supabase-backup
+          path: backup-*.sql.gz.gpg
+          retention-days: 30
