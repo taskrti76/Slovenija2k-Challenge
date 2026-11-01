@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.44 — 2026-11-01
+- Weather: refreshed every 3 h (was 6 h), follows the 3-hourly ICON-D2/EU runs; summit ratings update with it.
+- Wind: summit wind = max(10 m wind, 0.8 × free-air wind at summit height) (was 1.0 × – too strong); the score note says wind is
+  for exposed summits / ridges and weaker in the lee, on slopes, in forest or on sheltered ridges.
+- Snowpack model: 4 runs a day (03:20 · 09:20 · 15:20 · 19:07 Slovenian winter time); every new ARSO reading of the day is
+  assimilated in time order (automatic stations hourly), station labels show the reading time.
+- Snowpack: the satellite check ignores pixels seen before the last snowfall (the model's new snow wins until a newer look);
+  same on the snow map, in the hover tip ("pred sneženjem – velja model") and in the peak window. Satellite never used for future days.
+- Snowpack: sunny slopes melt a little even below 0 °C air temperature (strong sun, T > −4 °C), shady slopes don't – a mild
+  extra contrast, not a big one.
+- Snow map: wind drift at high altitude – hollows / lee get more, ridges and convex tops less (above 2000 m stronger).
+- Settings window: gap at the top and bottom on PC.
+- Actions: each data job has its own queue (a shared one let a waiting run cancel another job's waiting run); push retry 5× with random wait.
+
 ## web-v0.43 — 2026-10-31
 - Height legend: evenly spaced labels 0 · 1000 · 2000 · 2900 (colour bar stretched to match), "(m)" in the title; movable (PC, drag the
   title, double-click = back) and collapsible (–), like the snow legend. Both legends scale with the text size.

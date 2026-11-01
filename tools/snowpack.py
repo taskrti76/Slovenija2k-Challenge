@@ -16,7 +16,7 @@ Steps every hour (standard methods from snow hydrology):
   7. settling: density relaxes towards 300 kg/m³ (cold) / 500 kg/m³ (wet) with a 200 h time scale (Essery 2015, FSM)
   8. satellite check (once a day, before the new day): Copernicus Sentinel-2 snowsat.png + DEM heights/aspects -> where a band of
      a cell is seen bare (<10 % snow) the snow there is removed; where it is seen white (>60 %) but the model has none, 10 cm are added
-  9. station measurements (ARSO, ~20 mountain stations, morning reading; runs twice a day - morning + evening): Kalman-filter update at the time of the reading -
+  9. station measurements (ARSO, ~20 mountain stations; newest reading of each, in time order; runs 4× a day): Kalman-filter update at the time of the reading -
      every point keeps an error variance that grows each day and shrinks near stations; the increment spreads with distance and
      height (see analysis())
 State is kept in data/snowpack_state.json (the season builds up from 1 October). Output snowpack.json for the page:
@@ -133,7 +133,14 @@ def hour(s, T, RH, P, zs, gdir, gdif, U, cz, az, e, aspect):
         s['a'] = (s['a'] - 0.5) * math.exp(-0.24 / 24) + 0.5
     else:
         s['a'] = max(0.5, s['a'] - 0.008 / 24)
-        if T < 0 and s['l'] > 0:
+        # strong sun on snow a little below the melt threshold: the surface still melts / sublimates on sunny slopes
+        # (shady slopes keep their snow) - half strength, fading out at -4 °C, so the effect shows without dominating
+        Mr = 0.0
+        if T > -4 and (gdir or 0) > 50:
+            Q = radiation(gdir, gdif, cz, az, aspect, s['a'])
+            Mr = min(s['m'], 0.5 * SRF * (1 - s['a']) * Q * (T + 4) / (TT + 4))
+            if Mr > 0: s['m'] -= Mr; s['l'] += Mr
+        if T < 0 and s['l'] > 0 and Mr <= 0:
             fr = min(s['l'], 0.05 * -T); s['l'] -= fr; s['m'] += fr
     hold = 0.1 * s['m']
     if s['l'] > hold: s['l'] = hold                                      # runoff
@@ -146,7 +153,7 @@ def depth_cm(s): return round((s['m'] + s['l']) / s['r'] * 100) if s['m'] > 0 el
 
 
 # ---------- satellite check ----------
-def satellite_check(pts, S, today):
+def satellite_check(pts, S, today, ls=None):
     try:
         import numpy as np
         from PIL import Image
@@ -187,10 +194,12 @@ def satellite_check(pts, S, today):
     ck = np.round(LAT / DLA).astype(int); cl = np.round(LON / DLO).astype(int); band = (np.round((h - LOW) / STEP) * STEP + LOW)
     var = np.where((slope > 15) & (south < -0.5), 1, np.where((slope > 15) & (south > 0.5), 2, 0))
     cnt = {}
-    sel = np.nonzero(ok)
-    for a, b, c, v, sn in zip(ck[sel], cl[sel], band[sel], var[sel], cls[sel]):
+    sel = np.nonzero(ok); sdate = datetime.date.fromisoformat(m['date']).toordinal(); old = 0
+    LS = [datetime.date.fromisoformat(x).toordinal() if x else 0 for x in (ls or [None] * len(pts))]
+    for a, b, c, v, sn, ag in zip(ck[sel], cl[sel], band[sel], var[sel], cls[sel], age[sel]):
         i = idx.get((int(a), int(b), int(c)))
         if i is None: continue
+        if sdate - int(ag) <= LS[i]: old += 1; continue        # the satellite saw it before the last snowfall there: the model knows better
         for vv in ({0, int(v)}):
             k = (i, vv); t = cnt.get(k)
             if t is None: cnt[k] = t = [0, 0]
@@ -201,7 +210,7 @@ def satellite_check(pts, S, today):
         f = ns / nn; st = S[i][v]
         if f < 0.10 and st['m'] > 0: st.update(new_state()); bare += 1
         elif f > 0.60 and st['m'] < 10: st.update({'m': 15.0, 'l': 0.0, 'r': 150.0, 'a': 0.8}); add += 1
-    print(f'satellite check ({m["date"]}): {len(cnt)} point-surfaces seen, {bare} set bare, {add} given snow')
+    print(f'satellite check ({m["date"]}): {len(cnt)} point-surfaces seen, {bare} set bare, {add} given snow; {old} pixels older than the last snowfall ignored')
 
 
 # ---------- main ----------
@@ -332,11 +341,12 @@ def main():
     # forecast for the rest of the day, so a second run the same day starts again from the end of yesterday (kept in 'base') -
     # nothing is counted twice, today is recomputed with all that is known now.
     yday = today - datetime.timedelta(days=1); base = st.get('base')
+    LSN = st.get('ls') or [None] * len(pts)                                   # last day with >= 2 mm of new snow (water), per point
     if done == today and base and base.get('done') == yday.isoformat():
-        S = st['s'] = [[dict(x) for x in row] for row in base['s']]; PV = list(base['pv']); done = yday
-        print('second run today: recomputing today from the end of yesterday')
-    if done == yday: st['base'] = {'done': yday.isoformat(), 's': [[dict(x) for x in row] for row in S], 'pv': list(PV)}
-    if (today - done).days <= 3: satellite_check(pts, S, today)
+        S = st['s'] = [[dict(x) for x in row] for row in base['s']]; PV = list(base['pv']); LSN = list(base.get('ls') or LSN); done = yday
+        print('another run today: recomputing today from the end of yesterday')
+    if done == yday: st['base'] = {'done': yday.isoformat(), 's': [[dict(x) for x in row] for row in S], 'pv': list(PV), 'ls': list(LSN)}
+    if (today - done).days <= 3: satellite_check(pts, S, today, LSN)
     V = BASE + accepted(pts[len(pts) // 2]); print('variables:', V)
     past = min(92, max(1, (today - done).days))
     print(len(pts), 'points ×', len(VARIANTS), 'surfaces; state done', done, '; past_days', past)
@@ -355,6 +365,7 @@ def main():
                   [sun(t - 1800, la, lo) for t in ts]))                    # radiation = mean of the previous hour
     cur = [[dict(S[i][vi]) for vi in range(len(VARIANTS))] for i in range(len(pts))]
     prev = [depth_cm(cur[i][0]) for i in range(len(pts))]
+    daysnow = [0.0] * len(pts)                                                 # new snow (mm water) of the day so far, flat
 
     def advance(k0, k1):
         for k in range(k0, k1):
@@ -364,42 +375,40 @@ def main():
                 T, RH, P, ZS, GD, GF, U, sp = F[i]; e = pts[i][2]
                 for vi, asp in enumerate(VARIANTS):
                     hour(cur[i][vi], T[k], RH[k], P[k], ZS[k], GD[k], GF[k], U[k], sp[k][0], sp[k][1], e, asp)
+                if P[k] and T[k] is not None: daysnow[i] += (P[k] or 0) * PK * snow_fraction(T[k], RH[k], ZS[k], e)
             if t[11:13] == '23':
                 for i in range(len(pts)):
                     if d in depth: depth[d][i] = [depth_cm(s) for s in cur[i]]
+                    if daysnow[i] >= 2.0 and dd <= today: LSN[i] = d
+                    daysnow[i] = 0.0
                     if dd <= today:
                         S[i] = [dict(s) for s in cur[i]]
                         dn = depth_cm(cur[i][0]); PV[i] = min(2500.0, PV[i] + 4 + (0.3 * max(0, dn - prev[i])) ** 2); prev[i] = dn
-                if dd == yday: st['base'] = {'done': d, 's': [[dict(x) for x in row] for row in S], 'pv': list(PV)}
+                if dd == yday: st['base'] = {'done': d, 's': [[dict(x) for x in row] for row in S], 'pv': list(PV), 'ls': list(LSN)}
 
-    # stations: assimilate at the time of their reading (normally 06 UTC today), if that is after the saved state
-    obs = arso_obs(); used = []
-    k_obs = None
-    if obs:
-        # the reading time most stations have (normally today 06 UTC = 07:00); a few automatic stations may report later
-        cnt = {}
-        for o in obs: cnt[o['valid'][:13]] = cnt.get(o['valid'][:13], 0) + 1
-        vd = max(cnt, key=lambda k: (k[:10], cnt[k]))                     # newest day, then most stations
-        obs = [o for o in obs if o['valid'][:13] == vd]
-        k_obs = next((k for k, t in enumerate(times) if t[:13] == vd), None)
-        if k_obs is not None and datetime.date.fromisoformat(vd[:10]) <= done: k_obs = None; print('stations', vd, 'already assimilated')
-    if k_obs is not None:
-        advance(0, k_obs + 1)
-        used = analysis(pts, cur, PV, obs)
-        advance(k_obs + 1, len(times))
-    else:
-        advance(0, len(times))
+    # stations: each station's newest reading (manual ones 07:00, automatic ones later), assimilated in time order at the hour
+    # of the reading, if that is after the saved state (= end of yesterday)
+    obs = arso_obs(); used = []; groups = {}
+    for o in obs: groups.setdefault(o['valid'][:13], []).append(o)
+    tix = {t[:13]: k for k, t in enumerate(times)}
+    hrs = [h for h in sorted(groups) if h in tix and datetime.date.fromisoformat(h[:10]) > done]
+    k = 0
+    for vd in hrs:
+        advance(k, tix[vd] + 1); k = tix[vd] + 1
+        used += analysis(pts, cur, PV, groups[vd]); print('stations at', vd, 'UTC:', len(groups[vd]))
+    if not hrs: print('no new station readings', sorted(groups)[-3:] if groups else '')
+    advance(k, len(times))
     last = times[-1][:10]
     if times[-1][11:13] != '23' and last in depth:
         for i in range(len(pts)): depth[last][i] = [depth_cm(s) for s in cur[i]]
     st['s'] = [[{k: round(v, 3) for k, v in x.items()} for x in row] for row in S]
     st['pv'] = [round(v, 1) for v in PV]
-    st['done'] = today.isoformat()
+    st['done'] = today.isoformat(); st['ls'] = list(LSN)
     st['hist'] = {d: depth[d] for d in out_days if d <= today.isoformat()}
     json.dump(st, open(STATE, 'w'), separators=(',', ':'))
     json.dump({'ver': VER, 'gen': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%MZ'), 'step': STEP, 'low': LOW,
-               'slope': SLOPE, 'pts': pts, 'days': out_days, 'cm': [depth[d] for d in out_days],
-               'obs': [{k: o.get(k) for k in ('name', 'alt', 'lat', 'lon', 'cm', 'valid', 'model', 'after')} for o in (used or obs)]},
+               'slope': SLOPE, 'pts': pts, 'days': out_days, 'cm': [depth[d] for d in out_days], 'ls': LSN,
+               'obs': [{k: o.get(k) for k in ('name', 'alt', 'lat', 'lon', 'cm', 'valid', 'model', 'after')} for o in obs]},
               open(OUT, 'w'), separators=(',', ':'))
     t = today.isoformat()
     if t in depth:

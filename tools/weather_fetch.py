@@ -1,9 +1,9 @@
-"""Summit weather for every peak (run by .github/workflows/weather.yml every 6 h, or by hand).
+"""Summit weather for every peak (run by .github/workflows/weather.yml every 3 h, or by hand).
 
 Peaks closer than ~1.6 km share one forecast point (the model grid is ~2 km); the point is asked at the height of
 its highest peak, lower peaks in the group get the temperature corrected by -0.65 °C / 100 m in the page.
 Model: DWD ICON (ICON-D2 2 km for 2 days, then ICON-EU) via Open-Meteo ("icon_seamless"), hours 06–21, 4 days.
-Summit wind = max(10 m wind, free-air wind at summit height from the pressure levels) - the 10 m wind of a 2 km model
+Summit wind = max(10 m wind, 0.8 x free-air wind at summit height from the pressure levels) - the 10 m wind of a 2 km model
 sits on smoothed terrain far below a sharp summit and is much too low there.
 Output: weather.json (compact ints, decoded by src/weather.js). Also low / mid cloud (is the summit in cloud?) and model snow depth. Needs only the Python standard library.
 """
@@ -15,6 +15,7 @@ UA = {'User-Agent': 'dvatisocaki-weather/1.0 (+https://taskrti76.github.io/Slove
 API = 'https://api.open-meteo.com/v1/forecast'
 HOURS = list(range(6, 22))          # 06:00 .. 21:00 local
 DAYS = 4
+FA_K = 0.8   # free-air wind is felt ~20 % weaker on the summit (terrain friction, lee) - 1.0 overestimated it
 BASE = ['temperature_2m', 'wind_speed_10m', 'wind_gusts_10m', 'wind_direction_10m', 'cloud_cover', 'precipitation', 'weather_code']
 EXTRA = ['freezing_level_height', 'cape', 'wind_speed_850hPa', 'wind_speed_800hPa', 'wind_speed_750hPa', 'wind_speed_700hPa',
          'cloud_cover_low', 'cloud_cover_mid', 'snow_depth']
@@ -119,7 +120,7 @@ def main():
                         (z0, a0), (z1, a1) = below[-1], above[0]; fa = a0[k] + (a1[k] - a0[k]) * (e - z0) / (z1 - z0)
                     elif below: fa = below[-1][1][k]
                     elif above: fa = above[0][1][k]
-                w = max(v for v in (w10[k], fa) if v is not None) if (w10[k] is not None or fa is not None) else None
+                w = max(v for v in (w10[k], fa * FA_K if fa is not None else None) if v is not None) if (w10[k] is not None or fa is not None) else None
                 g = max(v for v in (g10[k], w * 1.35 if w is not None else None) if v is not None) if (g10[k] is not None or w is not None) else None
                 W.append(None if w is None else round(w)); G.append(None if g is None else round(g))
             I = i + n

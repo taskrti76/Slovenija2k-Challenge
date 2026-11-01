@@ -16,7 +16,7 @@ const save = () => { store(); window.onPrefs && window.onPrefs(P); };   // accou
 window.PREFS = {get: () => Object.assign({}, P), set: p => { P = Object.assign({}, DEF, p || {}); store(); paintChips(); }};
 
 const css = document.createElement('style'); css.textContent = `
-#setWin{position:fixed;inset:0;z-index:58;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:12px}
+#setWin{position:fixed;inset:0;z-index:58;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:clamp(16px,8vh,80px) 12px}
 #setWin.on{display:flex}
 #setWin .setcard{display:block;background:#fff;color:#1d2321;border-radius:14px;width:min(560px,100%);max-height:100%;overflow:auto;padding:14px 16px 18px;box-shadow:0 10px 40px rgba(0,0,0,.35);font-size:calc(14px*var(--ui,1))}
 #setWin h3{margin:0 0 10px;font-size:1.2em}#setWin .x{float:right;border:0;background:none;font-size:1.7em;line-height:1;cursor:pointer;color:var(--mute,#666)}
