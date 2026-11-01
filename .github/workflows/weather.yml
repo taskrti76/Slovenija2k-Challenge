@@ -1,11 +1,13 @@
 name: Summit weather
 on:
   schedule:
-    - cron: '41 1,7,13,19 * * *'   # 4x a day, ~1.5 h after the 00/06/12/18 UTC ICON runs
+    - cron: '41 1,4,7,10,13,16,19,22 * * *'   # every 3 h, ~1.5 h after each 3-hourly ICON-D2/EU run
   workflow_dispatch: {}            # "Run workflow" button in the Actions tab
 permissions:
   contents: write
-concurrency: { group: data-commit, cancel-in-progress: false }
+concurrency:   # own queue per job: a shared group would cancel a waiting run of another job
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 jobs:
   weather:
     runs-on: ubuntu-latest
@@ -22,4 +24,4 @@ jobs:
           git add weather.json
           git diff --cached --quiet && exit 0
           git commit -m "weather: $(date -u +%F' '%H:%M)"
-          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
