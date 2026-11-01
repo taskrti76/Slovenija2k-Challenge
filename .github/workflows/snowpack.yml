@@ -1,12 +1,14 @@
 name: Snowpack model
 on:
   schedule:
-    - cron: '20 8 * * *'   # morning: today's ARSO station readings (07:00) - ~09:20 Slovenian winter time
-    - cron: '7 18 * * *'   # evening: + the satellite job's new snow map (17:23); recomputes today from the end of yesterday
+    - cron: '20 2,8,14 * * *'   # night / morning (ARSO 07:00 readings) / afternoon (hourly automatic stations)
+    - cron: '7 18 * * *'   # evening: + the satellite job's new snow map (17:23); each run recomputes today from the end of yesterday
   workflow_dispatch: {}
 permissions:
   contents: write
-concurrency: { group: data-commit, cancel-in-progress: false }
+concurrency:   # own queue per job: a shared group would cancel a waiting run of another job
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 jobs:
   snowpack:
     runs-on: ubuntu-latest
@@ -24,4 +26,4 @@ jobs:
           git add snowpack.json data/snowpack_state.json
           git diff --cached --quiet && exit 0
           git commit -m "snowpack: $(date -u +%F)"
-          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
