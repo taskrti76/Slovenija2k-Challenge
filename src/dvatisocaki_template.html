@@ -1189,7 +1189,7 @@ function openPeak(id,fly){
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
   const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
-  row.append(rb,vb); box.append(row); if(window.pubRoutesBox) box.append(pubRoutesBox(p));   // routes other users shared publicly
+  row.append(rb,vb); box.append(row); if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   // focusAfterOpen off: the browser used to scroll the whole page (and the map inside it) to a popup still off-screen,

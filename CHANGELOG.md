@@ -2,6 +2,21 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.45 — 2026-11-01 (friends + groups + group plans)
+- Friends (mutual): add by username or from a profile on the leaderboard; the other one accepts. Friends see everything of each
+  other – peaks with dates, routes and notes, and drawn routes (open one on the map, GPX, save a copy). "Ti in prijatelji" ranking
+  with the four boards; friend's peaks on the map (rings).
+- Groups (private): created among friends, you can invite only your own friends; join / decline invitations; the owner renames,
+  removes members, deletes; if the owner leaves, the longest member takes over. Members see each other's peaks with dates
+  (routes / notes stay friends-only).
+- Group page: plans (title, date, drawn route or a peak, note; "✓ Grem" / "Ne grem", who is going, on the map, GPX), group
+  leaderboard, group peaks (climbed by at least one / by all, rings on the map, "nobody yet" list), invite friends, past plans.
+- Peak window: "👥 Prijatelji in skupine" – who of your friends / group members climbed it (date; route + note for friends).
+- Leaderboard page has three tabs: 🏆 Lestvica · 👥 Prijatelji · ⛰ Skupine; red dot on 🏆 and a number on the tab for new requests /
+  invitations; "👥 Prijatelji in skupine" button in ⚙ Settings → Account; data export includes friends and groups.
+- Database: supabase/05_social.sql (tables closed, everything through functions; limits: 300 friends, 30 requests a day,
+  30 groups / 10 own, 50 members, 300 plans per group). Privacy page updated.
+
 ## web-v0.44 — 2026-11-01
 - Weather: refreshed every 3 h (was 6 h), follows the 3-hourly ICON-D2/EU runs; summit ratings update with it.
 - Wind: summit wind = max(10 m wind, 0.8 × free-air wind at summit height) (was 1.0 × – too strong); the score note says wind is
