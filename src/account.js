@@ -18,6 +18,7 @@ const AK = 'dvat3d_auth', SK = 'dvat3d_sync', VK = 'dvat3d_vinfo', PK = 'dvat3d_
 let S = get(AK);                         // session {access_token, refresh_token, expires_at, uid, username, display_name, public}
 let SY = get(SK) || {};                  // {uid, merged, dirty:{peak: 0 ticked / 1 unticked}, idirty:{peak:1}, known:{routeId:1}, at}
 let VI = get(VK) || {};                  // climb details {peak: {d:'YYYY-MM-DD', r:'route', n:'note'}}
+for (const [o, n] of Object.entries(ID_MOVED)) if (VI[o]){ if (!VI[n]) VI[n] = VI[o]; delete VI[o]; put(VK, VI); }   // merged duplicate peaks
 const USER_RE = /^(?![.])(?!.*\.\.)[a-z0-9_.-]{3,24}(?<![.])$/;
 const N_PROM = PEAKS.filter(p => p.tier !== '1500' && p.rank != null).length;
 
@@ -141,6 +142,7 @@ async function syncProfile(){
     body: {prefs: PREFS.get(), prefs_at: new Date(lt).toISOString()}}); }
 async function syncAscents(){
   const rows = await call('/rest/v1/ascents?select=peak_id,deleted,climbed_on,route_name,note&limit=5000');
+  rows.forEach(r => { if (ID_MOVED[r.peak_id]) r.peak_id = ID_MOVED[r.peak_id]; });   // merged duplicate (until 03_peaks.sql moves it in the account)
   const srv = new Map(rows.map(r => [r.peak_id, r]));
   if (!SY.merged){   // first login in this browser: what was ticked / noted here before goes into the account
     for (const id of TICKS.get()){ const r = srv.get(id); if ((!r || r.deleted) && !(id in SY.dirty)) SY.dirty[id] = 0; }

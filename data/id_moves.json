@@ -1,0 +1,4 @@
+{
+  "_": "Merged duplicate peaks: old id -> kept id. tools/build.py puts this into the page (ticks / climb details in browsers move over) and into supabase/03_peaks.sql (climbs in accounts move over). Keep old entries.",
+  "ostrv-2104": "kainradlturm-2103"
+}

@@ -248,7 +248,6 @@ ledinski-vrh-2108,Ledinski vrh,Ledinski vrh,2107.1,73.9,,Kamniško-Savinjske Alp
 celovška-špica-2105,Celovška špica,,2105.0,,,Karavanke,wikipedia-table,Stol,yes,,,,none,,
 vrh-police-2105,Vrh Police,,2105.0,,,Julijske Alpe,nearest-peaks,,no,46.369163,13.550144,2086.6,approx,lidar-osm,
 dimniki-2104,Dimniki,Dimniki,2104.9,71.0,,Julijske Alpe,nearest-peaks,,no,46.398264,13.897995,2104.8,ok,lidar-fp,
-ostrv-2104,Ostrv,,2104.0,,,Julijske Alpe,nearest-peaks,,no,,,,none,,
 vajnež-2102,Vajnež,Vajnež,2102.9,154.3,73,Karavanke,wikipedia-table,Stol,yes,46.442818,14.150637,2092.6,approx,lidar-fp,
 koštrunovec-2102,Koštrunovec,,2102.0,,,Julijske Alpe,nearest-peaks,,no,46.356977,13.843750,2101.4,ok,lidar-osm,
 veliki-grad-2102,Veliki Grad,,2102.0,,,Julijske Alpe,nearest-peaks,,no,46.342536,13.774441,2101.5,ok,lidar-osm,
@@ -359,7 +358,7 @@ vilice-zahodni-vrh-2343,Vilice – zahodni vrh,Vilice – zahodni vrh,2343.4,47.
 vilice-vzhodni-vrh-2335,Vilice – vzhodni vrh,Vilice – vzhodni vrh,2335.4,41.9,,Kamniško-Savinjske Alpe,nearest-peaks,,yes,46.358650,14.622062,2335.2,approx,lidar-fp,
 vršac-2237,Vršac,Vršac,2237.2,68.5,,Julijske Alpe,nearest-peaks,,yes,46.332951,13.741676,2237.0,ok,lidar-fp,
 roglji-2177,Roglji,Roglji,2177.1,49.0,,Kamniško-Savinjske Alpe,nearest-peaks,,yes,46.362071,14.630259,2176.9,ok,lidar-fp,
-kainradlturm-2103,Kainradlturm,Kainradlturm,2102.8,41.1,,Karavanke,nearest-peaks,,yes,46.444843,14.405276,2077.8,approx,lidar-osm,
+kainradlturm-2103,Ostrv (Kainradlturm),Kainradlturm,2102.8,41.1,,Karavanke,nearest-peaks,,yes,46.4449313,14.4051817,,ok,osm,"2026-11-01: merged with duplicate ""Ostrv"" (ostrv-2104, same OSM node ""Ostrv / Kainradlturm"", 12 m apart); position from OSM"
 veliki-greben-2077,Veliki greben,Veliki greben,2077.1,33.3,,Kamniško-Savinjske Alpe,nearest-peaks,,yes,46.358250,14.565243,2076.8,ok,lidar-fp,
 goličica-2076,Goličica,Goličica,2076.2,125.3,85,Julijske Alpe,nearest-peaks,,no,46.432541,13.769892,2075.2,ok,lidar-fp,
 molička-peč-2030,Molička peč,Molička peč,2029.6,45.3,,Kamniško-Savinjske Alpe,nearest-peaks,,yes,46.364203,14.671758,2029.3,ok,lidar-fp,

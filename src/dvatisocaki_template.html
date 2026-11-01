@@ -419,6 +419,7 @@ window.toastErr=msg=>{ const t=document.getElementById('toast'); if(!t) return; 
 addEventListener('error',e=>toastErr((e.message||'napaka')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')));
 addEventListener('unhandledrejection',e=>toastErr(String(e.reason&&e.reason.message||e.reason)));
 const PEAKS = __PEAKS__;
+const ID_MOVED = __IDMOVES__;   // merged duplicate peaks: old id -> kept id (data/id_moves.json)
 const RANGES = [["Julijske Alpe","#c0392b"],["Kamniško-Savinjske Alpe","#1f6fb2"],["Karavanke","#7b3fa0"],["Predalpe","#e67e22"],["Pohorje","#00897b"],["Snežnik","#795548"]];
 // tiers: 2000 = Peakbagger list (+ OSM subpeaks), 1500 = OSM peaks 1500–2000 m with LiDAR prominence (main ≥100 m, subpeaks ≥30 m)
 const isMain=p=>p.tier==='1500'?p.is_sub==='no':p.rank!=null;
@@ -1131,7 +1132,7 @@ document.getElementById('border').onchange=e=>['border','border-casing'].forEach
 // --- visited state (localStorage, per browser)
 const VKEY='dvat3d_visited_v1';
 let visited=new Set();
-try{ visited=new Set(JSON.parse(localStorage.getItem(VKEY)||'[]')); }catch(e){}
+try{ visited=new Set(JSON.parse(localStorage.getItem(VKEY)||'[]').map(id=>ID_MOVED[id]||id)); }catch(e){}
 const saveV=()=>{ try{ localStorage.setItem(VKEY,JSON.stringify([...visited])); }catch(e){} };
 const byId=Object.fromEntries(PEAKS.map(p=>[p.id,p]));
 const located=PEAKS.filter(p=>p.lat!=null);

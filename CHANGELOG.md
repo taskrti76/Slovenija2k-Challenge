@@ -2,6 +2,12 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.46 — 2026-11-01
+- Peak list: "Ostrv" and "Kainradlturm" were the same summit (one OSM node "Ostrv / Kainradlturm", 12 m apart) – merged into
+  "Ostrv (Kainradlturm)" (id kainradlturm-2103, Karavanke, position from OSM). 2000 m list: 376 peaks.
+- data/id_moves.json: merged duplicates (old id -> kept id). Ticks and climb details in browsers move over automatically;
+  supabase/03_peaks.sql moves climbs in accounts (run it again in the SQL Editor).
+
 ## web-v0.45 — 2026-11-01 (friends + groups + group plans)
 - Friends (mutual): add by username or from a profile on the leaderboard; the other one accepts. Friends see everything of each
   other – peaks with dates, routes and notes, and drawn routes (open one on the map, GPX, save a copy). "Ti in prijatelji" ranking

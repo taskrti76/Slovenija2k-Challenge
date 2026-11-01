@@ -4233,23 +4233,6 @@
 "notes": ""
 },
 {
-"id": "ostrv-2104",
-"name": "Ostrv",
-"pb_name": "",
-"elev": 2104,
-"prom": null,
-"rank": null,
-"range": "Julijske Alpe",
-"massif": "",
-"is_sub": "no",
-"lat": 46.4449313,
-"lon": 14.4051817,
-"dem_h": null,
-"coord_status": "ok",
-"coord_src": "osm",
-"notes": "2026-10-28: position added from OSM"
-},
-{
 "id": "vajnež-2102",
 "name": "Vajnež",
 "pb_name": "Vajnež",
@@ -6121,7 +6104,7 @@
 },
 {
 "id": "kainradlturm-2103",
-"name": "Kainradlturm",
+"name": "Ostrv (Kainradlturm)",
 "pb_name": "Kainradlturm",
 "elev": 2102.8,
 "prom": 41.1,
@@ -6129,12 +6112,12 @@
 "range": "Karavanke",
 "massif": "",
 "is_sub": "yes",
-"lat": 46.444843,
-"lon": 14.405276,
-"dem_h": 2077.8,
-"coord_status": "approx",
-"coord_src": "lidar-osm",
-"notes": ""
+"lat": 46.4449313,
+"lon": 14.4051817,
+"dem_h": null,
+"coord_status": "ok",
+"coord_src": "osm",
+"notes": "2026-11-01: merged with duplicate \"Ostrv\" (ostrv-2104, same OSM node \"Ostrv / Kainradlturm\", 12 m apart); position from OSM"
 },
 {
 "id": "veliki-greben-2077",
