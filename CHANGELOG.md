@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.47 — 2026-11-02
+- Snow map: no more light squares. Cloud gaps (no satellite look) took the old "bare" verdict of the pixels around them while all
+  around the model's new snow was used; now "is the satellite older than the last snowfall?" is asked of the same ~280 m window
+  that gives the satellite shares, so gaps follow their neighbours.
+- iPhone sideways: map & layers sheet, peak list, their tabs, map buttons and the tab bar keep clear of the Dynamic Island /
+  notch and rounded corners (safe areas). Phone held sideways (height ≤ 500 px): both sheets start closed so the map is visible.
+- iPhone memory: canvas at most 2× pixels, smaller tile cache, fewer tiles in flight, less prefetching. If the page gets killed
+  while open (out of memory), the next start switches on varčni način and says so (switching it off by hand sticks).
+- Legends: collapsed = a small button (⛰ ▸ / ❄ ▸) - the height legend kept its full width before.
+- Guide: each step opens what it talks about (map & layers sheet for weather / snow / draw / layers, the peak list) and lights up
+  the real thing (the whole row); at the end the sheets go back to how they were.
+- Signed in: 👥 Prijatelji tab in the phone tab bar (Karta · Vrhovi · Riši · 👥 · Nastavitve) and a 👥 button next to ⚙ on PC,
+  both with the number of new requests / invitations.
+
 ## web-v0.46 — 2026-11-01
 - Peak list: "Ostrv" and "Kainradlturm" were the same summit (one OSM node "Ostrv / Kainradlturm", 12 m apart) – merged into
   "Ostrv (Kainradlturm)" (id kainradlturm-2103, Karavanke, position from OSM). 2000 m list: 376 peaks.

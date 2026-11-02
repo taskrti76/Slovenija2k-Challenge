@@ -243,6 +243,10 @@ const css = document.createElement('style'); css.textContent = `
 #accBox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 #accBox .danger{border-color:#d9a5a1;color:#b3261e}
 #accBox #accSoc{width:100%;text-align:left}
+#socGear{float:right;margin:2px 4px 0 0;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--mute);font:600 calc(11px*var(--ui,1)) system-ui,sans-serif;padding:3px 7px;cursor:pointer}
+#socGear .bdg{margin-left:3px;vertical-align:1px}
+#socTab{position:relative}#socTab .bdg.tb{position:absolute;top:4px;left:calc(50% + 6px);margin:0}
+@media (max-width:700px){ #socGear{display:none} }
 #accBox .ts{margin-top:10px;min-height:65px}
 #accBox .me{display:flex;gap:12px;align-items:center;margin:2px 0 6px}
 #accBox .av{width:42px;height:42px;border-radius:50%;background:#1565c0;color:#fff;display:flex;align-items:center;justify-content:center;font:700 1.15em system-ui,sans-serif;flex:none}
@@ -377,7 +381,19 @@ function paintFoot(){ const f = document.querySelector('#dfoot .fnote'); if (!f)
     f.innerHTML = `<a id="accFoot">👤 ${esc(S.display_name || S.username || '')}</a> · <span title="${esc(stateText())}">${esc(sh)}</span>`; }
   else f.innerHTML = `${L('shranjeno v brskalniku', 'saved in this browser')} · <a id="accFoot">${L('prijava', 'sign in')}</a>`;
   $a('accFoot').onclick = () => openAccount('in'); }
-function paint(){ paintFoot(); if (box && !box.querySelector('#accForm')) draw(); }
+function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accForm')) draw(); }
+// signed in: 👥 next to the other tabs (phone tab bar: Karta · Vrhovi · Riši · 👥 · Nastavitve; PC: next to ⚙)
+function socBtns(){ const tb = $a('tabbar'), set = tb && tb.querySelector('[data-t="settings"]'); let t = $a('socTab'), g = $a('socGear');
+  if (!S){ if (t) t.remove(); if (g) g.remove(); return; }
+  const n = typeof SO !== 'undefined' ? badgeN() : 0, lab = L('Prijatelji','Friends');
+  if (tb && !t){ t = document.createElement('button'); t.id = 'socTab'; t.dataset.t = 'social';
+    t.addEventListener('click', e => { e.stopPropagation(); document.body.classList.remove('menu'); const d = $a('drawer'); if (d) d.classList.remove('open');
+      soOpen(SO.badge.requests || !SO.badge.invites ? 'fr' : 'gr'); });
+    set ? tb.insertBefore(t, set) : tb.append(t); }
+  if (t) t.innerHTML = `<span class="ic">👥</span>${lab}${n ? `<i class="bdg tb">${n}</i>` : ''}`;
+  const gear = $a('gearBtn');
+  if (gear && !g){ g = document.createElement('button'); g.id = 'socGear'; g.title = L('Prijatelji in skupine','Friends & groups'); g.onclick = () => soOpen(SO.badge.requests || !SO.badge.invites ? 'fr' : 'gr'); gear.after(g); }
+  if (g) g.innerHTML = `👥${n ? `<i class="bdg">${n}</i>` : ''}`; }
 
 // ---------- small window (leaderboard, public profile, sharing) ----------
 const win = document.createElement('div'); win.id = 'accWin'; win.innerHTML = '<div class="acard"></div>'; document.body.append(win);
@@ -558,7 +574,7 @@ async function loadFriends(force){ if (!S) return []; if (!force && SO.fr && Dat
   SO.fr = await rpc('my_friends', {}, true); SO.frT = Date.now(); return SO.fr; }
 async function refreshBadge(){ if (!S){ SO.badge = {requests: 0, invites: 0}; document.body.classList.remove('socdot'); return; }
   try{ SO.badge = await rpc('social_badge', {}, true) || SO.badge; }catch(_){ return; }
-  document.body.classList.toggle('socdot', badgeN() > 0);
+  document.body.classList.toggle('socdot', badgeN() > 0); socBtns();
   const b = $a('accSoc'); if (b) b.innerHTML = `👥 ${L('Prijatelji in skupine','Friends & groups')}${badgeN() ? ` <i class="bdg">${badgeN()}</i>` : ''}`;
   lb.querySelectorAll('.lbnav button').forEach(x => { const n = x.dataset.p === 'fr' ? SO.badge.requests : x.dataset.p === 'gr' ? SO.badge.invites : 0;
     const i = x.querySelector('.bdg'); if (n && !i) x.insertAdjacentHTML('beforeend', `<i class="bdg">${n}</i>`); else if (i){ if (n) i.textContent = n; else i.remove(); } }); }

@@ -66,7 +66,11 @@
     body.in360 #ptab{display:none}
     body.dopen .maplibregl-ctrl-top-right{right:calc(var(--dw) + 2px);transition:right .25s}
     /* layers & maps: roll-out sheet on the left edge with its own pull tab (same as the peak list) */
-    :root{--pw:min(calc(245px * var(--ui,1)),35vw);--lw:var(--pw)} body.lclosed{--lw:0px}
+    :root{--pw:min(calc(245px * var(--ui,1)),35vw);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--lw:calc(var(--pw) + var(--sl))} body.lclosed{--lw:var(--sl)}
+    .panel{padding-left:calc(16px + var(--sl))!important;width:calc(var(--pw) + var(--sl))!important}
+    #drawer{padding-right:var(--sr);box-sizing:border-box;width:calc(var(--dw) + var(--sr))!important}
+    #ptab{right:var(--sr)} body.dopen #ptab{right:calc(var(--dw) + var(--sr))}
+    .maplibregl-ctrl-top-right{right:var(--sr)} body.dopen .maplibregl-ctrl-top-right{right:calc(var(--dw) + var(--sr) + 2px)}
     .panel{top:0;left:0;bottom:0;width:var(--pw);max-width:none;max-height:none;border-radius:0;border-width:0 1px 0 0;box-shadow:4px 0 18px rgba(0,0,0,.18);
       padding:14px 16px;transition:transform .25s,visibility .25s;z-index:10}
     body.lclosed .panel{transform:translateX(-105%);visibility:hidden}
@@ -181,14 +185,14 @@
   #snowleg .lh b{white-space:nowrap}
   #snowleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:calc(15px * var(--ui,1));line-height:1;padding:2px 4px;cursor:pointer}
   #snowleg.min{width:auto;padding:5px 8px}
-  #snowleg.min .lb,#snowleg.min #snowlegdate{display:none}
+  #snowleg.min .lb,#snowleg.min #snowlegdate,#snowleg.min .lt{display:none}
   #snowleg.dragging{opacity:.85}
   @media (max-width:700px){#snowleg{bottom:132px;right:8px}}
   #hleg{display:none;position:absolute;right:12px;bottom:118px;width:max-content;min-width:calc(150px + 40px * var(--ui,1));background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
     border-radius:10px;padding:7px 10px 6px;font-size:calc(12px * var(--ui,1));color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5}
   #hleg .lh{display:flex;align-items:center;gap:5px;cursor:move;user-select:none}#hleg .lh b{white-space:nowrap}#hleg .lh .u{color:var(--mute);font-size:.9em}
   #hleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:calc(15px * var(--ui,1));line-height:1;padding:2px 4px;cursor:pointer}
-  #hleg.min{width:auto;padding:5px 8px}#hleg.min .lb,#hleg.min .u{display:none}#hleg.dragging{opacity:.85}
+  #hleg.min{width:auto;min-width:0;padding:5px 8px}#hleg.min .lb,#hleg.min .u,#hleg.min .lt{display:none}#hleg.dragging{opacity:.85}
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
   body.in360 #hleg{display:none!important}
@@ -256,7 +260,7 @@
     :root{--tab:calc(58px + env(safe-area-inset-bottom))}
     .dsk{display:none!important}
     .panel,#drawer,.card,.maplibregl-popup-content{zoom:1!important}
-    #tabbar{display:flex;position:absolute;left:0;right:0;bottom:0;height:var(--tab);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box;
+    #tabbar{display:flex;position:absolute;left:0;right:0;bottom:0;height:var(--tab);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box;
       background:var(--panel);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:12}
     #tabbar button{flex:1;border:0;background:none;color:var(--mute);font:600 calc(11.5px * var(--ui,1)) system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
     #tabbar .ic{font-size:calc(20px * var(--ui,1));line-height:1}
@@ -408,7 +412,7 @@
 
 <div id="toast"></div>
 <div id="litebar"><span>Naprava je videti počasna. Vklopim varčni način?</span><button class="p" id="liteYes">Vklopi</button><button id="liteNo">Ne</button></div>
-<div id="snowleg"><div class="lh"><b>❄ Višina snega</b> <span id="snowlegdate"></span><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
+<div id="snowleg"><div class="lh"><b>❄<span class="lt"> Višina snega</span></b> <span id="snowlegdate"></span><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
   <div class="lb"><div id="snowlegbar"></div><div class="sl" id="snowlegsl"><span>1</span><span>20</span><span>50</span><span>100</span><span>200+ cm</span></div>
   <div class="sl3" id="snowlegnote"></div></div></div>
 <script>
@@ -470,6 +474,13 @@ const style = {
 };
 
 // --- low-effort mode ("varčni način"): stored choice, else hardware guess + measured frame rate -> offer
+const CRASHED=(()=>{ try{ const t=+localStorage.getItem('dvat3d_live')||0, in360=localStorage.getItem('dvat3d_in360')!==null;
+    const mark=()=>{ try{ document.hidden?localStorage.removeItem('dvat3d_live'):localStorage.setItem('dvat3d_live',String(Date.now())); }catch(_){} };
+    mark(); document.addEventListener('visibilitychange',mark); addEventListener('pagehide',()=>{ try{ localStorage.removeItem('dvat3d_live'); }catch(_){} });
+    const hit=t>0&&!in360&&Date.now()-t<6*3600e3&&matchMedia('(pointer:coarse)').matches;
+    if(hit&&localStorage.getItem('dvat3d_lite')!=='1'&&localStorage.getItem('dvat3d_lite_auto')!=='no'){ localStorage.setItem('dvat3d_lite','1'); return 'lite'; }
+    return hit; }catch(_){ return false; } })();
+if(CRASHED==='lite') setTimeout(()=>window.toastErr&&toastErr(window.LANG==='en'?'The page crashed last time (phone memory) - power-saving mode is on now. Switch it off in ⚙ Settings.':'Stran se je prejšnjič sesula (pomnilnik telefona) – vklopljen je varčni način. Izklopiš ga v ⚙ Nastavitve.'),3000);
 const LITE_PREF=(()=>{ try{ const v=localStorage.getItem('dvat3d_lite'); return v==='1'?true:v==='0'?false:null; }catch(_){ return null; } })();
 window.LITE_ON = LITE_PREF===true;
 const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.hardwareConcurrency||8;
@@ -482,17 +493,20 @@ const WEAK_HW=(()=>{ let s=0; const mem=navigator.deviceMemory, cores=navigator.
 const SL_LOCALE=(()=>{ try{ return (localStorage.getItem('dvat3d_lang')||((navigator.language||'sl').toLowerCase().startsWith('sl')?'sl':'en'))==='sl'; }catch(_){ return true; } })()
   ? {'NavigationControl.ZoomIn':'Približaj','NavigationControl.ZoomOut':'Oddalji','NavigationControl.ResetBearing':'Povleci za vrtenje, klik = sever','FullscreenControl.Enter':'Celozaslonski način','FullscreenControl.Exit':'Izhod iz celozaslonskega načina','GeolocateControl.FindMyLocation':'Moja lokacija','GeolocateControl.LocationNotAvailable':'Lokacija ni na voljo','Popup.Close':'Zapri','AttributionControl.ToggleAttribution':'Viri','ScaleControl.Meters':'m','ScaleControl.Kilometers':'km'} : undefined;
 const IS_PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,screen.height)<900; window.IS_PHONE=IS_PHONE;
+// iPhone / iPad (every browser there is Safari underneath): a hard memory limit per page - smaller canvas (≤ 2× pixels), smaller
+// tile cache, fewer tiles in flight and less prefetching; a page killed while open is noticed on the next start (crash guard below)
+const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); window.IS_IOS=IS_IOS;
 // more tiles in flight at once (default 16): 360 views need hundreds; phones keep fewer (mobile networks choke on many)
-try{ maplibregl.setMaxParallelImageRequests(IS_PHONE?24:48); }catch(_){}
+try{ maplibregl.setMaxParallelImageRequests(IS_IOS?12:IS_PHONE?24:48); }catch(_){}
 const map = new maplibregl.Map({ locale:SL_LOCALE,
   container:"map", style,
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
   maxBounds:[[12.9,45.3],[16.7,47.0]], // all of Slovenia (Snežnik, Pohorje …)
   // tile cache: every cached DEM / satellite tile keeps memory (GPU texture + decoded heights). 900 tiles crashed phones in 360,
   // so phones keep a small cache (turning back in 360 reloads from the browser / service-worker cache instead - fast, no network)
-  maxTileCacheZoomLevels:LITE_ON?4:IS_PHONE?5:8,
-  maxTileCacheSize:LITE_ON?60:IS_PHONE?(navigator.deviceMemory&&navigator.deviceMemory<=4?120:180):500,
-  ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:{}),
+  maxTileCacheZoomLevels:LITE_ON?4:IS_IOS?4:IS_PHONE?5:8,
+  maxTileCacheSize:LITE_ON?60:IS_IOS?90:IS_PHONE?(navigator.deviceMemory&&navigator.deviceMemory<=4?120:180):500,
+  ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:IS_IOS?{pixelRatio:Math.min(devicePixelRatio||1,2), prefetchZoomDelta:2}:{}),
   hash:true
 });
 // --- fast terrain (test switch): the 3D mesh is built from height tiles 1–2 zoom levels coarser than now, while the picture draped
@@ -541,7 +555,7 @@ map.once('load',()=>{ const u=map.getStyle().sources.sat.tiles; if(u.length<2) r
 (function(){ const c=$id('fastChk'); if(!c) return; c.checked=window.FAST_T;
   c.onchange=()=>{ window.FAST_T=c.checked; try{ localStorage.setItem('dvat3d_fastterrain',c.checked?'1':'0'); }catch(_){} window.applyTerrainLOD(); }; })();
 (function(){
-  const setLite=v=>{ try{ localStorage.setItem('dvat3d_lite',v?'1':'0'); }catch(_){} };
+  const setLite=v=>{ try{ localStorage.setItem('dvat3d_lite',v?'1':'0'); if(!v) localStorage.setItem('dvat3d_lite_auto','no'); }catch(_){} };   // switched off by hand: the crash guard won't switch it on again
   const chk=$id('liteChk'); chk.checked=LITE_ON; chk.onchange=()=>{ setLite(chk.checked); location.reload(); };
   const bar=$id('litebar'), offer=()=>{ if(LITE_PREF===null&&!LITE_ON&&!bar.classList.contains('on')) bar.classList.add('on'); };
   $id('liteYes').onclick=()=>{ setLite(true); location.reload(); };
@@ -582,7 +596,7 @@ const HSTOPS=[[0,"#7fae6a"],[400,"#a9c483"],[800,"#d8d89c"],[1200,"#e4cf98"],[16
 const hleg=document.createElement('div'); hleg.id='hleg';
 // labels evenly spaced (0 · 1000 · 2000 · 2900): the colour bar is stretched piecewise so each label sits exactly on its height
 const hpos=h=>h<=2000?h/2000*66.667:66.667+(h-2000)/900*33.333;
-hleg.innerHTML=`<div class="lh"><b>⛰ Nadmorska višina</b> <span class="u">(m)</span><button id="hlegx" title="Skrij / pokaži legendo">–</button></div>
+hleg.innerHTML=`<div class="lh"><b>⛰<span class="lt"> Nadmorska višina</span></b> <span class="u">(m)</span><button id="hlegx" title="Skrij / pokaži legendo">–</button></div>
   <div class="lb"><div class="hb" style="background:linear-gradient(90deg,${HSTOPS.map(([h,c])=>`${c} ${hpos(h).toFixed(1)}%`).join(',')})"></div>
   <div class="hl"><span>0</span><span>1000</span><span>2000</span><span>2900</span></div></div>`;
 document.body.append(hleg);
@@ -875,7 +889,7 @@ map.on('click',e=>{
       const P=pool();
       if(P){ const m=params.url.match(/^snowpx:\/\/(\d+)\/(\d+)\/(\d+)/), z=+m[1], x=+m[2], y=+m[3];
         const useSat=/[?&]s=\d/.test(params.url)&&!!SAT, spD=(params.url.match(/[?&]d=([\d-]+)/)||[])[1], useSP=!!spD&&spDay(spD)&&/[?&]p=1/.test(params.url);
-        if(useSat&&satSent!==SAT){ satSent=SAT; const sat={F:SAT.F,K:SAT.K,W:SAT.W,H:SAT.H,bbox:SAT.m.bbox,A:SAT.A,d0:dOrd(SAT.m.date)}; P.forEach(w=>w.postMessage({type:'sat',sat})); }
+        if(useSat&&satSent!==SAT){ satSent=SAT; const sat={F:SAT.F,K:SAT.K,W:SAT.W,H:SAT.H,bbox:SAT.m.bbox,A:SAT.AN,d0:dOrd(SAT.m.date)}; P.forEach(w=>w.postMessage({type:'sat',sat})); }
         const {prof,NG,lsg}=tileProfiles(z,x,y,spD,useSP), id=++PID, w=P.reduce((a,b)=>b.busy<a.busy?b:a); w.busy++;
         const r=await new Promise((res,rej)=>{ PEND.set(id,{res,rej}); w.postMessage({id,z,x,y,prof,NG,useSat,slopeRef:(SP&&SP.slope)||30,RGB,lsg},lsg?[prof.buffer,lsg.buffer]:[prof.buffer]); });
         HC.set(z+'/'+x+'/'+y,r.H); if(HC.size>40) HC.delete(HC.keys().next().value);
@@ -932,7 +946,13 @@ map.on('click',e=>{
       for(let x=0;x<W;x++){ let s=0,k=0,t=0;
         for(let y=-R;y<H;y++){ const a=y+R, b=y-R-1; if(a<H){ s+=hs[a*W+x]; k+=hk[a*W+x]; t+=Math.min(x+R,W-1)-Math.max(x-R,0)+1; } if(b>=0){ s-=hs[b*W+x]; k-=hk[b*W+x]; t-=Math.min(x+R,W-1)-Math.max(x-R,0)+1; }
           if(y>=0){ K[y*W+x]=Math.round(255*k/t); F[y*W+x]=k?Math.round(255*s/k):0; } } }
-      SAT={m,C,A,F,K,W,H}; return SAT; }).catch(e=>{ console.warn('snowsat',e); return null; });
+      // AN = age of the newest look in the same 7×7 window (255 = none). F / K above blend that window, so "is the satellite
+      // older than the last snowfall?" must be asked of the window too - asking only the centre pixel left squares where a
+      // cloud gap (no look) took the old "bare" verdict of its neighbours while all around the model's new snow was used
+      const hm=new Uint8Array(n), AN=new Uint8Array(n);
+      for(let y=0;y<H;y++){ const o=y*W; for(let x=0;x<W;x++){ let m=255; for(let j=Math.max(0,x-R);j<=Math.min(W-1,x+R);j++){ const a=C[o+j]?A[o+j]:255; if(a<m) m=a; } hm[o+x]=m; } }
+      for(let x=0;x<W;x++) for(let y=0;y<H;y++){ let m=255; for(let j=Math.max(0,y-R);j<=Math.min(H-1,y+R);j++){ const a=hm[j*W+x]; if(a<m) m=a; } AN[y*W+x]=m; }
+      SAT={m,C,A,AN,F,K,W,H}; return SAT; }).catch(e=>{ console.warn('snowsat',e); return null; });
     return SATP; };
   const satFK=(la,lo)=>{ if(!SAT) return null; const b=SAT.m.bbox, X=Math.floor((lo-b[0])/(b[2]-b[0])*SAT.W), Y=Math.floor((b[3]-la)/(b[3]-b[1])*SAT.H);
     if(X<0||Y<0||X>=SAT.W||Y>=SAT.H) return null; const i=Y*SAT.W+X; return [SAT.F[i],SAT.K[i]]; };
@@ -960,7 +980,7 @@ map.on('click',e=>{
     for(const g of SPG){ const d=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(d<bd){ bd=d; best=g; } } if(!best||bd>15) return -1;
     let q=0; for(let k=1;k<best.e.length;k++) if(Math.abs(best.e[k]-h)<Math.abs(best.e[q]-h)) q=k; const v=SP.ls[best.i[q]]; return v?dOrd(v):-1; }
   function satOutdated(la,lo,h){ if(!SAT||!SP||!SP.ls) return false; const b=SAT.m.bbox, X=Math.floor((lo-b[0])/(b[2]-b[0])*SAT.W), Y=Math.floor((b[3]-la)/(b[3]-b[1])*SAT.H);
-    if(X<0||Y<0||X>=SAT.W||Y>=SAT.H) return false; const a=SAT.A[Y*SAT.W+X]; return a!==255&&dOrd(SAT.m.date)-a<=lastSnowOrd(la,lo,h); }
+    if(X<0||Y<0||X>=SAT.W||Y>=SAT.H) return false; const a=SAT.AN[Y*SAT.W+X]; return a!==255&&dOrd(SAT.m.date)-a<=lastSnowOrd(la,lo,h); }
   // v2 (snowpack.py v2): every point has 3 surfaces - flat, 30° north-facing, 30° south-facing; `south` (-1 … 1) blends them
   window.snowpackAt=(la,lo,h,day,south=0)=>{ if(!SP) return null; const di=SP.days.indexOf(day); if(di<0||h==null) return null; const C=SP.cm[di], v2=SP.ver>=2;
     const val=(i)=>{ const c=C[i]; if(!v2) return c; const f=c[0]; return south>0?f+south*(c[2]-f):f-south*(c[1]-f); };
@@ -1219,11 +1239,11 @@ const $=id=>document.getElementById(id), drawer=$('drawer');
 $('ptab').onclick=()=>{ drawer.classList.toggle('open'); document.body.classList.remove('menu'); };
 // desktop: drawer state remembered, open by default on first visit (the list is the main point of the site)
 new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); $('ptabChev').textContent=o?'›':'‹'; }).observe(drawer,{attributes:true,attributeFilter:['class']});
-if(innerWidth>700) drawer.classList.add('open'); // desktop: list open on load
+if(innerWidth>700&&innerHeight>500) drawer.classList.add('open'); // desktop: list open on load (not on a phone held sideways - the map would be covered)
 $('mclose').onclick=()=>document.body.classList.remove('menu');
 document.querySelector('.panel h1').append($('mclose'));
 // desktop: layers sheet open/closed (remembered)
-try{ if(localStorage.getItem('dvat3d_lclosed')==='1'&&innerWidth>700) document.body.classList.add('lclosed'); }catch(_){}
+try{ const c=localStorage.getItem('dvat3d_lclosed'); if(innerWidth>700&&(c==='1'||(c===null&&innerHeight<=500))) document.body.classList.add('lclosed'); }catch(_){}
 const syncL=()=>{ $('ltabChev').textContent=document.body.classList.contains('lclosed')?'›':'‹'; }; syncL();
 $('ltab').onclick=()=>{ const c=document.body.classList.toggle('lclosed'); syncL(); try{ localStorage.setItem('dvat3d_lclosed',c?'1':'0'); }catch(_){} };
 function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
