@@ -304,23 +304,25 @@ def analysis(pts, cur, PV, obs):
         for b in range(n):
             oa, ob = use[a][0], use[b][0]
             A[a, b] = sig[a] * sig[b] * corr(oa['lat'], oa['lon'], oa['alt'], ob['lat'], ob['lon'], ob['alt'])
-        A[a, a] += 25 + 25 + (0.15 * use[a][0]['cm']) ** 2
+        A[a, a] += 9 + (0.05 * use[a][0]['cm']) ** 2          # the station is right: ~3 cm + 5 % (spot vs cell)
     Ai = np.linalg.inv(A); w = Ai @ y
     changed = 0
     for i, (la, lo, e) in enumerate(pts):
         bi = np.array([math.sqrt(PV[i]) * sig[j] * corr(la, lo, e, use[j][0]['lat'], use[j][0]['lon'], use[j][0]['alt']) for j in range(n)])
         if bi.max() < 1e-3: continue
-        inc = float(bi @ w); PV[i] = max(4.0, PV[i] - float(bi @ Ai @ bi))
+        inc = float(bi @ w); PV[i] = max(25.0, PV[i] - float(bi @ Ai @ bi))   # model error >= 5 cm: the next reading still counts
         d = dflat(i); dn = max(0.0, d + inc)
         if abs(dn - d) < 0.5: continue
         changed += 1
         for st in cur[i]:
             ds = depth_cm(st)
-            if ds > 1:
-                k = max(0.0, min(4.0, dn / d if d > 1 else (ds + inc) / ds)); st['m'] *= k; st['l'] *= k
+            if ds > 5:   # scale the pack (keeps its layering / density)
+                k = max(0.0, min(8.0, dn / d if d > 1 else (ds + inc) / ds)); st['m'] *= k; st['l'] *= k
                 if st['m'] < 0.1: st.update(new_state())
-            elif inc > 2:
-                st.update({'m': inc * 2.0, 'l': 0.0, 'r': 200.0, 'a': 0.8})
+            else:        # (almost) no snow in the model but the station has some: put the missing snow there as settled new snow
+                t = ds * dn / d if d > 1 else ds + inc
+                if t < 0.5: st.update(new_state())
+                elif abs(t - ds) >= 0.5: st.update({'m': t * 2.0, 'l': 0.0, 'r': 200.0, 'a': 0.8})
     for o, mv, mi in use: o['after'] = round(model_at(pts, dflat, o['lat'], o['lon'], o['alt'])[0])
     print(f'Kalman update with {n} stations: {changed} model points changed')
     return [o for o, _, _ in use]

@@ -2,6 +2,22 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.48 — 2026-11-04
+- Snow map, new rule: the model says how much, the satellite where - but only for what lay there when it looked. Where it saw
+  snow -> model depth; where it saw bare ground -> only the snow that fell since (model now minus model at the end of the day
+  before the look; melt since makes it 0). After a snowfall the new snow lies everywhere, on top of the old where there was some.
+  No more yes/no switch per model cell: look dates are blended over ~1 km and the satellite shares over ~280 m -> no squares.
+  The satellite now also counts for the forecast days (snow falling later is added the same way). Tip: "od takrat +X cm".
+- ARSO stations are right: the snowpack job trusts them much more (small measurement error, model error never below 5 cm,
+  a missing pack is put in fully instead of at most ×4), and the map shifts the model nearby (~5 km, ±250 m) to the reading,
+  fading over the next days. At the stations the map now shows what they measured.
+- Snow map also where the model has cells outside the old ICON box (Pohorje, Snežnik) - it disappeared when zooming in.
+- Routes to a summit never run over or cross themselves (loops are cut out), do not wander away from the summit and come back,
+  and are dropped when more than 40 % of the climb is lost again on the way up (e.g. Pot Lojzeta Rekarja: 11.2 -> 7.4 km).
+- Phone tab bar: Karta · Riši · Vrhovi (middle) · 👥 · Nastavitve.
+- Legends: grab them anywhere (phones too, with a finger); a short tap still works – / ▸; double-click / double-tap = back.
+- Start: if the browser restores the last base map in the menu, the map follows it (menu and map no longer disagree).
+
 ## web-v0.47 — 2026-11-02
 - Snow map: no more light squares. Cloud gaps (no satellite look) took the old "bare" verdict of the pixels around them while all
   around the model's new snow was used; now "is the satellite older than the last snowfall?" is asked of the same ~280 m window

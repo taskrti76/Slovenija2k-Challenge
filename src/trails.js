@@ -168,8 +168,8 @@ function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
       if(!ne){ // continue down to the nearest parking
         const r2=search(g,e,9000); let bn=-1, bd=Infinity; for(const [n] of startAt) if(r2.dist[n]<bd&&base.dist[n]>base.dist[e]){ bd=r2.dist[n]; bn=n; }
         if(bn<0) continue; const tail=trace(g,r2.pe,bn); nodes=tail.nodes.concat(nodes.slice(1)); edges=tail.edges.concat(edges); end=bn; st=startAt.get(bn); }
-      const set=new Set(nodes); if(set.size<nodes.length*0.9) continue; // doubles back on itself
-      out.push({ri, end, st, nodes, edges, set}); }
+      ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)) continue;   // runs over / crosses itself, or wanders off
+      out.push({ri, end, st, nodes, edges, set:new Set(nodes)}); }
   }
   return out;
 }
@@ -184,9 +184,26 @@ function ferrataRoutes(g, s, base, starts, RMAX=4000){
     const r2=search(g,far,9000); let bn=-1, bd=Infinity; for(const [n] of startAt) if(r2.dist[n]<bd&&hav(g.lat[n],g.lon[n],g.lat[s],g.lon[s])>hav(g.lat[far],g.lon[far],g.lat[s],g.lon[s])){ bd=r2.dist[n]; bn=n; }
     if(bn<0) continue;
     const head=trace(g,base.pe,en), mid=trace(g,fr.pe,far), tail=trace(g,r2.pe,bn);
-    const nodes=tail.nodes.concat(mid.nodes.slice(1),head.nodes.slice(1)), edges=tail.edges.concat(mid.edges,head.edges);
+    const L=loopErase(tail.nodes.concat(mid.nodes.slice(1),head.nodes.slice(1)), tail.edges.concat(mid.edges,head.edges)), nodes=L.nodes, edges=L.edges;
+    if(badRoute(g, nodes, s)) continue;
     const W=g.W[g.wy[mid.edges[0]]]; out.push({end:bn, st:startAt.get(bn), nodes, edges, set:new Set(nodes), fname:W.name||'', frel:W.rel?W.rel.find(ri=>!relLong(RELS[ri])):undefined}); }
   return out; }
+// a route never runs over itself: where it comes back to a point it already passed, the loop in between is cut out
+function loopErase(nodes, edges){ const pos=new Map(), N=[], E=[];
+  for(let i=0;i<nodes.length;i++){ const u=nodes[i];
+    if(pos.has(u)){ const k=pos.get(u); for(let j=k+1;j<N.length;j++) pos.delete(N[j]); N.length=k+1; } else { pos.set(u,N.length); N.push(u); }
+    E.length=N.length-1; if(i<edges.length) E.push(edges[i]); }
+  E.length=Math.max(0,N.length-1); return {nodes:N, edges:E}; }
+// ... and does not wander away from the summit (up one valley, back down, up again - e.g. a relation walked the wrong way),
+// and its line does not cross itself
+function badRoute(g, nodes, s){ const la=g.lat[s], lo=g.lon[s], d0=hav(g.lat[nodes[0]],g.lon[nodes[0]],la,lo); let mn=Infinity;
+  for(const u of nodes){ const d=hav(g.lat[u],g.lon[u],la,lo); if(d<mn) mn=d; else if(d-mn>Math.max(600,0.2*d0)) return true; }
+  const n=nodes.length, X=i=>g.lon[nodes[i]]*0.688, Y=i=>g.lat[nodes[i]];   // x scaled by cos(46.5°)
+  const cr=(a,b,c)=>(X(b)-X(a))*(Y(c)-Y(a))-(Y(b)-Y(a))*(X(c)-X(a));
+  for(let i=0;i<n-1;i++){ const x0=Math.min(X(i),X(i+1)), x1=Math.max(X(i),X(i+1)), y0=Math.min(Y(i),Y(i+1)), y1=Math.max(Y(i),Y(i+1));
+    for(let j=i+2;j<n-1;j++){ if(Math.max(X(j),X(j+1))<x0||Math.min(X(j),X(j+1))>x1||Math.max(Y(j),Y(j+1))<y0||Math.min(Y(j),Y(j+1))>y1) continue;
+      const a=cr(i,i+1,j), b=cr(i,i+1,j+1), c=cr(j,j+1,i), d=cr(j,j+1,i+1); if(a*b<0&&c*d<0) return true; } }
+  return false; }
 function peakRoutes(g, la, lo, starts, opt={}){
   const s = nearestNode(g, la, lo, opt.snap||250, 0, true); if (s<0) return null;
   const {dist, pe} = search(g, s, opt.maxCost||30000);
@@ -195,6 +212,7 @@ function peakRoutes(g, la, lo, starts, opt={}){
   for (const st of cand){
     if (acc.length >= (opt.max||7)) break;
     const tr = trace(g, pe, st.node); const set = new Set(tr.nodes);
+    if (badRoute(g, tr.nodes, s)) continue;
     if (acc.some(a => set.has(a.start.node) || hav(a.start.lat,a.start.lon,st.lat,st.lon) < 250)) continue; // extension / same lot
     let worst = 0; for (const a of acc){ let k=0; for(const x of tr.nodes) if(a.set.has(x)) k++; worst=Math.max(worst,k/tr.nodes.length); }
     if (worst > 0.8) continue;
@@ -669,8 +687,8 @@ const hutNear=st=>{ let best='', bd=700; for(const h of HUTS){ if(!h.name||/^Biv
 // height profiles: all routes, or only the selected one in varčni način
 async function routeProfiles(){ const cur=RT; if(!cur) return;
   for(const r of [...cur.routes]){ if(r.P||(window.LITE_ON&&r!==cur.routes[cur.sel])) continue; r.P=await profile(r.coords);
-    // longer than 11 h of walking (DIN 33466) -> remove, unless it is the only way up
-    if(r.P&&walkTime(r.P.km,r.P.up,r.P.down)>11&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
+    // longer than 11 h of walking (DIN 33466) or down > 40 % of up -> remove, unless it is the only way up
+    if(r.P&&(walkTime(r.P.km,r.P.up,r.P.down)>11||r.P.down>0.4*r.P.up)&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
     if(RT===cur) renderRoutes(); } }
 function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=g?r.coords.slice(0,-1):r.coords;
   const f=[{type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:c}}];
@@ -810,7 +828,22 @@ function makeMovable(id,handle='.rh'){ const card=el(id); if(!card) return; cons
     addEventListener('pointermove',mv); addEventListener('pointerup',up); });
   card.addEventListener('dblclick',e=>{ if(!DESK()||!e.target.closest(handle)||e.target.closest('button')) return; try{ localStorage.removeItem(key); }catch(_){} card.style.left=''; card.style.top=''; card.style.bottom=''; card.style.right=''; window.placeLegends&&placeLegends(); });
 }
-makeMovable('dcard'); makeMovable('rcard'); makeMovable('dprof','.ps'); makeMovable('snowleg','.lh'); makeMovable('hleg','.lh');
+// legends: grab them anywhere (also on phones, with a finger); a short tap still works the – / ▸ button, double-click / double-tap = back
+function makeLegendMovable(id){ const card=el(id); if(!card) return; const key=()=>'dvat3d_pos_'+id+(DESK()?'':'_ph');
+  const clampPos=(x,y)=>[Math.max(0,Math.min(innerWidth-card.offsetWidth,x)),Math.max(0,Math.min(innerHeight-card.offsetHeight,y))];
+  const put=(x,y)=>{ card.style.left=x+'px'; card.style.top=y+'px'; card.style.bottom='auto'; card.style.right='auto'; };
+  const apply=()=>{ let s=null; try{ s=JSON.parse(localStorage.getItem(key())||'null'); }catch(_){}
+    if(s){ const [x,y]=clampPos(s[0],s[1]); put(x,y); } else { card.style.left=''; card.style.top=''; card.style.bottom=''; card.style.right=''; window.placeLegends&&placeLegends(); } };
+  apply(); addEventListener('resize',apply);
+  let moved=false, lastTap=0;
+  card.addEventListener('pointerdown',e=>{ if(e.button>0) return; const r=card.getBoundingClientRect(), ox=e.clientX-r.left, oy=e.clientY-r.top, sx=e.clientX, sy=e.clientY; moved=false;
+    const mv=ev=>{ if(!moved&&Math.hypot(ev.clientX-sx,ev.clientY-sy)<6) return; moved=true; card.classList.add('dragging'); const [x,y]=clampPos(ev.clientX-ox,ev.clientY-oy); put(x,y); ev.preventDefault(); };
+    const up=()=>{ removeEventListener('pointermove',mv); removeEventListener('pointerup',up); removeEventListener('pointercancel',up); card.classList.remove('dragging');
+      if(moved){ try{ localStorage.setItem(key(),JSON.stringify([parseInt(card.style.left),parseInt(card.style.top)])); }catch(_){} }
+      else if(!e.target.closest('button')){ const t=Date.now(); if(t-lastTap<350){ try{ localStorage.removeItem(key()); }catch(_){} apply(); } lastTap=t; } };
+    addEventListener('pointermove',mv,{passive:false}); addEventListener('pointerup',up); addEventListener('pointercancel',up); });
+  card.addEventListener('click',e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; } },true); }   // a drag is not a click on – / ▸
+makeMovable('dcard'); makeMovable('rcard'); makeMovable('dprof','.ps'); makeLegendMovable('snowleg'); makeLegendMovable('hleg');
 function drawRender(){
   setDrawData();
   const card=el('dcard'), strip=el('dprof');
