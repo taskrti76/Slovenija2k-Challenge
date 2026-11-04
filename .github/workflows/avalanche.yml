@@ -1,0 +1,28 @@
+name: Avalanche bulletin
+on:
+  schedule:
+    - cron: '53 6,16 * * *'   # ~07:53 and ~17:53 Slovenian winter time (ARSO issues the bulletin for the next day in the afternoon)
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:   # own queue per job: a shared group would cancel a waiting run of another job
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  avalanche:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python tools/avalanche_fetch.py
+      - name: Commit avalanche
+        run: |
+          git config user.name  "avalanche-bot"
+          git config user.email "avalanche-bot@users.noreply.github.com"
+          git add avalanche.json
+          [ -f data/avalanche_raw.xml ] && git add data/avalanche_raw.xml
+          git diff --cached --quiet && exit 0
+          git commit -m "avalanche: $(date -u +%F)"
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
