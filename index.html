@@ -890,7 +890,9 @@ map.on('click',e=>{
     const X0=Math.max(0,Math.floor((x/n*360-180-b[0])/(b[2]-b[0])*SAT.W)), X1=Math.min(SAT.W-1,Math.floor(((x+1)/n*360-180-b[0])/(b[2]-b[0])*SAT.W)),
       Y0=Math.max(0,Math.floor((b[3]-lat(y))/(b[3]-b[1])*SAT.H)), Y1=Math.min(SAT.H-1,Math.floor((b[3]-lat(y+1))/(b[3]-b[1])*SAT.H));
     const AI=new Int16Array(27).fill(-1), days=[]; if(X1<X0||Y1<Y0) return {AI,days};
-    let lo=255, hi=-1; for(let Y=Y0;Y<=Y1;Y++) for(let X=X0;X<=X1;X++){ const g=SAT.AG[Y*SAT.W+X]; if(g<255){ if(g<lo) lo=g; if(g>hi) hi=g; } }
+    const sx=Math.max(1,Math.floor((X1-X0)/96)), sy=Math.max(1,Math.floor((Y1-Y0)/96));   // sampled: a zoomed-out tile covers millions of pixels
+    let lo=255, hi=-1; for(let Y=Y0;Y<=Y1;Y+=sy) for(let X=X0;X<=X1;X+=sx){ const g=SAT.AG[Y*SAT.W+X]; if(g<255){ if(g<lo) lo=g; if(g>hi) hi=g; } }
+    if(hi>=0){ lo=Math.max(0,lo-10); hi=Math.min(254,hi+10); }   // samples can miss the extremes: one day of margin
     if(hi<0) return {AI,days};
     for(let a=Math.floor(lo/10);a<=Math.min(25,Math.ceil(hi/10));a++){ const d=lookDay(a); if(!d) continue; let k=days.indexOf(d); if(k<0){ days.push(d); k=days.length-1; } AI[a]=k; }
     return {AI,days}; }
@@ -901,12 +903,12 @@ map.on('click',e=>{
       for(let i=0;i<NG;i++){ const lo=(x+i/(NG-1))/n*360-180, base=(j*NG+i)*3*NH;
         if(useSP){ // inverse-distance blend of the 3 nearest cells (same as snowpackAt) + the ARSO stations' correction nearby
           const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk<=R) best.push([dk,g]); }
-          if(SW) for(let k=0;k<NH;k++) SW[(j*NG+i)*NH+k]=swf(la,lo,HZ0+k*HZS);
+          if(SW){ const sf=swf.at(la,lo); for(let k=0;k<NH;k++) SW[(j*NG+i)*NH+k]=sf(HZ0+k*HZS); }
           if(!best.length) continue; best.sort((a,b)=>a[0]-b[0]); const B3=best.slice(0,3);
           for(let d=0;d<days.length;d++){ let sw=0; const acc=new Float32Array(3*NH), o=d*N1+base;
             for(const [dk,g] of B3){ const w=1/Math.max(1,dk)**2, a=GPs[d].get(g); if(!a) continue; sw+=w; for(let q=0;q<3*NH;q++) acc[q]+=w*a[q]; }
-            if(!sw) continue; const sc=SC[d];
-            for(let k=0;k<NH;k++){ const c=sc?sc(la,lo,HZ0+k*HZS):0; for(let s3=0;s3<3;s3++){ const q=s3*NH+k; prof[o+q]=Math.max(0,acc[q]/sw+c); } } }
+            if(!sw) continue; const sc=SC[d]?SC[d].at(la,lo):null;
+            for(let k=0;k<NH;k++){ const c=sc?sc(HZ0+k*HZS):0; for(let s3=0;s3<3;s3++){ const q=s3*NH+k; prof[o+q]=Math.max(0,acc[q]/sw+c); } } }
         } else { const f=fitAt(la,lo); if(!f) continue; for(let k=0;k<NH;k++){ const v=depthPx(f,HZ0+k*HZS,1); prof[base+k]=v; prof[base+NH+k]=v; prof[base+2*NH+k]=v; } } } }
     return {prof,NG,AI:L?L.AI:null,SW}; }
 
@@ -1034,8 +1036,9 @@ map.on('click',e=>{
   function stSatW(day){ if(SWD.has(day)) return SWD.get(day); let f=null; const S0=[];
     for(const o of ((SP&&SP.obs)||[])){ if(o.cm==null||o.lat==null||!o.valid) continue; const di=SP.days.indexOf(o.valid.slice(0,10)), dd=SP.days.indexOf(day); if(di<0||dd<di) continue;
       S0.push([o.lat,o.lon,o.alt,Math.pow(0.85,dd-di)]); }
-    if(S0.length) f=(la,lo,h)=>{ let m=0; for(const [a,b,z,k] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk>6) continue;
-      const w=k*Math.exp(-((dk/2)**2))*Math.exp(-(((h-z)/200)**2)); if(w>m) m=w; } return m; };
+    if(S0.length){ f=(la,lo,h)=>f.at(la,lo)(h);
+      f.at=(la,lo)=>{ const N=[]; for(const [a,b,z,k] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk<=6) N.push([k*Math.exp(-((dk/2)**2)),z]); }
+        return !N.length?()=>0:h=>{ let m=0; for(const [wh,z] of N){ const w=wh*Math.exp(-(((h-z)/200)**2)); if(w>m) m=w; } return m; }; }; }
     SWD.set(day,f); return f; }
   // ARSO stations are right: the model nearby is shifted to what they measured (Gaussian: ~5 km, ±250 m of height), on the day of
   // the reading and fading over the next days; the snowpack job has already pulled the model towards them
@@ -1044,8 +1047,9 @@ map.on('click',e=>{
     const O=((SP&&SP.obs)||[]).filter(o=>o.cm!=null&&o.lat!=null&&o.valid), S0=[];
     for(const o of O){ const od=o.valid.slice(0,10), di=SP.days.indexOf(od), dd=SP.days.indexOf(day); if(di<0||dd<di) continue;
       const m=spRaw(o.lat,o.lon,o.alt,od,0); if(m==null) continue; const r=(o.cm-m)*Math.pow(0.85,dd-di); if(Math.abs(r)>=0.5) S0.push([o.lat,o.lon,o.alt,r]); }
-    if(S0.length) f=(la,lo,h)=>{ let sw=0,sr=0; for(const [a,b,z,r] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk>12) continue;
-      const w=Math.exp(-((dk/5)**2))*Math.exp(-(((h-z)/250)**2)); sw+=w; sr+=w*r; } return sw>1e-3?sr/sw*Math.min(1,sw):0; };
+    if(S0.length){ f=(la,lo,h)=>f.at(la,lo)(h);
+      f.at=(la,lo)=>{ const N=[]; for(const [a,b,z,r] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk<=12) N.push([Math.exp(-((dk/5)**2)),z,r]); }   // stations near this point
+        return !N.length?()=>0:h=>{ let sw=0,sr=0; for(const [wh,z,r] of N){ const w=wh*Math.exp(-(((h-z)/250)**2)); sw+=w; sr+=w*r; } return sw>1e-3?sr/sw*Math.min(1,sw):0; }; }; }
     SCD.set(day,f); return f; }
   function satOutdated(la,lo,h){ if(!SAT||!SP||!SP.ls) return false; const b=SAT.m.bbox, X=Math.floor((lo-b[0])/(b[2]-b[0])*SAT.W), Y=Math.floor((b[3]-la)/(b[3]-b[1])*SAT.H);
     if(X<0||Y<0||X>=SAT.W||Y>=SAT.H) return false; const a=SAT.AN[Y*SAT.W+X]; return a!==255&&dOrd(SAT.m.date)-a<=lastSnowOrd(la,lo,h); }
@@ -1278,7 +1282,7 @@ function openPeak(id,fly){
   if(window.wxBox) box.append(wxBox(p));
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
-  const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
+  const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row); if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
@@ -1368,7 +1372,7 @@ function refresh(){
   $('tiers').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===TIER));
   $('chipRank').textContent=`${R.length} prominentnih`; $('chipAll').textContent=`Vsi vrhovi (${TP.length})`;
   const dOpen=!!$('progress').querySelector('details[open]');
-  $('progress').innerHTML=`<div class="pmain"><button id="lbBtn" type="button" title="Lestvica uporabnikov">🏆 Lestvica</button><div><b>${nR}</b> / ${R.length}</div><span>${TIER==='2000'?'prominentnih dvatisočakov':TIER==='1500'?'prominentnih vrhov 1500–2000 m (≥100 m)':'prominentnih vrhov'}</span>${barH(nR,R.length)}</div>
+  $('progress').innerHTML=`<div class="pmain"><button id="lbBtn" type="button" title="${window.LANG==='en'?'Leaderboard of users':'Lestvica uporabnikov'}">🏆 ${window.LANG==='en'?'Leaderboard':'Lestvica'}</button><div><b>${nR}</b> / ${R.length}</div><span>${TIER==='2000'?'prominentnih dvatisočakov':TIER==='1500'?'prominentnih vrhov 1500–2000 m (≥100 m)':'prominentnih vrhov'}</span>${barH(nR,R.length)}</div>
     <div class="pstat"><div>${TIER==='1500'?'Vsi 1500–2000 m':TIER==='all'?'Vsi vrhovi':'Vsi nad 2000 m (s podvrhi)'}<br><b>${nA}</b> / ${TP.length}${barH(nA,TP.length)}</div></div>
     <details${dOpen?' open':''}><summary>Po gorstvih</summary>${RANGES.map(([r,c])=>{const L=TP.filter(p=>p.range===r),n=cntV(L); if(!L.length) return '';
       return `<div class="prow"><span style="color:${c}">${r}</span><span>${n} / ${L.length}</span>${barH(n,L.length)}</div>`;}).join('')}</details>`;
@@ -1592,16 +1596,20 @@ function searchF(g, src, maxCost, ok, wf){
 // summit -> (shortest way) -> first point of the relation -> along the relation (small gaps bridged) to its far end
 // -> if that end is not in the valley, on to the nearest parking. Catches famous variants such as "Pot čez Prag"
 // (ends at Kredarica) or "Čez Plemenice" (ends at Luknja).
+// Also NAMED PATHS that are not in any relation (e.g. "Kopiščarjeva pot" mapped only as named ways): key "n:<name>".
 function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
-  if(!RELS.length) return [];
-  const entry=new Map();
+  const entry=new Map(), relNames=new Set(RELS.map(relName).filter(Boolean).map(x=>x.toLowerCase()));
+  const nameOK=n=>n&&n.length>=4&&!/^\d/.test(n)&&!relNames.has(n.toLowerCase());
   for(let u=0;u<g.n;u++){ const du=base.dist[u]; if(!(du<=RMAX)) continue;
-    for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]]; if(!w.rel) continue;
-      for(const ri of w.rel){ if(relLong(RELS[ri])) continue; const e=entry.get(ri); if(e==null||base.dist[e]>du) entry.set(ri,u); } } }
+    for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]];
+      if(w.rel) for(const ri of w.rel){ if(relLong(RELS[ri])) continue; const e=entry.get(ri); if(e==null||base.dist[e]>du) entry.set(ri,u); }
+      if(w.kind!=='r'&&w.kind!=='g'&&du<=3000&&nameOK(w.name)){ const k='n:'+w.name, e=entry.get(k); if(e==null||base.dist[e]>du) entry.set(k,u); } } }
   const startAt=new Map(); for(const st of starts) if(st.node>=0) startAt.set(st.node,st);
   const out=[];
-  for(const [ri,en] of [...entry].sort((a,b)=>base.dist[a[1]]-base.dist[b[1]]).slice(0,40)){
-    const inR=q=>{ const w=g.W[g.wy[q]]; return !!(w.rel&&w.rel.includes(ri)); };
+  const E=[...entry].sort((a,b)=>base.dist[a[1]]-base.dist[b[1]]), isN=x=>typeof x[0]==='string';
+  for(const [ri,en] of E.filter(x=>!isN(x)).slice(0,40).concat(E.filter(isN).slice(0,15))){   // official relations first, then named paths
+    const nm=typeof ri==='string'?ri.slice(2):null;
+    const inR=nm?q=>g.W[g.wy[q]].name===nm:q=>{ const w=g.W[g.wy[q]]; return !!(w.rel&&w.rel.includes(ri)); };
     const res=searchF(g,en,30000,q=>true,q=>inR(q)||g.W[g.wy[q]].kind==='g'?g.len[q]:g.len[q]*6);
     const rdeg=u=>{ let k=0; for(let q=g.off[u];q<g.off[u+1];q++) if(inR(q)) k++; return k; };
     const ends=res.seen.filter(u=>{ const k=rdeg(u); return k===1 && res.dist[u]>600 && base.dist[u]>base.dist[en]+400; }).sort((a,b)=>res.dist[b]-res.dist[a]);
@@ -1615,7 +1623,7 @@ function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
         if(bn<0) continue; const tail=trace(g,r2.pe,bn); nodes=tail.nodes.concat(nodes.slice(1)); edges=tail.edges.concat(edges); end=bn; st=startAt.get(bn); }
       ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)){ if(window.__relDbg) __relDbg.push([ri,e,'bad']); continue; }   // runs over / crosses itself, or wanders off
       taken.push(new Set(tr.nodes));   // only a variant that is kept blocks its look-alikes
-      out.push({ri, end, st, nodes, edges, set:new Set(nodes)}); }
+      out.push({ri:nm?undefined:ri, fname:nm||undefined, end, st, nodes, edges, set:new Set(nodes)}); }
   }
   return out;
 }
@@ -1644,11 +1652,12 @@ function loopErase(nodes, edges){ const pos=new Map(), N=[], E=[];
 // and its line does not cross itself
 function badRoute(g, nodes, s){ const la=g.lat[s], lo=g.lon[s], d0=hav(g.lat[nodes[0]],g.lon[nodes[0]],la,lo); let mn=Infinity;
   for(const u of nodes){ const d=hav(g.lat[u],g.lon[u],la,lo); if(d<mn) mn=d; else if(d-mn>Math.max(600,0.2*d0)) return true; }
-  const n=nodes.length, X=i=>g.lon[nodes[i]]*0.688, Y=i=>g.lat[nodes[i]];   // x scaled by cos(46.5°)
+  const n=nodes.length, X=i=>g.lon[nodes[i]]*0.688, Y=i=>g.lat[nodes[i]], cum=new Float64Array(n);   // x scaled by cos(46.5°)
+  for(let i=1;i<n;i++) cum[i]=cum[i-1]+hav(g.lat[nodes[i-1]],g.lon[nodes[i-1]],g.lat[nodes[i]],g.lon[nodes[i]]);
   const cr=(a,b,c)=>(X(b)-X(a))*(Y(c)-Y(a))-(Y(b)-Y(a))*(X(c)-X(a));
   for(let i=0;i<n-1;i++){ const x0=Math.min(X(i),X(i+1)), x1=Math.max(X(i),X(i+1)), y0=Math.min(Y(i),Y(i+1)), y1=Math.max(Y(i),Y(i+1));
     for(let j=i+2;j<n-1;j++){ if(Math.max(X(j),X(j+1))<x0||Math.min(X(j),X(j+1))>x1||Math.max(Y(j),Y(j+1))<y0||Math.min(Y(j),Y(j+1))>y1) continue;
-      const a=cr(i,i+1,j), b=cr(i,i+1,j+1), c=cr(j,j+1,i), d=cr(j,j+1,i+1); if(a*b<0&&c*d<0) return true; } }
+      const a=cr(i,i+1,j), b=cr(i,i+1,j+1), c=cr(j,j+1,i), d=cr(j,j+1,i+1); if(a*b<0&&c*d<0&&cum[j]-cum[i+1]>300) return true; } }   // tight switchbacks drawn over each other don't count
   return false; }
 function peakRoutes(g, la, lo, starts, opt={}){
   const s = nearestNode(g, la, lo, opt.snap||250, 0, true); if (s<0) return null;
@@ -1666,14 +1675,14 @@ function peakRoutes(g, la, lo, starts, opt={}){
       coords: tr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: pathStats(g, tr.edges)});
   }
   // add official relation routes not already covered
-  const best=acc.length?Math.min(...acc.map(a=>a.stats.len)):Infinity, near=opt.nearEnd||(()=>true);
+  const accM=acc.filter(a=>a.stats.marked>=0.4), best=(accM.length?accM:acc).length?Math.min(...(accM.length?accM:acc).map(a=>a.stats.len)):Infinity, near=opt.nearEnd||(()=>true);   // best = shortest MARKED way: an unmarked shortcut must not make every real route look like a detour
   for (const rr of relationRoutes(g, s, {dist, pe}, starts, near)){
-    if (acc.length >= (opt.max||7)+4) break;
+    if (acc.length >= (opt.max||7)+10) break;            // official relations / named paths: room for all of them (they win the final cut)
     const st=pathStats(g, rr.edges);
-    if (st.len > Math.max(2.2*best, best+6000)) continue;            // absurd detours
+    if (st.len > Math.max(2.8*best, best+10000)) continue;           // absurd detours (official routes may be long: Tolmin - Krn)
     const dup=acc.find(a=>{ let k=0; for(const x of rr.nodes) if(a.set.has(x)) k++; return k/rr.nodes.length>0.7 && a.stats.ferrata===st.ferrata && Math.abs(a.stats.sac-st.sac)<2; });
     if (dup) continue;
-    acc.push({start:rr.st?{...rr.st}:{node:rr.end, name:'', lat:g.lat[rr.end], lon:g.lon[rr.end], kind:'rel'}, rel:rr.ri, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:st.len, coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: st});
+    acc.push({start:rr.st?{...rr.st}:{node:rr.end, name:'', lat:g.lat[rr.end], lon:g.lon[rr.end], kind:'rel'}, rel:rr.ri, fname:rr.fname, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:st.len, coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: st});
   }
   for (const fr of ferrataRoutes(g, s, {dist, pe}, starts)){
     const st=pathStats(g, fr.edges); if (st.len > Math.max(2.5*best, best+7000)) continue;
@@ -1682,14 +1691,15 @@ function peakRoutes(g, la, lo, starts, opt={}){
   }
   // label: relation that covers most of the route; bonus if it names this peak, small bonus for PZS marking
   const pn=(opt.peakName||'').toLowerCase().split(/[ (]/)[0];
-  for (const a of acc){ if (a.rel!=null) continue; let bs=0;
+  for (const a of acc){ if (a.rel!=null||a.fname) continue; let bs=0;
     for (const ri of a.stats.rels){ const R=RELS[ri], cv=a.stats.cov.get(ri)||0; if(cv<0.5) continue; const sc=cv+(pn&&relName(R).toLowerCase().includes(pn)?0.5:0)+(relPZS(R)?0.1:0); if(sc>bs){ bs=sc; a.rel=ri; } } }
   // drop absurd detours, then near-duplicates (same start area and mostly the same way), keep at most max+2
   const good=acc.filter(a=>a.stats.marked>=0.6).length;
-  let keep=acc.filter(a=>(a.stats.len<=Math.max(2.2*best,best+6000)||acc.length<=3)&&!(good>=4&&a.rel==null&&a.stats.marked<0.4));
+  const ok1=a=>!(good>=4&&a.rel==null&&a.stats.marked<0.4), k1=acc.filter(ok1), bestK=k1.length?Math.min(...k1.map(a=>a.stats.len)):best;
+  let keep=k1.filter(a=>a.stats.len<=(a.rel!=null||a.fname?Math.max(2.8*bestK,bestK+10000):Math.max(2.2*bestK,bestK+6000))||acc.length<=3);
   keep.sort((a,b)=>(b.rel!=null)-(a.rel!=null)||a.stats.len-b.stats.len);
   const fin=[];
-  for (const a of keep){ if (fin.length>=(opt.max||7)+2) break;
+  for (const a of keep){ if (fin.length>=(opt.max||7)+5) break;
     if (fin.some(f=>{ if(hav(f.start.lat,f.start.lon,a.start.lat,a.start.lon)>=600) return false; const ov=[...a.set].filter(x=>f.set.has(x)).length/a.set.size;
       const differs=a.stats.ferrata!==f.stats.ferrata || Math.abs(a.stats.sac-f.stats.sac)>=2 || (a.rel!=null&&f.rel!=null&&a.rel!==f.rel); // e.g. Via Italiana vs normal way
       return ov>0.85 || (ov>0.5 && !differs); })) continue;
@@ -2123,7 +2133,7 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
-window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats}); // for tests
+window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats,RELS,relLong,relName,badRoute}); // for tests
 // start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
 function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
   for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }
@@ -2833,7 +2843,7 @@ const RANGE_EN = {'Julijske Alpe':'Julian Alps','Kamniško-Savinjske Alpe':'Kamn
 const EN = Object.assign({}, RANGE_EN, {
   'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
-  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'pred sneženjem – velja model':'before the last snowfall - model used', 'od takrat':'since then', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', 'Nadmorska višina':'Elevation', 'Višina snega':'Snow depth', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
+  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'pred sneženjem – velja model':'before the last snowfall - model used', 'od takrat':'since then', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', '🏆 Lestvica':'🏆 Leaderboard', 'Lestvica':'Leaderboard', 'Nadmorska višina':'Elevation', 'Višina snega':'Snow depth', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
   'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
   'Pretiravanje višin':'Height exaggeration', '1.0 = realno':'1.0 = real', 'Klik na teren':'Click on terrain', 'Klikni kamorkoli za višino DEM.':'Click anywhere for the terrain height.',
   'Napredno':'Advanced', 'Osveži podatke OSM':'Refresh OSM data', 'Naloži ceste':'Load roads', 'Razširi na 20 km (PC)':'Extend to 20 km (PC)', 'Izvozi paket podatkov':'Export data pack',
@@ -2917,8 +2927,8 @@ const STEPS = [
   {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 13 korakih — lahko ga kadarkoli preskočiš.', lang:true},
   {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.', sel:()=>'#drawer', open:'peaks'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
-  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#map', center:true, open:'map'},
-  {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'#map', center:true, open:'map'},
+  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
+  {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
   {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>'#wxChk', open:'layers'},
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn', open:()=>PHONE()?'map':'layers'},
@@ -2967,10 +2977,20 @@ function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contai
 function uiRestore(){ if (!ui0) return; const d = DR(); B().toggle('lclosed', ui0[0]); B().toggle('menu', ui0[1]); if (d) d.classList.toggle('open', ui0[2]); ui0 = null; }
 function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
   document.body.classList.remove('menu'); showStep(); }
-function endTour(){ if (ov){ ov.remove(); ov = null; } uiRestore(); LS('dvat3d_tour_done', '1'); }
+function endTour(){ if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
+// routes and 360 are shown on Triglav: the map flies there, its routes / its window open, the real thing is lit up
+let curDemo = null; const TRI = 'triglav-2864';
+const popClose = () => document.querySelectorAll('.maplibregl-popup .maplibregl-popup-close-button').forEach(b => b.click());
+function demo(d){ if (d === curDemo) return false;
+  if (curDemo === 'routes' && window.closeRoutes) closeRoutes(); if (curDemo === 'p360') popClose(); curDemo = d;
+  const P = typeof byId !== 'undefined' && byId[TRI]; if (!d || !P) return false;
+  if (d === 'routes'){ popClose(); map.flyTo({center:[P.lon, P.lat], zoom:12.5, pitch:50, bearing:-15, duration:1400});
+    Promise.resolve(window.peakRoutesUI && peakRoutesUI(TRI)).then(() => setTimeout(() => ov && curDemo === 'routes' && placeStep(), 1000)); setTimeout(() => ov && placeStep(), 1600); return true; }
+  if (d === 'p360'){ if (window.openPeak) openPeak(TRI, true); setTimeout(() => ov && curDemo === 'p360' && placeStep(), 1900); return true; }
+  return false; }
 let stT = 0;
 function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S.open() : S.open;
-  clearTimeout(stT); if (uiSet(o)){ ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
+  clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
 function placeStep(){ if (!ov) return;
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
   let r = null; if (S.sel){ let el = document.querySelector(S.sel()); if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel')) el.scrollIntoView({block:'center'}); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
@@ -3857,7 +3877,7 @@ const lb = document.createElement('div'); lb.id = 'lbPage'; document.body.append
 const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage{position:fixed;inset:0;z-index:61;background:#f3f5f4;display:none;justify-content:center;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 #lbPage.on{display:flex}
-#lbPage .lbc{background:#fff;color:#1d2321;width:min(860px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.12);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbc{background:#fff;color:#1d2321;width:min(1180px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.12);font-size:calc(14px*var(--ui,1))}
 #lbPage .lbh{padding-top:calc(14px + env(safe-area-inset-top))}
 #lbPage .lbx.bk{width:auto;border-radius:16px;padding:0 12px;font:600 .95em system-ui,sans-serif;white-space:nowrap}
 #lbPage .lbh{padding:14px 18px 10px;border-bottom:1px solid #e6eae8;background:linear-gradient(180deg,#fff8e6,#fff)}
@@ -3868,7 +3888,17 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage .lbtabs button{flex:0 1 auto;border:1px solid #d3d9d6;background:#fff;color:#1d2321;border-radius:18px;padding:6px 12px;font:600 .88em system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 #lbPage .lbtabs button.on{background:#1d2321;border-color:#1d2321;color:#fff}
 #lbPage .lbq{width:100%;box-sizing:border-box;margin-top:10px;font:inherit;padding:8px 12px;border:1px solid #c9d0cc;border-radius:10px}
-#lbPage .lbb{flex:1;overflow:auto;padding:6px 18px 12px;overscroll-behavior:contain}
+#lbPage .lbm{flex:1;overflow:auto;overscroll-behavior:contain;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;padding:0 18px 18px;align-items:start}
+#lbPage .lbb{padding:6px 0 12px;min-width:0}
+#lbPage .lba{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;padding-top:14px}
+#lbPage .ac2{background:#f7f9f8;border:1px solid #e3e8e5;border-radius:12px;padding:10px 12px}
+#lbPage .ac2 h4{margin:0 0 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:#5b6461}
+#lbPage .ac2 .it{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #edf0ee;font-size:.92em}#lbPage .ac2 .it:last-child{border-bottom:0}
+#lbPage .ac2 .it span{color:#5b6461;white-space:nowrap}#lbPage .ac2 a{color:#1565c0;cursor:pointer}
+#lbPage .ac2 .pr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:.9em;margin:5px 0}#lbPage .ac2 .pr .bar{grid-column:1/3;margin:0}
+#lbPage .ac2 .big{display:flex;gap:10px;align-items:baseline;margin:2px 0 6px}#lbPage .ac2 .big b{font-size:1.9em;font-variant-numeric:tabular-nums}
+#lbPage .ac2 .nb{color:#5b6461;font-size:.86em}
+@media (max-width:980px){ #lbPage .lbm{grid-template-columns:1fr;gap:4px} #lbPage .lba{position:static;padding-top:4px} }
 #lbPage .pod{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;margin:12px 0 8px}
 #lbPage .pd{background:#f6f8f7;border-radius:12px;padding:10px 6px 8px;text-align:center;cursor:pointer;border:1px solid #e3e8e5;min-width:0}
 #lbPage .pd .md{font-size:1.5em;line-height:1}#lbPage .pd b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
@@ -3921,8 +3951,8 @@ function lbShell(){
   lb.innerHTML = `<div class="lbc"><div class="lbh">${head('lb')}
     <div class="lbs" id="lbStats">…</div>${chips()}
     <input class="lbq" id="lbQ" type="search" placeholder="${L('Išči uporabnika …','Search users …')}" value="${esc(LB.q)}" autocomplete="off"></div>
-    <div class="lbb" id="lbBody"></div><div class="lbf" id="lbFoot"></div></div>`;
-  bindHead(() => lbLoad(true));
+    <div class="lbm"><div class="lbb" id="lbBody"></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot"></div></div>`;
+  bindHead(() => { lbLoad(true); asideLB(); });
   let qt = 0; $a('lbQ').oninput = e => { clearTimeout(qt); qt = setTimeout(() => { LB.q = e.target.value.trim().slice(0, 40); lbLoad(true); }, 300); };
   rpc('leaderboard_stats').then(j => { const el = $a('lbStats'); if (el && j) el.textContent = `${j.users} ${L('planincev','hikers')} · ${j.ascents} ${L('osvojenih vrhov','peaks climbed')} · ${j.month} ${L('ta mesec','this month')}`; })
     .catch(() => { const el = $a('lbStats'); if (el) el.textContent = ''; }); }
@@ -3954,7 +3984,7 @@ async function lbFoot(){
 async function lbProfile(u, back){
   const r0 = LB.rows.find(r => r.username === u), me = S && S.username === u;
   $a('lbBody').innerHTML = `<div class="pf"><button class="back" id="lbBack">‹ ${back ? L('Nazaj','Back') : L('Nazaj na lestvico','Back to the leaderboard')}</button><div id="pfBody"><div class="empty">…</div></div></div>`;
-  $a('lbBack').onclick = back || lbList; $a('lbBody').scrollTop = 0;
+  $a('lbBack').onclick = back || lbList; lbTop();
   let F = null, j = null;
   if (S){ try{ F = await rpc('friend_profile', {uname: u}, true); }catch(_){} if (!me) await loadFriends().catch(() => {}); }
   if (!F) try{ j = await rpc('public_profile', {uname: u}); }catch(_){}
@@ -3983,12 +4013,12 @@ async function lbProfile(u, back){
 }
 // its own page: opening adds a step to the browser history, so the phone's / browser's back button returns to the map
 function lbShow(){ if (!lb.classList.contains('on')){ try{ history.pushState({lbp: 1}, ''); }catch(_){} } lb.classList.add('on'); document.body.classList.remove('menu'); }
-function leaderboard(){ lbShell(); lbShow(); lbLoad(true); }
+function leaderboard(){ lbShell(); lbShow(); lbLoad(true); asideLB(); }
 function lbClose(){ if (!lb.classList.contains('on')) return; if (history.state && history.state.lbp){ history.back(); return; } lb.classList.remove('on'); }
 addEventListener('popstate', () => { if (lb.classList.contains('on') && !(history.state && history.state.lbp)) lb.classList.remove('on'); });
 lb.onclick = e => { if (e.target === lb) lbClose(); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && lb.classList.contains('on')) lbClose(); });
-async function profile(u){ lbShell(); lbShow(); LB.rows = []; await lbProfile(u, () => lbLoad(true)); }
+async function profile(u){ lbShell(); lbShow(); LB.rows = []; asideLB(); await lbProfile(u, () => lbLoad(true)); }
 window.showLeaderboard = leaderboard; window.showProfile = profile;
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#lbBtn')){ e.preventDefault(); leaderboard(); } });
 
@@ -4037,12 +4067,12 @@ const myC = () => Object.assign(countsOf([...(window.TICKS ? TICKS.get() : [])])
 function soShell(p){
   lb.innerHTML = `<div class="lbc"><div class="lbh">${head(p)}<div class="lbs">${p === 'fr' ? L('Prijatelji vidijo drug drugemu vse: vrhove z datumi, potmi in opombami ter narisane poti.','Friends see everything of each other: peaks with dates, routes and notes, and drawn routes.')
     : L('Skupine so zasebne. Povabiš lahko samo svoje prijatelje. Člani vidijo vrhove z datumi in skupne načrte.','Groups are private. You can only invite your friends. Members see peaks with dates and shared plans.')}</div>${chips()}</div>
-    <div class="lbb" id="lbBody"><div class="empty">…</div></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
-  bindHead(() => SO.re && SO.re()); }
+    <div class="lbm"><div class="lbb" id="lbBody"><div class="empty">…</div></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
+  bindHead(() => { SO.re && SO.re(); SO.aside && SO.aside(); }); }
 function soOpen(p){ lbShow(); soShell(p);
   if (!S){ $a('lbBody').innerHTML = `<div class="empty">${L('Prijatelji in skupine potrebujejo račun.','Friends and groups need an account.')}<br><br><button class="sb pri" id="soIn">${L('Prijava / nov račun','Sign in / new account')}</button></div>`;
     $a('soIn').onclick = () => { lbClose(); openAccount('in'); }; return; }
-  refreshBadge(); (p === 'gr' ? grList : frList)(); }
+  refreshBadge(); (p === 'gr' ? grList : frList)(); (p === 'gr' ? asideGR : asideFR)(); }
 window.showSocial = soOpen;
 
 // friends page: add, requests, ranking of me + friends, sent requests
@@ -4136,7 +4166,7 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
     <h4 class="sh">⚙ ${L('Skupina','Group')}</h4>
     <div class="sbr">${own ? `<button class="sb" id="grRen">✎ ${L('Preimenuj','Rename')}</button><button class="sb danger" id="grDel">🗑 ${L('Izbriši skupino','Delete group')}</button>` : ''}<button class="sb danger" id="grLeave">${L('Zapusti skupino','Leave group')}</button></div>
     ${own ? `<div class="ah2">${L('Če zapustiš skupino, postane lastnik najstarejši član.','If you leave, the longest member becomes the owner.')}</div>` : ''}</div>`;
-  B.scrollTop = 0; const again = () => grView(gid);
+  lbTop(); const again = () => grView(gid);
   $a('lbBack').onclick = grList;
   B.querySelectorAll('.lr[data-u]').forEach(d => d.onclick = e => { if (e.target.closest('.kick')) return; lbProfile(d.dataset.u, again); });
   B.querySelectorAll('.kick,.unv').forEach(b => b.onclick = e => { e.stopPropagation(); if (!confirmTwice(b)) return; busy(b, () => rpc('group_kick', {gid, uname: b.dataset.k}, true), again); });
@@ -4160,6 +4190,45 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
   const ren = $a('grRen'); if (ren) ren.onclick = () => { const n = prompt(L('Novo ime skupine', 'New group name'), G.name); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
   const del = $a('grDel'); if (del) del.onclick = () => { if (confirmTwice(del)) busy(del, () => rpc('group_delete', {gid}, true), grList); };
   $a('grLeave').onclick = () => { if (confirmTwice($a('grLeave'))) busy($a('grLeave'), () => rpc('group_leave', {gid}, true), async () => { SO.circle = null; await grList(); }); }; }
+// ---------- side column: my progress, the community, friends' climbs, upcoming plans ----------
+const lbTop = () => { const m = lb.querySelector('.lbm'); if (m) m.scrollTop = 0; };
+const pkA = id => byId[id] ? `<a data-pk="${esc(id)}">${esc(byId[id].name)}</a>` : esc(id);
+const ac = (t, h) => h ? `<section class="ac2"><h4>${t}</h4>${h}</section>` : '';
+function asideBind(){ const A = $a('lbAside'); if (!A) return;
+  A.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
+  A.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, SO.re || lbList));
+  A.querySelectorAll('[data-g]').forEach(a => a.onclick = () => { if (lb.dataset.p !== 'gr') soShell('gr'); grView(a.dataset.g); }); }
+function progressCard(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), BP = boardPeaks(), by = new Map(), tr = window.T || (x => x);
+  let done = 0; for (const p of BP){ const r = p.range || '–', o = by.get(r) || [0, 0]; o[1]++; if (T0.has(p.id)){ o[0]++; done++; } by.set(r, o); }
+  const next = BP.filter(p => !T0.has(p.id) && p.lat != null).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 3);
+  return ac(L('Moj napredek','My progress'), `<div class="big"><b>${done}</b><span class="nb">/ ${BP.length} · ${Math.round(done / Math.max(1, BP.length) * 100)} %</span></div>`
+    + [...by].sort((a, b) => b[1][1] - a[1][1]).map(([r, [d, n]]) => `<div class="pr"><span>${esc(tr(r))}</span><b>${d} / ${n}</b><div class="bar"><i style="width:${(d / n * 100).toFixed(1)}%"></i></div></div>`).join('')
+    + (next.length ? `<div class="nb" style="margin-top:6px">${L('Naslednji izziv','Next up')}: ${next.map(p => pkA(p.id)).join(', ')}</div>` : '')); }
+async function asideLB(){ SO.aside = asideLB; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind();
+  let C = null; try{ C = await rpc('community_stats'); }catch(_){ return; } if (!C || lb.dataset.p !== 'lb') return;
+  const pp = n => n + ' ' + plSl(n, ['planinec', 'planinca', 'planinci', 'planincev', 'hiker', 'hikers']);
+  A.innerHTML = progressCard()
+    + ac(L('Zadnji vzponi','Latest climbs'), C.recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join('') + (C.recent.length ? '' : '') )
+    + ac(L('Najbolj obiskani vrhovi','Most climbed peaks'), C.top_peaks.filter(r => byId[r.peak_id]).map((r, i) => `<div class="it"><div>${i + 1}. ${pkA(r.peak_id)}</div><span>${pp(r.n)}</span></div>`).join(''))
+    + ac(L('Najbolj aktivni ta mesec','Most active this month'), C.month_top.map(r => `<div class="it"><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a><span>${r.n} ${L('vrhov','peaks')}</span></div>`).join('') || `<div class="nb">${L('Ta mesec še nihče – bodi prvi!','Nobody yet this month - be the first!')}</div>`)
+    + (C.new_users ? `<div class="nb" style="text-align:center">${L('Novih v zadnjih 30 dneh','New in the last 30 days')}: <b>${C.new_users}</b></div>` : '');
+  asideBind(); }
+async function asideFR(){ SO.aside = asideFR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
+  let R = SO.circle; try{ if (!R || Date.now() - SO.circleT > 300000){ R = await rpc('circle_ascents', {}, true); SO.circle = R; SO.circleT = Date.now(); } }catch(_){ return; }
+  if (lb.dataset.p !== 'fr') return; const fr = (R || []).filter(r => r.friend && byId[r.peak_id]), mine = new Set(window.TICKS ? TICKS.get() : []);
+  const recent = fr.filter(r => r.climbed_on).sort((a, b) => b.climbed_on.localeCompare(a.climbed_on)).slice(0, 10);
+  const cnt = new Map(); fr.forEach(r => { if (!mine.has(r.peak_id)) cnt.set(r.peak_id, (cnt.get(r.peak_id) || new Set()).add(r.username)); });
+  const sug = [...cnt].sort((a, b) => b[1].size - a[1].size || byId[b[0]].elev - byId[a[0]].elev).slice(0, 6);
+  A.innerHTML = progressCard()
+    + ac(L('Zadnji vzponi prijateljev','Friends\' latest climbs'), recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join(''))
+    + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div>${pkA(id)}</div><span>${[...u].slice(0, 3).map(x => '@' + esc(x)).join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
+  asideBind(); }
+async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
+  let P = null; try{ P = await rpc('my_plans', {}, true); }catch(_){ return; } if (!P || lb.dataset.p !== 'gr') return;
+  A.innerHTML = ac(L('Prihajajoči načrti','Upcoming plans'), P.map(x => `<div class="it"><div><a data-g="${esc(x.gid)}">${esc(x.title)}</a><div class="nb">${esc(x.group)}${x.me ? ' · ✓ ' + L('greš','you go') : ''}</div></div><span>${x.plan_on ? esc(fmtD(x.plan_on)) : '?'}<br>${x.going} ${L('gre','going')}</span></div>`).join('') || `<div class="nb">${L('Ni načrtov. Odpri skupino in dodaj turo.','No plans. Open a group and add a tour.')}</div>`)
+    + progressCard();
+  asideBind(); }
+
 // dangerous buttons: the first tap asks "sure?", the second does it
 function confirmTwice(b){ if (b.dataset.sure) return true; b.dataset.sure = 1; const t = b.innerHTML; b.innerHTML = L('Res? Klikni še enkrat', 'Sure? Click again'); b.classList.add('sure');
   setTimeout(() => { if (b.isConnected){ delete b.dataset.sure; b.innerHTML = t; b.classList.remove('sure'); } }, 3500); return false; }

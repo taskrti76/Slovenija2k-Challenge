@@ -438,7 +438,7 @@ const lb = document.createElement('div'); lb.id = 'lbPage'; document.body.append
 const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage{position:fixed;inset:0;z-index:61;background:#f3f5f4;display:none;justify-content:center;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 #lbPage.on{display:flex}
-#lbPage .lbc{background:#fff;color:#1d2321;width:min(860px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.12);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbc{background:#fff;color:#1d2321;width:min(1180px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.12);font-size:calc(14px*var(--ui,1))}
 #lbPage .lbh{padding-top:calc(14px + env(safe-area-inset-top))}
 #lbPage .lbx.bk{width:auto;border-radius:16px;padding:0 12px;font:600 .95em system-ui,sans-serif;white-space:nowrap}
 #lbPage .lbh{padding:14px 18px 10px;border-bottom:1px solid #e6eae8;background:linear-gradient(180deg,#fff8e6,#fff)}
@@ -449,7 +449,17 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage .lbtabs button{flex:0 1 auto;border:1px solid #d3d9d6;background:#fff;color:#1d2321;border-radius:18px;padding:6px 12px;font:600 .88em system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 #lbPage .lbtabs button.on{background:#1d2321;border-color:#1d2321;color:#fff}
 #lbPage .lbq{width:100%;box-sizing:border-box;margin-top:10px;font:inherit;padding:8px 12px;border:1px solid #c9d0cc;border-radius:10px}
-#lbPage .lbb{flex:1;overflow:auto;padding:6px 18px 12px;overscroll-behavior:contain}
+#lbPage .lbm{flex:1;overflow:auto;overscroll-behavior:contain;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;padding:0 18px 18px;align-items:start}
+#lbPage .lbb{padding:6px 0 12px;min-width:0}
+#lbPage .lba{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;padding-top:14px}
+#lbPage .ac2{background:#f7f9f8;border:1px solid #e3e8e5;border-radius:12px;padding:10px 12px}
+#lbPage .ac2 h4{margin:0 0 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:#5b6461}
+#lbPage .ac2 .it{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #edf0ee;font-size:.92em}#lbPage .ac2 .it:last-child{border-bottom:0}
+#lbPage .ac2 .it span{color:#5b6461;white-space:nowrap}#lbPage .ac2 a{color:#1565c0;cursor:pointer}
+#lbPage .ac2 .pr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:.9em;margin:5px 0}#lbPage .ac2 .pr .bar{grid-column:1/3;margin:0}
+#lbPage .ac2 .big{display:flex;gap:10px;align-items:baseline;margin:2px 0 6px}#lbPage .ac2 .big b{font-size:1.9em;font-variant-numeric:tabular-nums}
+#lbPage .ac2 .nb{color:#5b6461;font-size:.86em}
+@media (max-width:980px){ #lbPage .lbm{grid-template-columns:1fr;gap:4px} #lbPage .lba{position:static;padding-top:4px} }
 #lbPage .pod{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:10px;align-items:end;margin:12px 0 8px}
 #lbPage .pd{background:#f6f8f7;border-radius:12px;padding:10px 6px 8px;text-align:center;cursor:pointer;border:1px solid #e3e8e5;min-width:0}
 #lbPage .pd .md{font-size:1.5em;line-height:1}#lbPage .pd b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
@@ -502,8 +512,8 @@ function lbShell(){
   lb.innerHTML = `<div class="lbc"><div class="lbh">${head('lb')}
     <div class="lbs" id="lbStats">…</div>${chips()}
     <input class="lbq" id="lbQ" type="search" placeholder="${L('Išči uporabnika …','Search users …')}" value="${esc(LB.q)}" autocomplete="off"></div>
-    <div class="lbb" id="lbBody"></div><div class="lbf" id="lbFoot"></div></div>`;
-  bindHead(() => lbLoad(true));
+    <div class="lbm"><div class="lbb" id="lbBody"></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot"></div></div>`;
+  bindHead(() => { lbLoad(true); asideLB(); });
   let qt = 0; $a('lbQ').oninput = e => { clearTimeout(qt); qt = setTimeout(() => { LB.q = e.target.value.trim().slice(0, 40); lbLoad(true); }, 300); };
   rpc('leaderboard_stats').then(j => { const el = $a('lbStats'); if (el && j) el.textContent = `${j.users} ${L('planincev','hikers')} · ${j.ascents} ${L('osvojenih vrhov','peaks climbed')} · ${j.month} ${L('ta mesec','this month')}`; })
     .catch(() => { const el = $a('lbStats'); if (el) el.textContent = ''; }); }
@@ -535,7 +545,7 @@ async function lbFoot(){
 async function lbProfile(u, back){
   const r0 = LB.rows.find(r => r.username === u), me = S && S.username === u;
   $a('lbBody').innerHTML = `<div class="pf"><button class="back" id="lbBack">‹ ${back ? L('Nazaj','Back') : L('Nazaj na lestvico','Back to the leaderboard')}</button><div id="pfBody"><div class="empty">…</div></div></div>`;
-  $a('lbBack').onclick = back || lbList; $a('lbBody').scrollTop = 0;
+  $a('lbBack').onclick = back || lbList; lbTop();
   let F = null, j = null;
   if (S){ try{ F = await rpc('friend_profile', {uname: u}, true); }catch(_){} if (!me) await loadFriends().catch(() => {}); }
   if (!F) try{ j = await rpc('public_profile', {uname: u}); }catch(_){}
@@ -564,12 +574,12 @@ async function lbProfile(u, back){
 }
 // its own page: opening adds a step to the browser history, so the phone's / browser's back button returns to the map
 function lbShow(){ if (!lb.classList.contains('on')){ try{ history.pushState({lbp: 1}, ''); }catch(_){} } lb.classList.add('on'); document.body.classList.remove('menu'); }
-function leaderboard(){ lbShell(); lbShow(); lbLoad(true); }
+function leaderboard(){ lbShell(); lbShow(); lbLoad(true); asideLB(); }
 function lbClose(){ if (!lb.classList.contains('on')) return; if (history.state && history.state.lbp){ history.back(); return; } lb.classList.remove('on'); }
 addEventListener('popstate', () => { if (lb.classList.contains('on') && !(history.state && history.state.lbp)) lb.classList.remove('on'); });
 lb.onclick = e => { if (e.target === lb) lbClose(); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && lb.classList.contains('on')) lbClose(); });
-async function profile(u){ lbShell(); lbShow(); LB.rows = []; await lbProfile(u, () => lbLoad(true)); }
+async function profile(u){ lbShell(); lbShow(); LB.rows = []; asideLB(); await lbProfile(u, () => lbLoad(true)); }
 window.showLeaderboard = leaderboard; window.showProfile = profile;
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#lbBtn')){ e.preventDefault(); leaderboard(); } });
 
@@ -618,12 +628,12 @@ const myC = () => Object.assign(countsOf([...(window.TICKS ? TICKS.get() : [])])
 function soShell(p){
   lb.innerHTML = `<div class="lbc"><div class="lbh">${head(p)}<div class="lbs">${p === 'fr' ? L('Prijatelji vidijo drug drugemu vse: vrhove z datumi, potmi in opombami ter narisane poti.','Friends see everything of each other: peaks with dates, routes and notes, and drawn routes.')
     : L('Skupine so zasebne. Povabiš lahko samo svoje prijatelje. Člani vidijo vrhove z datumi in skupne načrte.','Groups are private. You can only invite your friends. Members see peaks with dates and shared plans.')}</div>${chips()}</div>
-    <div class="lbb" id="lbBody"><div class="empty">…</div></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
-  bindHead(() => SO.re && SO.re()); }
+    <div class="lbm"><div class="lbb" id="lbBody"><div class="empty">…</div></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
+  bindHead(() => { SO.re && SO.re(); SO.aside && SO.aside(); }); }
 function soOpen(p){ lbShow(); soShell(p);
   if (!S){ $a('lbBody').innerHTML = `<div class="empty">${L('Prijatelji in skupine potrebujejo račun.','Friends and groups need an account.')}<br><br><button class="sb pri" id="soIn">${L('Prijava / nov račun','Sign in / new account')}</button></div>`;
     $a('soIn').onclick = () => { lbClose(); openAccount('in'); }; return; }
-  refreshBadge(); (p === 'gr' ? grList : frList)(); }
+  refreshBadge(); (p === 'gr' ? grList : frList)(); (p === 'gr' ? asideGR : asideFR)(); }
 window.showSocial = soOpen;
 
 // friends page: add, requests, ranking of me + friends, sent requests
@@ -717,7 +727,7 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
     <h4 class="sh">⚙ ${L('Skupina','Group')}</h4>
     <div class="sbr">${own ? `<button class="sb" id="grRen">✎ ${L('Preimenuj','Rename')}</button><button class="sb danger" id="grDel">🗑 ${L('Izbriši skupino','Delete group')}</button>` : ''}<button class="sb danger" id="grLeave">${L('Zapusti skupino','Leave group')}</button></div>
     ${own ? `<div class="ah2">${L('Če zapustiš skupino, postane lastnik najstarejši član.','If you leave, the longest member becomes the owner.')}</div>` : ''}</div>`;
-  B.scrollTop = 0; const again = () => grView(gid);
+  lbTop(); const again = () => grView(gid);
   $a('lbBack').onclick = grList;
   B.querySelectorAll('.lr[data-u]').forEach(d => d.onclick = e => { if (e.target.closest('.kick')) return; lbProfile(d.dataset.u, again); });
   B.querySelectorAll('.kick,.unv').forEach(b => b.onclick = e => { e.stopPropagation(); if (!confirmTwice(b)) return; busy(b, () => rpc('group_kick', {gid, uname: b.dataset.k}, true), again); });
@@ -741,6 +751,45 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
   const ren = $a('grRen'); if (ren) ren.onclick = () => { const n = prompt(L('Novo ime skupine', 'New group name'), G.name); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
   const del = $a('grDel'); if (del) del.onclick = () => { if (confirmTwice(del)) busy(del, () => rpc('group_delete', {gid}, true), grList); };
   $a('grLeave').onclick = () => { if (confirmTwice($a('grLeave'))) busy($a('grLeave'), () => rpc('group_leave', {gid}, true), async () => { SO.circle = null; await grList(); }); }; }
+// ---------- side column: my progress, the community, friends' climbs, upcoming plans ----------
+const lbTop = () => { const m = lb.querySelector('.lbm'); if (m) m.scrollTop = 0; };
+const pkA = id => byId[id] ? `<a data-pk="${esc(id)}">${esc(byId[id].name)}</a>` : esc(id);
+const ac = (t, h) => h ? `<section class="ac2"><h4>${t}</h4>${h}</section>` : '';
+function asideBind(){ const A = $a('lbAside'); if (!A) return;
+  A.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
+  A.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, SO.re || lbList));
+  A.querySelectorAll('[data-g]').forEach(a => a.onclick = () => { if (lb.dataset.p !== 'gr') soShell('gr'); grView(a.dataset.g); }); }
+function progressCard(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), BP = boardPeaks(), by = new Map(), tr = window.T || (x => x);
+  let done = 0; for (const p of BP){ const r = p.range || '–', o = by.get(r) || [0, 0]; o[1]++; if (T0.has(p.id)){ o[0]++; done++; } by.set(r, o); }
+  const next = BP.filter(p => !T0.has(p.id) && p.lat != null).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 3);
+  return ac(L('Moj napredek','My progress'), `<div class="big"><b>${done}</b><span class="nb">/ ${BP.length} · ${Math.round(done / Math.max(1, BP.length) * 100)} %</span></div>`
+    + [...by].sort((a, b) => b[1][1] - a[1][1]).map(([r, [d, n]]) => `<div class="pr"><span>${esc(tr(r))}</span><b>${d} / ${n}</b><div class="bar"><i style="width:${(d / n * 100).toFixed(1)}%"></i></div></div>`).join('')
+    + (next.length ? `<div class="nb" style="margin-top:6px">${L('Naslednji izziv','Next up')}: ${next.map(p => pkA(p.id)).join(', ')}</div>` : '')); }
+async function asideLB(){ SO.aside = asideLB; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind();
+  let C = null; try{ C = await rpc('community_stats'); }catch(_){ return; } if (!C || lb.dataset.p !== 'lb') return;
+  const pp = n => n + ' ' + plSl(n, ['planinec', 'planinca', 'planinci', 'planincev', 'hiker', 'hikers']);
+  A.innerHTML = progressCard()
+    + ac(L('Zadnji vzponi','Latest climbs'), C.recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join('') + (C.recent.length ? '' : '') )
+    + ac(L('Najbolj obiskani vrhovi','Most climbed peaks'), C.top_peaks.filter(r => byId[r.peak_id]).map((r, i) => `<div class="it"><div>${i + 1}. ${pkA(r.peak_id)}</div><span>${pp(r.n)}</span></div>`).join(''))
+    + ac(L('Najbolj aktivni ta mesec','Most active this month'), C.month_top.map(r => `<div class="it"><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a><span>${r.n} ${L('vrhov','peaks')}</span></div>`).join('') || `<div class="nb">${L('Ta mesec še nihče – bodi prvi!','Nobody yet this month - be the first!')}</div>`)
+    + (C.new_users ? `<div class="nb" style="text-align:center">${L('Novih v zadnjih 30 dneh','New in the last 30 days')}: <b>${C.new_users}</b></div>` : '');
+  asideBind(); }
+async function asideFR(){ SO.aside = asideFR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
+  let R = SO.circle; try{ if (!R || Date.now() - SO.circleT > 300000){ R = await rpc('circle_ascents', {}, true); SO.circle = R; SO.circleT = Date.now(); } }catch(_){ return; }
+  if (lb.dataset.p !== 'fr') return; const fr = (R || []).filter(r => r.friend && byId[r.peak_id]), mine = new Set(window.TICKS ? TICKS.get() : []);
+  const recent = fr.filter(r => r.climbed_on).sort((a, b) => b.climbed_on.localeCompare(a.climbed_on)).slice(0, 10);
+  const cnt = new Map(); fr.forEach(r => { if (!mine.has(r.peak_id)) cnt.set(r.peak_id, (cnt.get(r.peak_id) || new Set()).add(r.username)); });
+  const sug = [...cnt].sort((a, b) => b[1].size - a[1].size || byId[b[0]].elev - byId[a[0]].elev).slice(0, 6);
+  A.innerHTML = progressCard()
+    + ac(L('Zadnji vzponi prijateljev','Friends\' latest climbs'), recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join(''))
+    + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div>${pkA(id)}</div><span>${[...u].slice(0, 3).map(x => '@' + esc(x)).join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
+  asideBind(); }
+async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
+  let P = null; try{ P = await rpc('my_plans', {}, true); }catch(_){ return; } if (!P || lb.dataset.p !== 'gr') return;
+  A.innerHTML = ac(L('Prihajajoči načrti','Upcoming plans'), P.map(x => `<div class="it"><div><a data-g="${esc(x.gid)}">${esc(x.title)}</a><div class="nb">${esc(x.group)}${x.me ? ' · ✓ ' + L('greš','you go') : ''}</div></div><span>${x.plan_on ? esc(fmtD(x.plan_on)) : '?'}<br>${x.going} ${L('gre','going')}</span></div>`).join('') || `<div class="nb">${L('Ni načrtov. Odpri skupino in dodaj turo.','No plans. Open a group and add a tour.')}</div>`)
+    + progressCard();
+  asideBind(); }
+
 // dangerous buttons: the first tap asks "sure?", the second does it
 function confirmTwice(b){ if (b.dataset.sure) return true; b.dataset.sure = 1; const t = b.innerHTML; b.innerHTML = L('Res? Klikni še enkrat', 'Sure? Click again'); b.classList.add('sure');
   setTimeout(() => { if (b.isConnected){ delete b.dataset.sure; b.innerHTML = t; b.classList.remove('sure'); } }, 3500); return false; }

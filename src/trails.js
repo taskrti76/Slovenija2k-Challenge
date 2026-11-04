@@ -146,16 +146,20 @@ function searchF(g, src, maxCost, ok, wf){
 // summit -> (shortest way) -> first point of the relation -> along the relation (small gaps bridged) to its far end
 // -> if that end is not in the valley, on to the nearest parking. Catches famous variants such as "Pot čez Prag"
 // (ends at Kredarica) or "Čez Plemenice" (ends at Luknja).
+// Also NAMED PATHS that are not in any relation (e.g. "Kopiščarjeva pot" mapped only as named ways): key "n:<name>".
 function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
-  if(!RELS.length) return [];
-  const entry=new Map();
+  const entry=new Map(), relNames=new Set(RELS.map(relName).filter(Boolean).map(x=>x.toLowerCase()));
+  const nameOK=n=>n&&n.length>=4&&!/^\d/.test(n)&&!relNames.has(n.toLowerCase());
   for(let u=0;u<g.n;u++){ const du=base.dist[u]; if(!(du<=RMAX)) continue;
-    for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]]; if(!w.rel) continue;
-      for(const ri of w.rel){ if(relLong(RELS[ri])) continue; const e=entry.get(ri); if(e==null||base.dist[e]>du) entry.set(ri,u); } } }
+    for(let q=g.off[u];q<g.off[u+1];q++){ const w=g.W[g.wy[q]];
+      if(w.rel) for(const ri of w.rel){ if(relLong(RELS[ri])) continue; const e=entry.get(ri); if(e==null||base.dist[e]>du) entry.set(ri,u); }
+      if(w.kind!=='r'&&w.kind!=='g'&&du<=3000&&nameOK(w.name)){ const k='n:'+w.name, e=entry.get(k); if(e==null||base.dist[e]>du) entry.set(k,u); } } }
   const startAt=new Map(); for(const st of starts) if(st.node>=0) startAt.set(st.node,st);
   const out=[];
-  for(const [ri,en] of [...entry].sort((a,b)=>base.dist[a[1]]-base.dist[b[1]]).slice(0,40)){
-    const inR=q=>{ const w=g.W[g.wy[q]]; return !!(w.rel&&w.rel.includes(ri)); };
+  const E=[...entry].sort((a,b)=>base.dist[a[1]]-base.dist[b[1]]), isN=x=>typeof x[0]==='string';
+  for(const [ri,en] of E.filter(x=>!isN(x)).slice(0,40).concat(E.filter(isN).slice(0,15))){   // official relations first, then named paths
+    const nm=typeof ri==='string'?ri.slice(2):null;
+    const inR=nm?q=>g.W[g.wy[q]].name===nm:q=>{ const w=g.W[g.wy[q]]; return !!(w.rel&&w.rel.includes(ri)); };
     const res=searchF(g,en,30000,q=>true,q=>inR(q)||g.W[g.wy[q]].kind==='g'?g.len[q]:g.len[q]*6);
     const rdeg=u=>{ let k=0; for(let q=g.off[u];q<g.off[u+1];q++) if(inR(q)) k++; return k; };
     const ends=res.seen.filter(u=>{ const k=rdeg(u); return k===1 && res.dist[u]>600 && base.dist[u]>base.dist[en]+400; }).sort((a,b)=>res.dist[b]-res.dist[a]);
@@ -169,7 +173,7 @@ function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
         if(bn<0) continue; const tail=trace(g,r2.pe,bn); nodes=tail.nodes.concat(nodes.slice(1)); edges=tail.edges.concat(edges); end=bn; st=startAt.get(bn); }
       ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)){ if(window.__relDbg) __relDbg.push([ri,e,'bad']); continue; }   // runs over / crosses itself, or wanders off
       taken.push(new Set(tr.nodes));   // only a variant that is kept blocks its look-alikes
-      out.push({ri, end, st, nodes, edges, set:new Set(nodes)}); }
+      out.push({ri:nm?undefined:ri, fname:nm||undefined, end, st, nodes, edges, set:new Set(nodes)}); }
   }
   return out;
 }
@@ -198,11 +202,12 @@ function loopErase(nodes, edges){ const pos=new Map(), N=[], E=[];
 // and its line does not cross itself
 function badRoute(g, nodes, s){ const la=g.lat[s], lo=g.lon[s], d0=hav(g.lat[nodes[0]],g.lon[nodes[0]],la,lo); let mn=Infinity;
   for(const u of nodes){ const d=hav(g.lat[u],g.lon[u],la,lo); if(d<mn) mn=d; else if(d-mn>Math.max(600,0.2*d0)) return true; }
-  const n=nodes.length, X=i=>g.lon[nodes[i]]*0.688, Y=i=>g.lat[nodes[i]];   // x scaled by cos(46.5°)
+  const n=nodes.length, X=i=>g.lon[nodes[i]]*0.688, Y=i=>g.lat[nodes[i]], cum=new Float64Array(n);   // x scaled by cos(46.5°)
+  for(let i=1;i<n;i++) cum[i]=cum[i-1]+hav(g.lat[nodes[i-1]],g.lon[nodes[i-1]],g.lat[nodes[i]],g.lon[nodes[i]]);
   const cr=(a,b,c)=>(X(b)-X(a))*(Y(c)-Y(a))-(Y(b)-Y(a))*(X(c)-X(a));
   for(let i=0;i<n-1;i++){ const x0=Math.min(X(i),X(i+1)), x1=Math.max(X(i),X(i+1)), y0=Math.min(Y(i),Y(i+1)), y1=Math.max(Y(i),Y(i+1));
     for(let j=i+2;j<n-1;j++){ if(Math.max(X(j),X(j+1))<x0||Math.min(X(j),X(j+1))>x1||Math.max(Y(j),Y(j+1))<y0||Math.min(Y(j),Y(j+1))>y1) continue;
-      const a=cr(i,i+1,j), b=cr(i,i+1,j+1), c=cr(j,j+1,i), d=cr(j,j+1,i+1); if(a*b<0&&c*d<0) return true; } }
+      const a=cr(i,i+1,j), b=cr(i,i+1,j+1), c=cr(j,j+1,i), d=cr(j,j+1,i+1); if(a*b<0&&c*d<0&&cum[j]-cum[i+1]>300) return true; } }   // tight switchbacks drawn over each other don't count
   return false; }
 function peakRoutes(g, la, lo, starts, opt={}){
   const s = nearestNode(g, la, lo, opt.snap||250, 0, true); if (s<0) return null;
@@ -220,14 +225,14 @@ function peakRoutes(g, la, lo, starts, opt={}){
       coords: tr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: pathStats(g, tr.edges)});
   }
   // add official relation routes not already covered
-  const best=acc.length?Math.min(...acc.map(a=>a.stats.len)):Infinity, near=opt.nearEnd||(()=>true);
+  const accM=acc.filter(a=>a.stats.marked>=0.4), best=(accM.length?accM:acc).length?Math.min(...(accM.length?accM:acc).map(a=>a.stats.len)):Infinity, near=opt.nearEnd||(()=>true);   // best = shortest MARKED way: an unmarked shortcut must not make every real route look like a detour
   for (const rr of relationRoutes(g, s, {dist, pe}, starts, near)){
-    if (acc.length >= (opt.max||7)+4) break;
+    if (acc.length >= (opt.max||7)+10) break;            // official relations / named paths: room for all of them (they win the final cut)
     const st=pathStats(g, rr.edges);
-    if (st.len > Math.max(2.2*best, best+6000)) continue;            // absurd detours
+    if (st.len > Math.max(2.8*best, best+10000)) continue;           // absurd detours (official routes may be long: Tolmin - Krn)
     const dup=acc.find(a=>{ let k=0; for(const x of rr.nodes) if(a.set.has(x)) k++; return k/rr.nodes.length>0.7 && a.stats.ferrata===st.ferrata && Math.abs(a.stats.sac-st.sac)<2; });
     if (dup) continue;
-    acc.push({start:rr.st?{...rr.st}:{node:rr.end, name:'', lat:g.lat[rr.end], lon:g.lon[rr.end], kind:'rel'}, rel:rr.ri, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:st.len, coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: st});
+    acc.push({start:rr.st?{...rr.st}:{node:rr.end, name:'', lat:g.lat[rr.end], lon:g.lon[rr.end], kind:'rel'}, rel:rr.ri, fname:rr.fname, set:rr.set, nodes:rr.nodes, edges:rr.edges, cost:st.len, coords: rr.nodes.map(i=>[g.lon[i],g.lat[i]]), stats: st});
   }
   for (const fr of ferrataRoutes(g, s, {dist, pe}, starts)){
     const st=pathStats(g, fr.edges); if (st.len > Math.max(2.5*best, best+7000)) continue;
@@ -236,14 +241,15 @@ function peakRoutes(g, la, lo, starts, opt={}){
   }
   // label: relation that covers most of the route; bonus if it names this peak, small bonus for PZS marking
   const pn=(opt.peakName||'').toLowerCase().split(/[ (]/)[0];
-  for (const a of acc){ if (a.rel!=null) continue; let bs=0;
+  for (const a of acc){ if (a.rel!=null||a.fname) continue; let bs=0;
     for (const ri of a.stats.rels){ const R=RELS[ri], cv=a.stats.cov.get(ri)||0; if(cv<0.5) continue; const sc=cv+(pn&&relName(R).toLowerCase().includes(pn)?0.5:0)+(relPZS(R)?0.1:0); if(sc>bs){ bs=sc; a.rel=ri; } } }
   // drop absurd detours, then near-duplicates (same start area and mostly the same way), keep at most max+2
   const good=acc.filter(a=>a.stats.marked>=0.6).length;
-  let keep=acc.filter(a=>(a.stats.len<=Math.max(2.2*best,best+6000)||acc.length<=3)&&!(good>=4&&a.rel==null&&a.stats.marked<0.4));
+  const ok1=a=>!(good>=4&&a.rel==null&&a.stats.marked<0.4), k1=acc.filter(ok1), bestK=k1.length?Math.min(...k1.map(a=>a.stats.len)):best;
+  let keep=k1.filter(a=>a.stats.len<=(a.rel!=null||a.fname?Math.max(2.8*bestK,bestK+10000):Math.max(2.2*bestK,bestK+6000))||acc.length<=3);
   keep.sort((a,b)=>(b.rel!=null)-(a.rel!=null)||a.stats.len-b.stats.len);
   const fin=[];
-  for (const a of keep){ if (fin.length>=(opt.max||7)+2) break;
+  for (const a of keep){ if (fin.length>=(opt.max||7)+5) break;
     if (fin.some(f=>{ if(hav(f.start.lat,f.start.lon,a.start.lat,a.start.lon)>=600) return false; const ov=[...a.set].filter(x=>f.set.has(x)).length/a.set.size;
       const differs=a.stats.ferrata!==f.stats.ferrata || Math.abs(a.stats.sac-f.stats.sac)>=2 || (a.rel!=null&&f.rel!=null&&a.rel!==f.rel); // e.g. Via Italiana vs normal way
       return ov>0.85 || (ov>0.5 && !differs); })) continue;
@@ -677,7 +683,7 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
-window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats}); // for tests
+window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats,RELS,relLong,relName,badRoute}); // for tests
 // start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
 function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
   for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }

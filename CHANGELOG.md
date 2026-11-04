@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.50 — 2026-11-04
+- Routes cross-checked against every official hiking relation and every named path that reaches within 600 m of a summit
+  (all 370 peaks above 2000 m): named paths that are not in a relation now also make routes, official routes may be long
+  (Tolmin – Krn) and win the final cut over unnamed shortest paths, up to 12 routes per peak (average 6 -> 8). Cmir had no
+  route at all: an unmarked shortcut made every real route look like a detour - "shortest" now means shortest MARKED way.
+  Tight switchbacks drawn over each other no longer count as the route crossing itself.
+- Snow map zoomed out: the satellite look dates of a tile are sampled (a zoomed-out tile covered millions of pixels per tile),
+  station corrections are computed once per grid point - much less work per tile.
+- 🏆 Lestvica button in the peak list is translated (Leaderboard).
+- Lestvica / Prijatelji / Skupine page: wider (1180 px) with a side column - my progress per range with the next targets,
+  latest climbs (public profiles), most climbed peaks, most active this month, new hikers; on Prijatelji: friends' latest
+  climbs and "they were there, you not yet"; on Skupine: upcoming plans of all my groups. Needs supabase/06_stats.sql.
+- Guide: "Poti na vrh" flies to Triglav and opens its routes, "360° razgled" opens Triglav's window and lights up the 360 button.
+
 ## web-v0.49 — 2026-11-04
 - Snow map at the ARSO stations: within ~2 km (±200 m of height) the station's reading beats the satellite (a bare pixel next to
   Kredarica no longer cuts the station's 24 cm down to the new snow only); together with the v0.48 correction the map shows

@@ -890,7 +890,9 @@ map.on('click',e=>{
     const X0=Math.max(0,Math.floor((x/n*360-180-b[0])/(b[2]-b[0])*SAT.W)), X1=Math.min(SAT.W-1,Math.floor(((x+1)/n*360-180-b[0])/(b[2]-b[0])*SAT.W)),
       Y0=Math.max(0,Math.floor((b[3]-lat(y))/(b[3]-b[1])*SAT.H)), Y1=Math.min(SAT.H-1,Math.floor((b[3]-lat(y+1))/(b[3]-b[1])*SAT.H));
     const AI=new Int16Array(27).fill(-1), days=[]; if(X1<X0||Y1<Y0) return {AI,days};
-    let lo=255, hi=-1; for(let Y=Y0;Y<=Y1;Y++) for(let X=X0;X<=X1;X++){ const g=SAT.AG[Y*SAT.W+X]; if(g<255){ if(g<lo) lo=g; if(g>hi) hi=g; } }
+    const sx=Math.max(1,Math.floor((X1-X0)/96)), sy=Math.max(1,Math.floor((Y1-Y0)/96));   // sampled: a zoomed-out tile covers millions of pixels
+    let lo=255, hi=-1; for(let Y=Y0;Y<=Y1;Y+=sy) for(let X=X0;X<=X1;X+=sx){ const g=SAT.AG[Y*SAT.W+X]; if(g<255){ if(g<lo) lo=g; if(g>hi) hi=g; } }
+    if(hi>=0){ lo=Math.max(0,lo-10); hi=Math.min(254,hi+10); }   // samples can miss the extremes: one day of margin
     if(hi<0) return {AI,days};
     for(let a=Math.floor(lo/10);a<=Math.min(25,Math.ceil(hi/10));a++){ const d=lookDay(a); if(!d) continue; let k=days.indexOf(d); if(k<0){ days.push(d); k=days.length-1; } AI[a]=k; }
     return {AI,days}; }
@@ -901,12 +903,12 @@ map.on('click',e=>{
       for(let i=0;i<NG;i++){ const lo=(x+i/(NG-1))/n*360-180, base=(j*NG+i)*3*NH;
         if(useSP){ // inverse-distance blend of the 3 nearest cells (same as snowpackAt) + the ARSO stations' correction nearby
           const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk<=R) best.push([dk,g]); }
-          if(SW) for(let k=0;k<NH;k++) SW[(j*NG+i)*NH+k]=swf(la,lo,HZ0+k*HZS);
+          if(SW){ const sf=swf.at(la,lo); for(let k=0;k<NH;k++) SW[(j*NG+i)*NH+k]=sf(HZ0+k*HZS); }
           if(!best.length) continue; best.sort((a,b)=>a[0]-b[0]); const B3=best.slice(0,3);
           for(let d=0;d<days.length;d++){ let sw=0; const acc=new Float32Array(3*NH), o=d*N1+base;
             for(const [dk,g] of B3){ const w=1/Math.max(1,dk)**2, a=GPs[d].get(g); if(!a) continue; sw+=w; for(let q=0;q<3*NH;q++) acc[q]+=w*a[q]; }
-            if(!sw) continue; const sc=SC[d];
-            for(let k=0;k<NH;k++){ const c=sc?sc(la,lo,HZ0+k*HZS):0; for(let s3=0;s3<3;s3++){ const q=s3*NH+k; prof[o+q]=Math.max(0,acc[q]/sw+c); } } }
+            if(!sw) continue; const sc=SC[d]?SC[d].at(la,lo):null;
+            for(let k=0;k<NH;k++){ const c=sc?sc(HZ0+k*HZS):0; for(let s3=0;s3<3;s3++){ const q=s3*NH+k; prof[o+q]=Math.max(0,acc[q]/sw+c); } } }
         } else { const f=fitAt(la,lo); if(!f) continue; for(let k=0;k<NH;k++){ const v=depthPx(f,HZ0+k*HZS,1); prof[base+k]=v; prof[base+NH+k]=v; prof[base+2*NH+k]=v; } } } }
     return {prof,NG,AI:L?L.AI:null,SW}; }
 
@@ -1034,8 +1036,9 @@ map.on('click',e=>{
   function stSatW(day){ if(SWD.has(day)) return SWD.get(day); let f=null; const S0=[];
     for(const o of ((SP&&SP.obs)||[])){ if(o.cm==null||o.lat==null||!o.valid) continue; const di=SP.days.indexOf(o.valid.slice(0,10)), dd=SP.days.indexOf(day); if(di<0||dd<di) continue;
       S0.push([o.lat,o.lon,o.alt,Math.pow(0.85,dd-di)]); }
-    if(S0.length) f=(la,lo,h)=>{ let m=0; for(const [a,b,z,k] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk>6) continue;
-      const w=k*Math.exp(-((dk/2)**2))*Math.exp(-(((h-z)/200)**2)); if(w>m) m=w; } return m; };
+    if(S0.length){ f=(la,lo,h)=>f.at(la,lo)(h);
+      f.at=(la,lo)=>{ const N=[]; for(const [a,b,z,k] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk<=6) N.push([k*Math.exp(-((dk/2)**2)),z]); }
+        return !N.length?()=>0:h=>{ let m=0; for(const [wh,z] of N){ const w=wh*Math.exp(-(((h-z)/200)**2)); if(w>m) m=w; } return m; }; }; }
     SWD.set(day,f); return f; }
   // ARSO stations are right: the model nearby is shifted to what they measured (Gaussian: ~5 km, ±250 m of height), on the day of
   // the reading and fading over the next days; the snowpack job has already pulled the model towards them
@@ -1044,8 +1047,9 @@ map.on('click',e=>{
     const O=((SP&&SP.obs)||[]).filter(o=>o.cm!=null&&o.lat!=null&&o.valid), S0=[];
     for(const o of O){ const od=o.valid.slice(0,10), di=SP.days.indexOf(od), dd=SP.days.indexOf(day); if(di<0||dd<di) continue;
       const m=spRaw(o.lat,o.lon,o.alt,od,0); if(m==null) continue; const r=(o.cm-m)*Math.pow(0.85,dd-di); if(Math.abs(r)>=0.5) S0.push([o.lat,o.lon,o.alt,r]); }
-    if(S0.length) f=(la,lo,h)=>{ let sw=0,sr=0; for(const [a,b,z,r] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk>12) continue;
-      const w=Math.exp(-((dk/5)**2))*Math.exp(-(((h-z)/250)**2)); sw+=w; sr+=w*r; } return sw>1e-3?sr/sw*Math.min(1,sw):0; };
+    if(S0.length){ f=(la,lo,h)=>f.at(la,lo)(h);
+      f.at=(la,lo)=>{ const N=[]; for(const [a,b,z,r] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk<=12) N.push([Math.exp(-((dk/5)**2)),z,r]); }   // stations near this point
+        return !N.length?()=>0:h=>{ let sw=0,sr=0; for(const [wh,z,r] of N){ const w=wh*Math.exp(-(((h-z)/250)**2)); sw+=w; sr+=w*r; } return sw>1e-3?sr/sw*Math.min(1,sw):0; }; }; }
     SCD.set(day,f); return f; }
   function satOutdated(la,lo,h){ if(!SAT||!SP||!SP.ls) return false; const b=SAT.m.bbox, X=Math.floor((lo-b[0])/(b[2]-b[0])*SAT.W), Y=Math.floor((b[3]-la)/(b[3]-b[1])*SAT.H);
     if(X<0||Y<0||X>=SAT.W||Y>=SAT.H) return false; const a=SAT.AN[Y*SAT.W+X]; return a!==255&&dOrd(SAT.m.date)-a<=lastSnowOrd(la,lo,h); }
@@ -1278,7 +1282,7 @@ function openPeak(id,fly){
   if(window.wxBox) box.append(wxBox(p));
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
-  const vb=document.createElement('button'); vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
+  const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row); if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
@@ -1368,7 +1372,7 @@ function refresh(){
   $('tiers').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===TIER));
   $('chipRank').textContent=`${R.length} prominentnih`; $('chipAll').textContent=`Vsi vrhovi (${TP.length})`;
   const dOpen=!!$('progress').querySelector('details[open]');
-  $('progress').innerHTML=`<div class="pmain"><button id="lbBtn" type="button" title="Lestvica uporabnikov">🏆 Lestvica</button><div><b>${nR}</b> / ${R.length}</div><span>${TIER==='2000'?'prominentnih dvatisočakov':TIER==='1500'?'prominentnih vrhov 1500–2000 m (≥100 m)':'prominentnih vrhov'}</span>${barH(nR,R.length)}</div>
+  $('progress').innerHTML=`<div class="pmain"><button id="lbBtn" type="button" title="${window.LANG==='en'?'Leaderboard of users':'Lestvica uporabnikov'}">🏆 ${window.LANG==='en'?'Leaderboard':'Lestvica'}</button><div><b>${nR}</b> / ${R.length}</div><span>${TIER==='2000'?'prominentnih dvatisočakov':TIER==='1500'?'prominentnih vrhov 1500–2000 m (≥100 m)':'prominentnih vrhov'}</span>${barH(nR,R.length)}</div>
     <div class="pstat"><div>${TIER==='1500'?'Vsi 1500–2000 m':TIER==='all'?'Vsi vrhovi':'Vsi nad 2000 m (s podvrhi)'}<br><b>${nA}</b> / ${TP.length}${barH(nA,TP.length)}</div></div>
     <details${dOpen?' open':''}><summary>Po gorstvih</summary>${RANGES.map(([r,c])=>{const L=TP.filter(p=>p.range===r),n=cntV(L); if(!L.length) return '';
       return `<div class="prow"><span style="color:${c}">${r}</span><span>${n} / ${L.length}</span>${barH(n,L.length)}</div>`;}).join('')}</details>`;

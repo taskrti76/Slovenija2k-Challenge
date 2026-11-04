@@ -10,7 +10,7 @@ const RANGE_EN = {'Julijske Alpe':'Julian Alps','Kamniško-Savinjske Alpe':'Kamn
 const EN = Object.assign({}, RANGE_EN, {
   'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
-  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'pred sneženjem – velja model':'before the last snowfall - model used', 'od takrat':'since then', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', 'Nadmorska višina':'Elevation', 'Višina snega':'Snow depth', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
+  'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'pred sneženjem – velja model':'before the last snowfall - model used', 'od takrat':'since then', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', '🏆 Lestvica':'🏆 Leaderboard', 'Lestvica':'Leaderboard', 'Nadmorska višina':'Elevation', 'Višina snega':'Snow depth', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
   'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
   'Pretiravanje višin':'Height exaggeration', '1.0 = realno':'1.0 = real', 'Klik na teren':'Click on terrain', 'Klikni kamorkoli za višino DEM.':'Click anywhere for the terrain height.',
   'Napredno':'Advanced', 'Osveži podatke OSM':'Refresh OSM data', 'Naloži ceste':'Load roads', 'Razširi na 20 km (PC)':'Extend to 20 km (PC)', 'Izvozi paket podatkov':'Export data pack',
@@ -94,8 +94,8 @@ const STEPS = [
   {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 13 korakih — lahko ga kadarkoli preskočiš.', lang:true},
   {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.', sel:()=>'#drawer', open:'peaks'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
-  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#map', center:true, open:'map'},
-  {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'#map', center:true, open:'map'},
+  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
+  {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
   {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>'#wxChk', open:'layers'},
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn', open:()=>PHONE()?'map':'layers'},
@@ -144,10 +144,20 @@ function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contai
 function uiRestore(){ if (!ui0) return; const d = DR(); B().toggle('lclosed', ui0[0]); B().toggle('menu', ui0[1]); if (d) d.classList.toggle('open', ui0[2]); ui0 = null; }
 function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
   document.body.classList.remove('menu'); showStep(); }
-function endTour(){ if (ov){ ov.remove(); ov = null; } uiRestore(); LS('dvat3d_tour_done', '1'); }
+function endTour(){ if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
+// routes and 360 are shown on Triglav: the map flies there, its routes / its window open, the real thing is lit up
+let curDemo = null; const TRI = 'triglav-2864';
+const popClose = () => document.querySelectorAll('.maplibregl-popup .maplibregl-popup-close-button').forEach(b => b.click());
+function demo(d){ if (d === curDemo) return false;
+  if (curDemo === 'routes' && window.closeRoutes) closeRoutes(); if (curDemo === 'p360') popClose(); curDemo = d;
+  const P = typeof byId !== 'undefined' && byId[TRI]; if (!d || !P) return false;
+  if (d === 'routes'){ popClose(); map.flyTo({center:[P.lon, P.lat], zoom:12.5, pitch:50, bearing:-15, duration:1400});
+    Promise.resolve(window.peakRoutesUI && peakRoutesUI(TRI)).then(() => setTimeout(() => ov && curDemo === 'routes' && placeStep(), 1000)); setTimeout(() => ov && placeStep(), 1600); return true; }
+  if (d === 'p360'){ if (window.openPeak) openPeak(TRI, true); setTimeout(() => ov && curDemo === 'p360' && placeStep(), 1900); return true; }
+  return false; }
 let stT = 0;
 function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S.open() : S.open;
-  clearTimeout(stT); if (uiSet(o)){ ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
+  clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
 function placeStep(){ if (!ov) return;
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
   let r = null; if (S.sel){ let el = document.querySelector(S.sel()); if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel')) el.scrollIntoView({block:'center'}); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
