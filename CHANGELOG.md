@@ -2,6 +2,30 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.52 — 2026-11-05 (shipped together with v0.51)
+- Leaderboard page: "📸 Vrh tedna" banner on top - a Slovenian prominent 2000er (changes every week), photo from Wikimedia Commons
+  (free licence, photographer + licence shown, found via the Slovenian Wikipedia article), height, range, rank, the best day of
+  the next days from the summit weather rating, "Pokaži na karti".
+- 🏅 Badge wall in the side column: 10 / 25 / 50 / all 98 prominent 2000ers, and for each range (Julijske Alpe, Kamniško-Savinjske
+  Alpe, Karavanke, Pohorje, Snežnik, Predalpe) a gold ★ badge for its prominent peaks and a silver one for all its peaks; each
+  range badge carries its best-known summit(s) (Triglav, Grintovec, Stol · Vrtača, Črni vrh …); earned ones in colour, the
+  others grey with a progress ring and "x / n".
+- Avalanche danger from ARSO: new Action "Avalanche bulletin" (twice a day) reads ARSO's bulletin as relayed to the European
+  avalanche services (CAAML JSON, regions SI-1 … SI-10; fallback ARSO's own XML) into avalanche.json. Peak window: level 1–5 with
+  name and colour, elevation limit, avalanche problems, link to ARSO; day rating: −5 / −20 / −40 / −60 for level 2 / 3 / 4 / 5 when
+  there is snow on the way or the level is 3+. Regions are matched to our ranges (the highest level of a range counts). The
+  bulletin runs in the snow season (~December–May); before that nothing is shown.
+- Privacy page: Wikipedia / Wikimedia Commons (peak-of-the-week photo) added to the outside services.
+
+## web-v0.51 — 2026-11-04
+- My routes: a name too long for the row glides left on hover (tap on phones) so its end can be read; the row no longer
+  pushes the buttons out of the panel.
+- Drawing: a point set (or dropped after moving) within 10 m of a mapped road / path goes onto it.
+- Phones faster: canvas at most 2× the screen pixels (phones run 2.6–3.5× - up to ~3× fewer pixels per frame), less prefetching,
+  shorter tile fade; trail lines are cut into tiles only to zoom 14 (then enlarged) with a smaller buffer - less work and memory.
+- Guide: a step shown again (sheet slid in, Triglav's routes loaded) only moves its card, the text and buttons stay.
+- Side column: no error when supabase/06_stats.sql is not run yet.
+
 ## web-v0.50 — 2026-11-04
 - Routes cross-checked against every official hiking relation and every named path that reaches within 600 m of a summit
   (all 370 peaks above 2000 m): named paths that are not in a relation now also make routes, official routes may be long

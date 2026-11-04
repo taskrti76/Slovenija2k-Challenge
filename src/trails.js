@@ -507,7 +507,7 @@ function addLayers(){
   for(const k of ['hut','biv','park','th','spring','ferr']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
-  if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:0.5,attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
+  if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:window.IS_PHONE?0.7:0.5,maxzoom:window.IS_PHONE?14:16,buffer:window.IS_PHONE?48:96,   /* phones: trail tiles cut only to z14 (then enlarged) - far less work + memory */attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
   // roads: thick grey, width by class (h: 3 main, 2 local, 1 service)
   add({id:'tr-road-c',type:'line',source:'trails-v',minzoom:9,filter:['==',['get','k'],'r'],layout:{'line-join':'round','line-cap':'round'},
     paint:{'line-color':'rgba(255,255,255,.55)','line-width':['interpolate',['linear'],['zoom'],9,['match',['get','h'],3,2.5,2,1.6,0.8],13,['match',['get','h'],3,7,2,5.5,3.5],16,['match',['get','h'],3,12,2,9,6]]}});
@@ -683,7 +683,7 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
-window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats,RELS,relLong,relName,badRoute}); // for tests
+window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats,RELS,relLong,relName,badRoute,snapRoad}); // for tests
 // start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
 function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
   for(const k of ['from','to']){ const v=R&&R[k]; if(v&&!(pn&&v.toLowerCase().includes(pn))) return v; }
@@ -879,7 +879,7 @@ function drawRender(){
     ${profBlock}
     ${D.edit>=0?'<div class="rb"><button onclick="drawSaveNew()">Shrani kot novo</button></div>':''}
     <details class="hlp"><summary>Pomoč</summary>Vleci točko = premakni · klik na črto = vrini točko · klik na točko = izberi; Delete / desni klik / dvoklik = izbriši · Ctrl+Z razveljavi. Polna črta = po poti, črtkana = ravna črta.</details>
-    ${MY.length?`<div class="rg2">Moje poti</div>`+MY.map((r,i)=>`<div class="my"><span>${r.name}</span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}`;
+    ${MY.length?`<div class="rg2">Moje poti</div>`+MY.map((r,i)=>`<div class="my"><span class="mn" title="${esc(r.name)}"><i>${esc(r.name)}</i></span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}`;
   el('dfollow').onchange=e=>{ D.follow=e.target.checked; };
 }
 addEventListener('resize',()=>{ if(window.DRAW_ON) drawRender(); });
@@ -901,10 +901,20 @@ function delPoint(i){
   D.sel=-1; drawChanged();
 }
 window.drawDelSel=()=>delPoint(D.sel>=0?D.sel:D.pts.length-1);
-function addPoint(p){ pushHist(); const prev=D.pts[D.pts.length-1]; D.pts.push(p); if(prev) D.segs.push(makeSeg(prev,p)); D.sel=-1; drawChanged(); }
-function insertPoint(si,p){ pushHist(); const a=D.pts[si], b=D.pts[si+1]; D.pts.splice(si+1,0,p); D.segs.splice(si,1,makeSeg(a,p),makeSeg(p,b)); D.sel=si+1; drawChanged(); }
+// a point set within 10 m of a mapped road / path goes onto it (no tiny stubs beside the line)
+function snapRoad(p){ const g=G; if(!g||!inG(p[1],p[0])) return p; const la=p[1], lo=p[0], C=g.C, cy=Math.floor(la/C), cx=Math.floor(lo/C), kx=111320*Math.cos(la*Math.PI/180), ky=111320;
+  let bd=10, best=null;
+  for(let y=cy-1;y<=cy+1;y++) for(let x=cx-1;x<=cx+1;x++){ const a=g.grid.get(y*100000+x); if(!a) continue;
+    for(const u of a){ if(Math.abs(g.lat[u]-la)*ky>400||Math.abs(g.lon[u]-lo)*kx>400) continue;
+      for(let q=g.off[u];q<g.off[u+1];q++){ if(g.W[g.wy[q]].kind==='g') continue; const v=g.adj[q];
+        const ax=(g.lon[u]-lo)*kx, ay=(g.lat[u]-la)*ky, bx=(g.lon[v]-lo)*kx, by=(g.lat[v]-la)*ky, dx=bx-ax, dy=by-ay, L2=dx*dx+dy*dy;
+        const t=L2?Math.max(0,Math.min(1,-(ax*dx+ay*dy)/L2)):0, px=ax+t*dx, py=ay+t*dy, d=Math.hypot(px,py);
+        if(d<bd){ bd=d; best=[lo+px/kx, la+py/ky]; } } } }
+  return best||p; }
+function addPoint(p){ p=snapRoad(p); pushHist(); const prev=D.pts[D.pts.length-1]; D.pts.push(p); if(prev) D.segs.push(makeSeg(prev,p)); D.sel=-1; drawChanged(); }
+function insertPoint(si,p){ p=snapRoad(p); pushHist(); const a=D.pts[si], b=D.pts[si+1]; D.pts.splice(si+1,0,p); D.segs.splice(si,1,makeSeg(a,p),makeSeg(p,b)); D.sel=si+1; drawChanged(); }
 function movePoint(i,p,final){
-  D.pts[i]=p;
+  if(final) p=snapRoad(p); D.pts[i]=p;
   if(i>0) D.segs[i-1]=final?makeSeg(D.pts[i-1],p):{c:[D.pts[i-1],p],f:false};
   if(i<D.pts.length-1) D.segs[i]=final?makeSeg(p,D.pts[i+1]):{c:[p,D.pts[i+1]],f:false};
   final?drawChanged():setDrawData();
@@ -927,6 +937,11 @@ window.coordsGPX=async(name,coords)=>{ const P=await profile(coords); download(s
 window.myGPX=async i=>{ const r=MY[i], P=await profile(r.coords); download(slug(r.name)+'.gpx', toGPX(r.name,P.pts,P.z)); };
 window.myDel=async i=>{ if(!(await askText(`Izbrišem "${MY[i].name}"?`, null))) return; MY.splice(i,1); if(D.edit===i) D.edit=-1; else if(D.edit>i) D.edit--; saveMy(); myRender(); drawRender(); };
 window.routeToDraw=()=>{ const r=RT.routes[RT.sel]; loadIntoEditor(r.coords,-1); closeRoutes(); startDraw(); drawChanged(); };
+// long route names: on hover (tap on a phone) the name glides left so its end can be read, then back
+document.addEventListener('pointerover',e=>{ const sp=e.target.closest&&e.target.closest('.my .mn'); if(!sp||sp._g) return; const i=sp.firstElementChild, d=i.scrollWidth-sp.clientWidth; if(d<=2) return;
+  sp._g=1; const t=Math.max(1.2,d/40); i.style.transition=`transform ${t}s linear .25s`; i.style.transform=`translateX(${-d}px)`;
+  const back=()=>{ i.style.transition='transform .4s'; i.style.transform=''; sp._g=0; sp.removeEventListener('pointerleave',back); };
+  sp.addEventListener('pointerleave',back); if(e.pointerType!=='mouse') setTimeout(back,(t+1.5)*1000); });
 function myRender(){ if(map.getSource('myroutes')) map.getSource('myroutes').setData({type:'FeatureCollection',features:MY.map(r=>({type:'Feature',properties:{name:r.name},geometry:{type:'LineString',coordinates:r.coords}}))}); }
 
 // pointer interaction: drag points, click line to insert, click map to append

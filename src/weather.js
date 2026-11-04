@@ -102,6 +102,9 @@ function day(s, d, elev, cls){
     o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
   if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
   if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm${o.sat ? ', satellite' : ''})`, 'snow');
+  // avalanche danger from ARSO's bulletin (avalanche.json): counts when there is snow on the way or the level is 3+
+  const av = window.avaAt && s.lat != null ? window.avaAt(s.lat, s.lon, elev, s.days[d]) : null;
+  if (av){ o.ava = av; if ((o.snowcm || 0) >= 10 || av.level >= 3) add([0, 0, 5, 20, 40, 60][av.level] || 0, `lavinska nevarnost ${av.level} (ARSO)`, `avalanche danger ${av.level} (ARSO)`, 'snow'); }
   if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
@@ -167,8 +170,8 @@ function big(p, s, D, DD, sel){
       <div class="tw"><table><thead><tr><th>${L('ura','time')}</th><th></th><th>°C</th><th>${L('občutek','feels')}</th><th>${L('veter','wind')} km/h</th><th>${L('sunki','gusts')}</th>
         <th>${L('oblaki','cloud')}</th><th>mm</th><th>0 °C m</th><th>CAPE</th></tr></thead><tbody>${rows}</tbody></table></div>
       <details class="note"><summary>${L('Kako ocenjujemo?','How is it scored?')}</summary>${L(
-        'Ocena velja za 7–17 h (vzpon + sestop, zeleno v tabeli). Začne pri 100, vsak dejavnik odšteje točke: nevihte popoldne −60 (dopoldne −48; samo velika energija neviht CAPE ≥ 1000 J/kg + dež −35; popoldanske plohe −15) · veter na višini vrha ≥ 30/45/60 km/h ali sunki ≥ 50/70/90 km/h −12/−30/−50 (šteje slabše) · padavine ≥ 0,5/2/5 mm −10/−25/−40 · nizki + srednji oblaki ≥ 70/90 % −8/−20 · sveži sneg (ničta izoterma pod vrhom + padavine) −15 · sneg na vrhu ≥ 10/50 cm −15/−25 · občutek mraza ≤ −10/−20 °C −8/−20. Pri zahtevnejših vrhovih odbitki rastejo (zahtevna / zelo zahtevna): sneg ×1,6 / ×2,5, veter in padavine ×1,3 / ×1,6, mraz ×1,2 / ×1,4, oblaki ×1,2; izkušnje z zimo v profilu sneg še pomnožijo (brez ×1,5, zimska alpinistika ×0,5). Dober dan ≥ 75, pogojno 45–74, slab < 45; napovedana nevihta je vedno slab dan. Model ICON (DWD) za višino vrha, ne meritev; 3. in 4. dan sta manj zanesljiva. Veter velja za izpostavljen vrh in greben; v zavetrju, na pobočju, v gozdu ali na neizpostavljenem grebenu je občutno šibkejši. Napoved se osveži vsake 3 ure.',
-        'The rating covers 7–17 h (ascent + descent, green in the table). It starts at 100 and each factor deducts points: afternoon storms −60 (morning −48; only high storm energy CAPE ≥ 1000 J/kg + rain −35; afternoon showers −15) · wind at summit height ≥ 30/45/60 km/h or gusts ≥ 50/70/90 km/h −12/−30/−50 (the worse counts) · precipitation ≥ 0.5/2/5 mm −10/−25/−40 · low + mid cloud ≥ 70/90 % −8/−20 · fresh snow (freezing level below the summit + precipitation) −15 · snow on the summit ≥ 10/50 cm −15/−25 · wind chill ≤ −10/−20 °C −8/−20. On harder peaks deductions grow (demanding / very demanding): snow ×1.6 / ×2.5, wind and precipitation ×1.3 / ×1.6, cold ×1.2 / ×1.4, cloud ×1.2; winter experience in your profile scales snow again (none ×1.5, winter alpinism ×0.5). Good ≥ 75, so-so 45–74, bad < 45; forecast thunder is always a bad day. ICON model (DWD) at summit height, not a measurement; days 3 and 4 are less reliable. Wind is for an exposed summit or ridge; in the lee, on slopes, in forest or on a sheltered ridge it is noticeably weaker. The forecast is refreshed every 3 hours.')}</details>
+        'Ocena velja za 7–17 h (vzpon + sestop, zeleno v tabeli). Začne pri 100, vsak dejavnik odšteje točke: nevihte popoldne −60 (dopoldne −48; samo velika energija neviht CAPE ≥ 1000 J/kg + dež −35; popoldanske plohe −15) · veter na višini vrha ≥ 30/45/60 km/h ali sunki ≥ 50/70/90 km/h −12/−30/−50 (šteje slabše) · padavine ≥ 0,5/2/5 mm −10/−25/−40 · nizki + srednji oblaki ≥ 70/90 % −8/−20 · sveži sneg (ničta izoterma pod vrhom + padavine) −15 · sneg na vrhu ≥ 10/50 cm −15/−25 · občutek mraza ≤ −10/−20 °C −8/−20 · lavinska nevarnost (bilten ARSO) 2/3/4/5 −5/−20/−40/−60, ko je na poti sneg ali je stopnja vsaj 3. Pri zahtevnejših vrhovih odbitki rastejo (zahtevna / zelo zahtevna): sneg ×1,6 / ×2,5, veter in padavine ×1,3 / ×1,6, mraz ×1,2 / ×1,4, oblaki ×1,2; izkušnje z zimo v profilu sneg še pomnožijo (brez ×1,5, zimska alpinistika ×0,5). Dober dan ≥ 75, pogojno 45–74, slab < 45; napovedana nevihta je vedno slab dan. Model ICON (DWD) za višino vrha, ne meritev; 3. in 4. dan sta manj zanesljiva. Veter velja za izpostavljen vrh in greben; v zavetrju, na pobočju, v gozdu ali na neizpostavljenem grebenu je občutno šibkejši. Napoved se osveži vsake 3 ure.',
+        'The rating covers 7–17 h (ascent + descent, green in the table). It starts at 100 and each factor deducts points: afternoon storms −60 (morning −48; only high storm energy CAPE ≥ 1000 J/kg + rain −35; afternoon showers −15) · wind at summit height ≥ 30/45/60 km/h or gusts ≥ 50/70/90 km/h −12/−30/−50 (the worse counts) · precipitation ≥ 0.5/2/5 mm −10/−25/−40 · low + mid cloud ≥ 70/90 % −8/−20 · fresh snow (freezing level below the summit + precipitation) −15 · snow on the summit ≥ 10/50 cm −15/−25 · wind chill ≤ −10/−20 °C −8/−20 · avalanche danger (ARSO bulletin) 2/3/4/5 −5/−20/−40/−60 when there is snow on the way or the level is 3+. On harder peaks deductions grow (demanding / very demanding): snow ×1.6 / ×2.5, wind and precipitation ×1.3 / ×1.6, cold ×1.2 / ×1.4, cloud ×1.2; winter experience in your profile scales snow again (none ×1.5, winter alpinism ×0.5). Good ≥ 75, so-so 45–74, bad < 45; forecast thunder is always a bad day. ICON model (DWD) at summit height, not a measurement; days 3 and 4 are less reliable. Wind is for an exposed summit or ridge; in the lee, on slopes, in forest or on a sheltered ridge it is noticeably weaker. The forecast is refreshed every 3 hours.')}</details>
       <div class="note">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0)</div></div>`;
     el.querySelector('.x').onclick = close;
     el.querySelectorAll('.wxd button').forEach(b => b.onclick = () => { sel = +b.dataset.i; draw(); });
@@ -176,6 +179,32 @@ function big(p, s, D, DD, sel){
   draw(); }
 
 // --- popup block
+// best day of the next days for one peak (peak of the week)
+window.wxBestDay = async p => { const s = await seriesFor(p); if (!s) return null; const d0 = Math.max(0, s.days.indexOf(today())); let b = null;
+  s.days.forEach((dd, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o && (!b || o.score > b.score)) b = {day:dd, score:o.score, r:o.r}; }); return b; };
+
+// --- avalanche danger: ARSO's avalanche bulletin (tools/avalanche_fetch.py -> avalanche.json, in the season ~December–May)
+// Bulletin regions are matched to our mountain ranges by name; a level can differ above / below an elevation.
+let AVA = null;
+(location.protocol.startsWith('http') ? fetch('avalanche.json', {cache:'no-cache'}).then(r => r.ok ? r.json() : null).catch(() => null) : Promise.resolve(null))
+  .then(j => { if (j && j.bulletins && j.bulletins.length) AVA = j; });
+const AVA_N = () => [null, L('nizka','low'), L('zmerna','moderate'), L('znatna','considerable'), L('velika','high'), L('zelo velika','very high')];
+const AVA_C = [null, '#ccff66', '#ffff00', '#ff9900', '#ff0000', '#9b0000'];
+const AVA_RANGE = [[/julij|julian|bovšk|kanin|triglav|bohinj/i, 'Julijske Alpe'], [/karavank|karawank/i, 'Karavanke'], [/kamni|savinj|grintov/i, 'Kamniško-Savinjske Alpe'],
+  [/pohorj/i, 'Pohorje'], [/snežnik|sneznik|notranj|dinar|kočevsk/i, 'Snežnik'], [/predalp|prealp|škofjelo|cerkljan|polhov|posavsk/i, 'Predalpe']];
+const AVA_ID = {'SI-1':'Karavanke', 'SI-2':'Karavanke', 'SI-3':'Kamniško-Savinjske Alpe', 'SI-4':'Kamniško-Savinjske Alpe', 'SI-6':'Julijske Alpe', 'SI-7':'Julijske Alpe', 'SI-8':'Julijske Alpe', 'SI-10':'Julijske Alpe'};   // EAWS regions (ARSO)
+const AVA_P = {new_snow:['nov sneg','new snow'], wind_slab:['napihan sneg','wind slab'], persistent_weak_layers:['obstojne šibke plasti','persistent weak layers'], wet_snow:['moker sneg','wet snow'], gliding_snow:['drseči sneg','gliding snow'], cornices:['opasti','cornices']};
+const rangeOfReg = r => { if (AVA_ID[r.id]) return AVA_ID[r.id]; const t = (r.name || '') + ' ' + (r.id || ''); if (/sloven/i.test(t) && !AVA_RANGE.some(([re]) => re.test(t))) return '*'; const m = AVA_RANGE.find(([re]) => re.test(t)); return m ? m[1] : null; };
+window.avaAt = (la, lo, elev, dayIso) => { if (!AVA) return null; let rg = null, bd = 25;
+  for (const p of PEAKS){ if (p.lat == null) continue; const d = Math.hypot((p.lat - la) * 111.3, (p.lon - lo) * 77); if (d < bd){ bd = d; rg = p.range; } }
+  if (!rg) return null; let best = null;
+  for (const b of AVA.bulletins){ if (b.from && dayIso < b.from.slice(0, 10)) continue; if (b.to && dayIso > b.to.slice(0, 10)) continue;
+    if (!(b.regions || []).some(r => { const x = rangeOfReg(r); return x === rg || x === '*'; })) continue;
+    const lv = b.bound != null && elev != null ? (elev >= b.bound ? (b.hi || b.lo) : (b.lo || b.hi)) : Math.max(b.hi || 0, b.lo || 0);
+    if (lv && (!best || lv > best.level)) best = {level:lv, bound:b.bound, problems:b.problems || [], region:(b.regions || []).map(r => r.name || r.id).filter(Boolean).join(', ')}; }
+  return best; };
+const avaLine = o => !o.ava ? '' : `<div style="margin-top:4px;padding:4px 7px;border-radius:7px;background:${AVA_C[o.ava.level]};color:${o.ava.level >= 4 ? '#fff' : '#1d2321'};font-size:.92em">⚠ ${L('Lavinska nevarnost','Avalanche danger')} <b>${o.ava.level} – ${AVA_N()[o.ava.level]}</b>${o.ava.bound ? ` (${L('meja','limit')} ${o.ava.bound} m)` : ''}${o.ava.problems.length ? ' · ' + o.ava.problems.slice(0, 2).map(x => AVA_P[x] ? L(AVA_P[x][0], AVA_P[x][1]) : x.replace(/_/g, ' ')).join(', ') : ''} · <a href="https://meteo.arso.gov.si/" target="_blank" rel="noopener" style="color:inherit">ARSO</a></div>`;
+
 window.wxBox = p => {
   const box = document.createElement('div'); box.className = 'wx';
   // the popup grew -> if its top left the map, move the map down so the whole popup is visible
@@ -197,7 +226,7 @@ window.wxBox = p => {
       <div class="wxd">${D.map((d, i) => `<button data-i="${i}" class="${i === sel ? 'on' : ''}" style="border-color:${RC[d.r]}">${dname(s.days[DD[i]])}<b>${ICON(d.code)}</b>${r1(d.tmin)}…${r1(d.tmax)}°</button>`).join('')}</div>
       <div class="wxs">${clsLine(p, o)}<span class="wxr" style="background:${RC[o.r]}">${RN()[o.r]} · ${o.score}</span>${o.why.length ? ' ' + o.why.slice(0, 3).join(', ') : ''}<br>
         🌡 ${r1(o.tmin)} … ${r1(o.tmax)} °C · 💨 ${r1(o.w)} km/h, ${L('sunki','gusts')} ${r1(o.g)}<br>
-        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm${s.snowRoute ? ' ' + L('(največ na poti)','(most on the way up)') : ''}` : ''}</div>
+        ${o.p > 0.05 ? `💧 ${o.p.toFixed(1)} mm · ` : ''}${o.c != null ? `☁ ${Math.round(o.c)} %${o.cloudLM ? ' ' + L('nizki/srednji','low/mid') : ''} · ` : ''}${o.fl != null ? `0 °C: ${Math.round(o.fl/50)*50} m` : ''}${o.snowcm ? ` · ❄ ${o.snowcm} cm${s.snowRoute ? ' ' + L('(največ na poti)','(most on the way up)') : ''}` : ''}${avaLine(o)}</div>
       <details class="wxdt"${OPENH ? ' open' : ''}><summary>${L('Po urah','Hourly')}</summary><div class="wxt">${hrs.map(h => { const k = si*nh + s.hours.indexOf(h); if (s.hours.indexOf(h) < 0 || !s.T || s.T[k] == null) return '';
         return `<div>${h}h<i>${ICON(s.X && s.X[k])}</i>${Math.round(s.T[k])}°<br>${r1(s.W && s.W[k])} ${DIR(s.D && s.D[k])}</div>`; }).join('')}</div></details>
       <div class="wxf">ICON (DWD) · <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>${s.gen ? ' · ' + new Date(s.gen.replace('Z', ':00Z')).toLocaleString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday:'short', hour:'2-digit', minute:'2-digit'}) : ''} · ${L('ocena za 7–17 h; model, ne meritev','rating for 7–17 h; model, not a measurement')}</div>`;

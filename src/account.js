@@ -450,7 +450,16 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage .lbtabs button.on{background:#1d2321;border-color:#1d2321;color:#fff}
 #lbPage .lbq{width:100%;box-sizing:border-box;margin-top:10px;font:inherit;padding:8px 12px;border:1px solid #c9d0cc;border-radius:10px}
 #lbPage .lbm{flex:1;overflow:auto;overscroll-behavior:contain;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;padding:0 18px 18px;align-items:start}
-#lbPage .lbb{padding:6px 0 12px;min-width:0}
+#lbPage .lbb{padding:6px 0 12px;min-width:0}#lbPage .lbmain{min-width:0}
+#potw{display:none;position:relative;margin:14px 0 4px;border-radius:14px;overflow:hidden;min-height:210px;background:#2c3e50;color:#fff}#potw.on{display:block}
+#potw .ph{position:absolute;inset:0;background:center/cover no-repeat}#potw .ph::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.62),rgba(0,0,0,.1) 70%)}
+#potw .pt{position:relative;padding:18px 20px 34px;display:flex;flex-direction:column;gap:3px;max-width:60%}
+#potw .pt small{font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:.75em;opacity:.9}#potw .pt b{font-size:1.9em;line-height:1.1}
+#potw .pt span{opacity:.95}#potw .pt .bd b{font-size:1em}#potw .pt button{align-self:flex-start;margin-top:8px;border:0;border-radius:9px;background:#fff;color:#1d2321;font:600 .9em system-ui,sans-serif;padding:7px 12px;cursor:pointer}
+#potw .cr{position:absolute;right:8px;bottom:6px;font-size:.7em;color:#fff;opacity:.85;text-decoration:none;max-width:70%;text-align:right;text-shadow:0 1px 2px #000}
+#lbPage .bdw{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 4px}#lbPage .bdg2{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+#lbPage .bdg2 b{font-size:.76em;line-height:1.15;margin-top:3px}#lbPage .bdg2 small{font-size:.7em;color:#5b6461}#lbPage .bdg2.got small{color:#2e7d32;font-weight:600}
+@media (max-width:980px){ #lbPage .bdw{grid-template-columns:repeat(4,1fr)} #potw .pt{max-width:100%} }
 #lbPage .lba{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;padding-top:14px}
 #lbPage .ac2{background:#f7f9f8;border:1px solid #e3e8e5;border-radius:12px;padding:10px 12px}
 #lbPage .ac2 h4{margin:0 0 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:#5b6461}
@@ -504,7 +513,7 @@ body.socdot #lbBtn::after{content:'';width:8px;height:8px;border-radius:50%;back
 #lbPage .two{display:flex;gap:6px}#lbPage textarea.inp{resize:vertical}
 #lbPage .kick{border:0;background:none;color:#b3261e;font-size:1.2em;cursor:pointer;padding:0 0 0 6px;vertical-align:middle}#lbPage .unv{color:#b3261e;cursor:pointer;font-size:.9em}
 #lbPage .pk.rt b{color:#6a1b9a}#lbPage .pk span i{color:#3d4643}
-@media (max-width:700px){ #lbPage .lbnav{flex-wrap:nowrap;gap:2px} #lbPage .lbnav button{font-size:.86em;padding:6px 7px} #lbPage .two{flex-direction:column;gap:0} #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
+@media (max-width:700px){ #lbPage .lbnav{flex-wrap:nowrap;gap:2px;overflow-x:auto;scrollbar-width:none} #lbPage .lbnav::-webkit-scrollbar{display:none} #lbPage .lbnav button{font-size:.82em;padding:6px 6px} #lbPage .two{flex-direction:column;gap:0} #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
 document.head.append(lbCss);
 const LB = {board: 'p2000', q: '', off: 0, rows: [], tot: 0, busy: false};
 const boardMax = () => (BOARDS.find(b => b[0] === LB.board) || BOARDS[0])[2];
@@ -512,7 +521,7 @@ function lbShell(){
   lb.innerHTML = `<div class="lbc"><div class="lbh">${head('lb')}
     <div class="lbs" id="lbStats">…</div>${chips()}
     <input class="lbq" id="lbQ" type="search" placeholder="${L('Išči uporabnika …','Search users …')}" value="${esc(LB.q)}" autocomplete="off"></div>
-    <div class="lbm"><div class="lbb" id="lbBody"></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot"></div></div>`;
+    <div class="lbm"><div class="lbmain"><div id="potw"></div><div class="lbb" id="lbBody"></div></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot"></div></div>`;
   bindHead(() => { lbLoad(true); asideLB(); });
   let qt = 0; $a('lbQ').oninput = e => { clearTimeout(qt); qt = setTimeout(() => { LB.q = e.target.value.trim().slice(0, 40); lbLoad(true); }, 300); };
   rpc('leaderboard_stats').then(j => { const el = $a('lbStats'); if (el && j) el.textContent = `${j.users} ${L('planincev','hikers')} · ${j.ascents} ${L('osvojenih vrhov','peaks climbed')} · ${j.month} ${L('ta mesec','this month')}`; })
@@ -574,7 +583,7 @@ async function lbProfile(u, back){
 }
 // its own page: opening adds a step to the browser history, so the phone's / browser's back button returns to the map
 function lbShow(){ if (!lb.classList.contains('on')){ try{ history.pushState({lbp: 1}, ''); }catch(_){} } lb.classList.add('on'); document.body.classList.remove('menu'); }
-function leaderboard(){ lbShell(); lbShow(); lbLoad(true); asideLB(); }
+function leaderboard(){ lbShell(); lbShow(); lbLoad(true); asideLB(); potw(); }
 function lbClose(){ if (!lb.classList.contains('on')) return; if (history.state && history.state.lbp){ history.back(); return; } lb.classList.remove('on'); }
 addEventListener('popstate', () => { if (lb.classList.contains('on') && !(history.state && history.state.lbp)) lb.classList.remove('on'); });
 lb.onclick = e => { if (e.target === lb) lbClose(); };
@@ -765,10 +774,10 @@ function progressCard(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), BP
   return ac(L('Moj napredek','My progress'), `<div class="big"><b>${done}</b><span class="nb">/ ${BP.length} · ${Math.round(done / Math.max(1, BP.length) * 100)} %</span></div>`
     + [...by].sort((a, b) => b[1][1] - a[1][1]).map(([r, [d, n]]) => `<div class="pr"><span>${esc(tr(r))}</span><b>${d} / ${n}</b><div class="bar"><i style="width:${(d / n * 100).toFixed(1)}%"></i></div></div>`).join('')
     + (next.length ? `<div class="nb" style="margin-top:6px">${L('Naslednji izziv','Next up')}: ${next.map(p => pkA(p.id)).join(', ')}</div>` : '')); }
-async function asideLB(){ SO.aside = asideLB; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind();
-  let C = null; try{ C = await rpc('community_stats'); }catch(_){ return; } if (!C || lb.dataset.p !== 'lb') return;
+async function asideLB(){ SO.aside = asideLB; const A = $a('lbAside'); if (!A) return; A.innerHTML = badgeCard() + progressCard(); asideBind();
+  let C = null; try{ C = await rpc('community_stats'); }catch(_){ return; } if (!C || !C.recent || lb.dataset.p !== 'lb') return;
   const pp = n => n + ' ' + plSl(n, ['planinec', 'planinca', 'planinci', 'planincev', 'hiker', 'hikers']);
-  A.innerHTML = progressCard()
+  A.innerHTML = badgeCard() + progressCard()
     + ac(L('Zadnji vzponi','Latest climbs'), C.recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join('') + (C.recent.length ? '' : '') )
     + ac(L('Najbolj obiskani vrhovi','Most climbed peaks'), C.top_peaks.filter(r => byId[r.peak_id]).map((r, i) => `<div class="it"><div>${i + 1}. ${pkA(r.peak_id)}</div><span>${pp(r.n)}</span></div>`).join(''))
     + ac(L('Najbolj aktivni ta mesec','Most active this month'), C.month_top.map(r => `<div class="it"><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a><span>${r.n} ${L('vrhov','peaks')}</span></div>`).join('') || `<div class="nb">${L('Ta mesec še nihče – bodi prvi!','Nobody yet this month - be the first!')}</div>`)
@@ -785,10 +794,67 @@ async function asideFR(){ SO.aside = asideFR; const A = $a('lbAside'); if (!A) r
     + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div>${pkA(id)}</div><span>${[...u].slice(0, 3).map(x => '@' + esc(x)).join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
   asideBind(); }
 async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
-  let P = null; try{ P = await rpc('my_plans', {}, true); }catch(_){ return; } if (!P || lb.dataset.p !== 'gr') return;
+  let P = null; try{ P = await rpc('my_plans', {}, true); }catch(_){ return; } if (!Array.isArray(P) || lb.dataset.p !== 'gr') return;
   A.innerHTML = ac(L('Prihajajoči načrti','Upcoming plans'), P.map(x => `<div class="it"><div><a data-g="${esc(x.gid)}">${esc(x.title)}</a><div class="nb">${esc(x.group)}${x.me ? ' · ✓ ' + L('greš','you go') : ''}</div></div><span>${x.plan_on ? esc(fmtD(x.plan_on)) : '?'}<br>${x.going} ${L('gre','going')}</span></div>`).join('') || `<div class="nb">${L('Ni načrtov. Odpri skupino in dodaj turo.','No plans. Open a group and add a tour.')}</div>`)
     + progressCard();
   asideBind(); }
+
+// ---------- 🏅 badges (from the ticks in this browser / account) ----------
+// count badges on the 98 prominent 2000ers + per range two badges: prominent peaks / all peaks (2000 m ranges: incl. subpeaks;
+// Pohorje, Snežnik, Predalpe: the 1500–2000 m list). Each range badge shows its best-known summits.
+const sname = p => p.name.split(' (')[0];
+const RANGE_ORDER = ['Julijske Alpe', 'Kamniško-Savinjske Alpe', 'Karavanke', 'Pohorje', 'Snežnik', 'Predalpe'];
+function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = PEAKS.filter(isP2), out = [], tr = window.T || (x => x);
+  const nP2 = P2.filter(p => T0.has(p.id)).length, star = ['Triglav', 'Škrlatica', 'Mangart'];
+  for (const n of [10, 25, 50, P2.length]) out.push({k: 'c' + n, col: n >= P2.length ? '#b8860b' : n >= 50 ? '#c0392b' : n >= 25 ? '#6a1b9a' : '#1565c0', ring: n >= P2.length ? 'gold' : 'silver',
+    t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: n >= P2.length ? star : []});
+  for (const r of RANGE_ORDER){ const alp = PEAKS.some(p => p.range === r && p.tier !== '1500'), set = PEAKS.filter(p => p.range === r && (alp ? p.tier !== '1500' : p.tier === '1500'));
+    if (!set.length) continue; const main = set.filter(alp ? isP2 : isP15), top = main.filter(p => !/^Vrh \d|^\d/.test(p.name)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 2).map(sname);
+    const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555';
+    if (main.length) out.push({k: r + '*', col, ring: 'gold', t: tr(r) + ' ★', sub: top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
+    if (set.length > main.length) out.push({k: r, col, ring: 'silver', t: tr(r), sub: top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
+  return out; }
+let BID = 0;
+function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.n, C = 2 * Math.PI * 46, rim = b.ring === 'gold' ? ['#f9e08b', '#b8860b'] : ['#f4f6f7', '#90a4ae'];
+  const s2 = (b.sub || []).slice(0, 2).join(' · '), sub = s2.length > 16 ? (b.sub || [])[0] || '' : s2, fs = Math.min(11, 125 / Math.max(6, sub.length));   // one name if two do not fit
+  return `<svg viewBox="0 0 100 100" width="76" height="76" aria-hidden="true"><defs><linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${rim[0]}"/><stop offset="1" stop-color="${rim[1]}"/></linearGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".15"/></linearGradient>
+    <clipPath id="${id}c"><circle cx="50" cy="50" r="39"/></clipPath></defs>
+    <g${done ? '' : ' style="filter:grayscale(1);opacity:.5"'}>
+    <circle cx="50" cy="50" r="47" fill="url(#${id}r)"/><circle cx="50" cy="50" r="39" fill="${b.col}"/><circle cx="50" cy="50" r="39" fill="url(#${id}s)"/>
+    <g clip-path="url(#${id}c)"><path d="M4 76 L27 46 L37 56 L52 30 L65 50 L73 42 L96 76 Z" fill="rgba(255,255,255,.3)"/><path d="M52 30 L45.5 41.5 L49.5 39.5 L52.5 43 L57.5 38.5 Z" fill="#fff"/>
+      <path d="M4 90 L26 64 L40 74 L56 52 L70 68 L82 60 L96 90 Z" fill="rgba(0,0,0,.25)"/>${sub ? `<rect x="0" y="66" width="100" height="16" fill="rgba(0,0,0,.38)"/>` : ''}</g>
+    ${b.big ? `<text x="50" y="${sub ? 57 : 62}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" style="font-size:${b.big.length > 2 ? 26 : 30}px" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="1">${b.big}</text>`
+      : `<text x="50" y="24" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:11px" fill="#fff">${b.ring === 'gold' ? '★' : '▲'}</text>`}
+    ${sub ? `<text x="50" y="77" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="700" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(sub)}</text>` : ''}
+    </g>${done ? '' : `<circle cx="50" cy="50" r="46" fill="none" stroke="#e3e8e5" stroke-width="4"/><circle cx="50" cy="50" r="46" fill="none" stroke="${b.col}" stroke-width="4" stroke-dasharray="${(f * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>`}</svg>`; }
+function badgeCard(){ const B = badgeDefs(), got = B.filter(b => b.d >= b.n).length;
+  return ac(`🏅 ${L('Značke','Badges')} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${got} / ${B.length}</span>`,
+    `<div class="bdw">${B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('')}</div>`); }
+
+// ---------- 📸 peak of the week (a Slovenian prominent 2000er, photo from Wikimedia Commons, best day of the next days) ----------
+async function potw(){ const box = $a('potw'); if (!box) return;
+  const P = PEAKS.filter(p => isP2(p) && p.lat != null).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
+  const wk = Math.floor((Date.now() / 864e5 + 3) / 7), key = 'dvat3d_potw_' + wk;
+  let c = null; try{ c = JSON.parse(localStorage.getItem(key) || 'null'); }catch(_){}
+  if (!c){ for (let t = 0; t < 8 && !c; t++){ const p = P[(wk * 17 + t * 5) % P.length], names = [...new Set([p.name, sname(p), ...(p.name.match(/\(([^)]+)\)/) || [, ''])[1].split('/'), p.pb_name].filter(Boolean))];
+      try{ const q = await (await fetch(`https://sl.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=name&pilicense=free&redirects=1&format=json&origin=*&titles=${encodeURIComponent(names.concat(names.map(n => n + ' (gora)')).join('|'))}`)).json();
+        const pg = Object.values((q.query || {}).pages || {}).find(x => x.pageimage); if (!pg) continue;
+        const ii = await (await fetch(`https://sl.wikipedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1400&format=json&origin=*&titles=${encodeURIComponent('File:' + pg.pageimage)}`)).json();
+        const im = Object.values((ii.query || {}).pages || {})[0], inf = im && im.imageinfo && im.imageinfo[0]; if (!inf) continue;
+        const md = inf.extmetadata || {}, txt = h => (h || '').replace(/<[^>]*>/g, '').trim(), lic = txt(md.LicenseShortName && md.LicenseShortName.value);
+        if (!lic || /fair|non-free|nesvobod/i.test(lic)) continue;
+        c = {id: p.id, img: inf.thumburl || inf.url, page: inf.descriptionurl, artist: txt(md.Artist && md.Artist.value).slice(0, 60), lic, wiki: pg.title}; }catch(_){ break; } }
+    if (c) try{ localStorage.setItem(key, JSON.stringify(c)); }catch(_){} }
+  if (!box.isConnected) return; const p = c ? byId[c.id] : P[wk % P.length]; if (!p) return;
+  const tr = window.T || (x => x);
+  box.innerHTML = `<div class="ph"${c ? ` style="background-image:url('${c.img.replace(/'/g, '%27')}')"` : ''}></div><div class="pt"><small>📸 ${L('Vrh tedna','Peak of the week')}</small><b>${esc(p.name)}</b>
+    <span>${Math.round(p.elev)} m · ${esc(tr(p.range || ''))}${p.rank != null ? ' · #' + p.rank : ''}</span><span class="bd" id="potwBest"></span>
+    <button id="potwGo">${L('Pokaži na karti','Show on the map')}</button></div>${c ? `<a class="cr" href="${esc(c.page)}" target="_blank" rel="noopener">${L('Foto','Photo')}: ${esc(c.artist || 'Wikimedia Commons')} · ${esc(c.lic)} · Wikimedia Commons</a>` : ''}`;
+  box.classList.add('on'); $a('potwGo').onclick = () => { lbClose(); setTimeout(() => openPeak(p.id, true), 60); };
+  if (window.wxBestDay) window.wxBestDay(p).then(b => { const el = $a('potwBest'); if (!b || !el) return;
+    const dn = new Date(b.day + 'T12:00').toLocaleDateString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday: 'long', day: 'numeric', month: 'numeric'});
+    el.innerHTML = `${L('Najboljši dan','Best day')}: <b>${esc(dn)}</b> · ${L('ocena','rating')} <b style="color:${['#2e7d32', '#ef8f00', '#c62828'][b.r]}">${b.score}</b>`; }).catch(() => {}); }
 
 // dangerous buttons: the first tap asks "sure?", the second does it
 function confirmTwice(b){ if (b.dataset.sure) return true; b.dataset.sure = 1; const t = b.innerHTML; b.innerHTML = L('Res? Klikni še enkrat', 'Sure? Click again'); b.classList.add('sure');

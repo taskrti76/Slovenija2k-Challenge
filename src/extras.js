@@ -157,7 +157,7 @@ function demo(d){ if (d === curDemo) return false;
   return false; }
 let stT = 0;
 function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S.open() : S.open;
-  clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
+  clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ placeStep(); ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
 function placeStep(){ if (!ov) return;
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
   let r = null; if (S.sel){ let el = document.querySelector(S.sel()); if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel')) el.scrollIntoView({block:'center'}); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
@@ -167,14 +167,15 @@ function placeStep(){ if (!ov) return;
     r = {left:l+8, top:r.top+8, width:rt-l-16, height:r.height-16}; }
   else if (r && S.center) r = {left:r.left+8, top:r.top+8, width:r.width-16, height:r.height-16};
   if (r){ hole.style.cssText = `display:block;left:${r.left-6}px;top:${r.top-6}px;width:${r.width+12}px;height:${r.height+12}px`; } else hole.style.cssText = 'display:block;left:50%;top:40%;width:0;height:0';
+  if (card.dataset.step !== String(step)){ card.dataset.step = step;   // same step again (sheet slid in, routes loaded): only move it
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
-    (S.lang ? `<div class="tl"><button data-l="sl" class="${LANG==='sl'?'on':''}">Slovenščina</button><button data-l="en" class="${LANG==='en'?'on':''}">English</button></div>` : '')+
-    (S.acc && window.accountStepButtons ? `<div class="tacc">${window.accountStepButtons(endTour).map((b,i)=>`<button data-a="${i}">${b[0]}</button>`).join('')}</div>` : '')+
-    `<div class="tbtns"><button class="sk">${T(step===STEPS.length-1?(S.acc?'Ne zdaj':'Konec'):'Preskoči')}</button><span></span>${step?`<button class="bk">${T('Nazaj')}</button>`:''}${step<STEPS.length-1?`<button class="nx">${T(step?'Naprej':'Začni')}</button>`:''}</div>`;
-  card.querySelector('.sk').onclick = endTour;
-  if (S.acc && window.accountStepButtons){ const A = window.accountStepButtons(endTour); card.querySelectorAll('.tacc button').forEach(b => b.onclick = () => A[+b.dataset.a][1]()); } const nx = card.querySelector('.nx'), bk = card.querySelector('.bk');
-  if (nx) nx.onclick = () => { step++; showStep(); }; if (bk) bk.onclick = () => { step--; showStep(); };
-  card.querySelectorAll('.tl button').forEach(b => b.onclick = () => { LS('dvat3d_tour_step', '1'); setLang(b.dataset.l); });
+      (S.lang ? `<div class="tl"><button data-l="sl" class="${LANG==='sl'?'on':''}">Slovenščina</button><button data-l="en" class="${LANG==='en'?'on':''}">English</button></div>` : '')+
+      (S.acc && window.accountStepButtons ? `<div class="tacc">${window.accountStepButtons(endTour).map((b,i)=>`<button data-a="${i}">${b[0]}</button>`).join('')}</div>` : '')+
+      `<div class="tbtns"><button class="sk">${T(step===STEPS.length-1?(S.acc?'Ne zdaj':'Konec'):'Preskoči')}</button><span></span>${step?`<button class="bk">${T('Nazaj')}</button>`:''}${step<STEPS.length-1?`<button class="nx">${T(step?'Naprej':'Začni')}</button>`:''}</div>`;
+    card.querySelector('.sk').onclick = endTour;
+    if (S.acc && window.accountStepButtons){ const A = window.accountStepButtons(endTour); card.querySelectorAll('.tacc button').forEach(b => b.onclick = () => A[+b.dataset.a][1]()); } const nx = card.querySelector('.nx'), bk = card.querySelector('.bk');
+    if (nx) nx.onclick = () => { step++; showStep(); }; if (bk) bk.onclick = () => { step--; showStep(); };
+    card.querySelectorAll('.tl button').forEach(b => b.onclick = () => { LS('dvat3d_tour_step', '1'); setLang(b.dataset.l); }); }
   // place the card next to the highlighted element (or centred)
   const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px';
   let x = innerWidth/2-cw/2, y = innerHeight/2-120;

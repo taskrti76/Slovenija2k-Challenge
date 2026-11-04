@@ -162,7 +162,8 @@
   .rnote{font-size:0.786em;color:var(--mute);margin-top:6px}.rm{font-size:0.929em;color:var(--mute)}
   .chk{font-size:0.857em;margin:2px 0 4px}
   .rg2{font-size:0.786em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:10px 0 4px}
-  .my{display:flex;align-items:center;gap:4px;font-size:0.857em;padding:2px 0}.my span{flex:1}
+  .my{display:flex;align-items:center;gap:4px;font-size:0.857em;padding:2px 0;min-width:0}.my span{flex:1}.my button{flex:none}
+  .my .mn{min-width:0;overflow:hidden;white-space:nowrap;mask-image:linear-gradient(90deg,#000 88%,transparent);-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}.my .mn i{display:inline-block;font-style:normal}
   #tstatus{font-size:0.821em;color:var(--mute);margin-top:4px}
   .dimbtn{font:700 calc(12px * var(--ui,1)) system-ui,sans-serif!important;width:29px;height:29px}
   .btn2{background:transparent!important;color:var(--ink)!important}
@@ -507,7 +508,9 @@ const map = new maplibregl.Map({ locale:SL_LOCALE,
   // so phones keep a small cache (turning back in 360 reloads from the browser / service-worker cache instead - fast, no network)
   maxTileCacheZoomLevels:LITE_ON?4:IS_IOS?4:IS_PHONE?5:8,
   maxTileCacheSize:LITE_ON?60:IS_IOS?90:IS_PHONE?(navigator.deviceMemory&&navigator.deviceMemory<=4?120:180):500,
-  ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:IS_IOS?{pixelRatio:Math.min(devicePixelRatio||1,2), prefetchZoomDelta:2}:{}),
+  // phones: at most 2 canvas pixels per screen pixel (phones run 2.6–3.5 - up to 3× more pixels to fill on every frame, the
+  // difference is not visible on a small screen), less prefetching of coarser tiles, short tile fade (fewer repaints)
+  ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:IS_PHONE||IS_IOS?{pixelRatio:Math.min(devicePixelRatio||1,2), prefetchZoomDelta:2, fadeDuration:120}:{}),
   hash:true
 });
 // --- fast terrain (test switch): the 3D mesh is built from height tiles 1–2 zoom levels coarser than now, while the picture draped
