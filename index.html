@@ -405,8 +405,8 @@
 </div>
 <nav id="tabbar">
   <button data-t="layers"><span class="ic">◧</span>Karta</button>
-  <button data-t="draw"><span class="ic">✎</span>Riši</button>
   <button data-t="peaks"><span class="ic">▲</span>Vrhovi <em id="vcount2"></em></button>
+  <button data-t="draw"><span class="ic">✎</span>Riši</button>
 </nav>
 <div id="v360pad"></div>
 <div id="v360lbl"></div>
@@ -771,7 +771,7 @@ map.on('click',e=>{
       const deg=T[0], f=fitAt(lat,lng); if(!f&&!spDay(dt.value)) return null;
       let cm=spDay(dt.value)?spDepth(lat,lng,h,dt.value,T):depthPx(f,h,slopeFac(deg))*T[3], sat=null;
       if(satDayOK(dt.value)){ const v=window.satSnow(lat,lng,0), sp=spDay(dt.value); if(v&&v.cls) sat=v;
-        const before=cm; cm=satAt2(cm,lat,lng,h,T,sp); if(sat&&sp){ const dl=lookDepth(lat,lng,h,T); if(dl!=null&&before-dl>=1) sat=Object.assign({},sat,{nw:Math.round(before-dl)}); } }
+        const before=cm; cm=satAt2(cm,lat,lng,h,T,sp,dt.value); if(sat&&sp){ const dl=lookDepth(lat,lng,h,T); if(dl!=null&&before-dl>=1) sat=Object.assign({},sat,{nw:Math.round(before-dl)}); } }
       cm=Math.round(cm);
       return {cm, h:Math.round(h), deg:Math.round(deg), line:f&&f[3]>-1e3&&f[3]<9e3?Math.round(f[3]/50)*50:null, sat}; }
     // nothing cached yet (map still loading / tile not drawn yet): fetch the z12 height tile for this spot once
@@ -786,7 +786,7 @@ map.on('click',e=>{
     let H=HC.get(k); if(!H){ try{ const rs=await fetch(`https://tiles.mapterhorn.com/${k}.webp`); if(!rs.ok) return null; H=await decodeTerrarium(await rs.blob(),512); }catch(_){ return null; }
       if(!H) return null; HC.set(k,H); if(HC.size>40) HC.delete(HC.keys().next().value); }
     const S=512, px=Math.min(S-1,Math.floor((X%1)*S)), py=Math.min(S-1,Math.floor((Y%1)*S)), mpp=40075016*Math.cos(r)/(n*S), T=snowTerr(H,S,px,py,mpp,[0,0,0,1,0]);
-    let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)) cm=satAt2(cm,lat,lng,H[py*S+px],T,true);
+    let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)) cm=satAt2(cm,lat,lng,H[py*S+px],T,true,day);
     return Math.round(cm); };
   const tip=document.createElement('div'); tip.id='snowtip'; document.body.append(tip);
   const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:30;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
@@ -830,7 +830,7 @@ map.on('click',e=>{
   ${satMix}
   const slopeFac=deg=>deg<35?1:deg>60?0.15:1-0.85*(deg-35)/25;
   self.onmessage=async e=>{ const m=e.data; if(m.type==='sat'){ K.sat=m.sat; return; }
-    const {id,z,x,y,prof,NG,useSat,slopeRef,RGB,AI}=m, N1=NG*NG*3*NH0;
+    const {id,z,x,y,prof,NG,useSat,slopeRef,RGB,AI,SW}=m, N1=NG*NG*3*NH0;
     try{ const r=await fetch('https://tiles.mapterhorn.com/'+z+'/'+x+'/'+y+'.webp'); if(!r.ok) throw new Error('dem '+r.status);
       const bmp=await createImageBitmap(await r.blob(),{colorSpaceConversion:'none',premultiplyAlpha:'none'}), S=bmp.width;
       const cv=new OffscreenCanvas(S,S), c=cv.getContext('2d',{willReadFrequently:true}); c.drawImage(bmp,0,0);
@@ -857,7 +857,8 @@ map.on('click',e=>{
               if(!AI) dd=satAdj(dd,sat.F[si],sat.K[si],deg);                       // old height fit: no history -> plain override
               else { const g=sat.G[si]; if(g<255){ const t=g/10, n0=Math.floor(t), fr=t-n0, i0=AI[n0], i1=AI[Math.min(25,n0+1)];
                 if(i0>=0){ const w=[0,0,0]; prv((i0+1)*N1,w); let dl=mixS(w); if(fr>0&&i1>=0&&i1!==i0){ prv((i1+1)*N1,w); dl+=fr*(mixS(w)-dl); }
-                  dd=satMix(dd,Math.max(0,dl),sat.F[si],sat.K[si],deg); } } } } }
+                  let kk=sat.K[si]; if(SW){ let sw=0; for(let q=0;q<4;q++){ const ii=i0+(q&1), jj=j0+(q>>1), w=((q&1)?fx:1-fx)*((q>>1)?fy:1-fy); if(!w) continue; const b=(jj*NG+ii)*NH+k; sw+=w*(SW[b]*(1-th)+SW[b+1]*th); } kk*=1-Math.min(1,sw); }
+                  dd=satMix(dd,Math.max(0,dl),sat.F[si],kk,deg); } } } } }
           if(dd<1) continue; let s2=RGB.length-1; for(let q=1;q<RGB.length;q++) if(dd<RGB[q][0]){ s2=q; break; }
           const c0=RGB[Math.max(0,s2-1)], c1=RGB[s2], t=s2===0||dd>=c1[0]?1:(dd-c0[0])/(c1[0]-c0[0]), p4=o*4;
           px[p4]=c0[1]+(c1[1]-c0[1])*t; px[p4+1]=c0[2]+(c1[2]-c0[2])*t; px[p4+2]=c0[3]+(c1[3]-c0[3])*t; px[p4+3]=Math.min(255,60+dd*25); } }
@@ -895,18 +896,19 @@ map.on('click',e=>{
     return {AI,days}; }
   function tileProfiles(z,x,y,day,useSP,useSat){ const NG=z<=8?33:z<=10?17:9, n=2**z, N1=NG*NG*3*NH, R=SP&&SP.ver>=2?15:30;
     const L=useSP&&useSat?tileLooks(z,x,y):null, days=[day].concat(L?L.days:[]), prof=new Float32Array(N1*days.length);
-    const GPs=useSP?days.map(groupProfiles):null, SC=useSP?days.map(stCorr):null;
+    const GPs=useSP?days.map(groupProfiles):null, SC=useSP?days.map(d=>stCorr(d)):null, swf=L?stSatW(day):null, SW=swf?new Float32Array(NG*NG*NH):null;
     for(let j=0;j<NG;j++){ const tY=Math.PI*(1-2*(y+j/(NG-1))/n), la=Math.atan(Math.sinh(tY))*180/Math.PI;
       for(let i=0;i<NG;i++){ const lo=(x+i/(NG-1))/n*360-180, base=(j*NG+i)*3*NH;
         if(useSP){ // inverse-distance blend of the 3 nearest cells (same as snowpackAt) + the ARSO stations' correction nearby
           const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk<=R) best.push([dk,g]); }
+          if(SW) for(let k=0;k<NH;k++) SW[(j*NG+i)*NH+k]=swf(la,lo,HZ0+k*HZS);
           if(!best.length) continue; best.sort((a,b)=>a[0]-b[0]); const B3=best.slice(0,3);
           for(let d=0;d<days.length;d++){ let sw=0; const acc=new Float32Array(3*NH), o=d*N1+base;
             for(const [dk,g] of B3){ const w=1/Math.max(1,dk)**2, a=GPs[d].get(g); if(!a) continue; sw+=w; for(let q=0;q<3*NH;q++) acc[q]+=w*a[q]; }
             if(!sw) continue; const sc=SC[d];
             for(let k=0;k<NH;k++){ const c=sc?sc(la,lo,HZ0+k*HZS):0; for(let s3=0;s3<3;s3++){ const q=s3*NH+k; prof[o+q]=Math.max(0,acc[q]/sw+c); } } }
         } else { const f=fitAt(la,lo); if(!f) continue; for(let k=0;k<NH;k++){ const v=depthPx(f,HZ0+k*HZS,1); prof[base+k]=v; prof[base+NH+k]=v; prof[base+2*NH+k]=v; } } } }
-    return {prof,NG,AI:L?L.AI:null}; }
+    return {prof,NG,AI:L?L.AI:null,SW}; }
 
   let protoOK=false;
   function setupProto(){ if(protoOK) return; protoOK=true;
@@ -915,8 +917,8 @@ map.on('click',e=>{
       if(P){ const m=params.url.match(/^snowpx:\/\/(\d+)\/(\d+)\/(\d+)/), z=+m[1], x=+m[2], y=+m[3];
         const useSat=/[?&]s=\d/.test(params.url)&&!!SAT, spD=(params.url.match(/[?&]d=([\d-]+)/)||[])[1], useSP=!!spD&&spDay(spD)&&/[?&]p=1/.test(params.url);
         if(useSat&&satSent!==SAT){ satSent=SAT; const sat={F:SAT.F,K:SAT.K,W:SAT.W,H:SAT.H,bbox:SAT.m.bbox,G:SAT.AG}; P.forEach(w=>w.postMessage({type:'sat',sat})); }
-        const {prof,NG,AI}=tileProfiles(z,x,y,spD,useSP,useSat), id=++PID, w=P.reduce((a,b)=>b.busy<a.busy?b:a); w.busy++;
-        const r=await new Promise((res,rej)=>{ PEND.set(id,{res,rej}); w.postMessage({id,z,x,y,prof,NG,useSat,slopeRef:(SP&&SP.slope)||30,RGB,AI},[prof.buffer]); });
+        const {prof,NG,AI,SW}=tileProfiles(z,x,y,spD,useSP,useSat), id=++PID, w=P.reduce((a,b)=>b.busy<a.busy?b:a); w.busy++;
+        const r=await new Promise((res,rej)=>{ PEND.set(id,{res,rej}); w.postMessage({id,z,x,y,prof,NG,useSat,slopeRef:(SP&&SP.slope)||30,RGB,AI,SW},SW?[prof.buffer,SW.buffer]:[prof.buffer]); });
         HC.set(z+'/'+x+'/'+y,r.H); if(HC.size>40) HC.delete(HC.keys().next().value);
         return {data:r.buf}; }
       return snowTileMain(params); });
@@ -933,7 +935,7 @@ map.on('click',e=>{
       for(let Y=0;Y<S;Y++){ const la=latOf(Y+.5), mpp=40075016*Math.cos(la*Math.PI/180)/(n*S);
         for(let X=0;X<S;X++){ const o=Y*S+X, h=H[o]; const lo=(x+(X+.5)/S)/n*360-180; const f=fitAt(la,lo); if(!f&&!useSP) continue;
           snowTerr(H,S,X,Y,mpp,T); const deg=T[0]; let d=useSP?spDepth(la,lo,h,spD,T):depthPx(f,h,slopeFac(deg))*T[3];
-          if(useSat) d=satAt2(d,la,lo,h,T,useSP);
+          if(useSat) d=satAt2(d,la,lo,h,T,useSP,spD);
           if(d<1) continue; let s=RGB.length-1; for(let q=1;q<RGB.length;q++) if(d<RGB[q][0]){ s=q; break; }
           const c0=RGB[Math.max(0,s-1)], c1=RGB[s], t=s===0||d>=c1[0]?1:(d-c0[0])/(c1[0]-c0[0]), p4=o*4;
           px[p4]=c0[1]+(c1[1]-c0[1])*t; px[p4+1]=c0[2]+(c1[2]-c0[2])*t; px[p4+2]=c0[3]+(c1[3]-c0[3])*t; px[p4+3]=Math.min(255,60+d*25); } }
@@ -1004,7 +1006,7 @@ map.on('click',e=>{
     SPP=(location.protocol.startsWith('http')?fetch('snowpack.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null):Promise.resolve(null)).then(j=>{
       if(!j||!j.pts) return null; SP=j; const G=new Map();
       j.pts.forEach(([la,lo,e],i)=>{ const k=la+','+lo; let g=G.get(k); if(!g) G.set(k,g={la,lo,e:[],i:[]}); g.e.push(e); g.i.push(i); });
-      SPG=[...G.values()]; GP=null; GPC.clear(); SCD.clear(); return SP; }).catch(()=>null);
+      SPG=[...G.values()]; GP=null; GPC.clear(); SCD.clear(); SWD.clear(); return SP; }).catch(()=>null);
     return SPP; };
   // the satellite saw a place before the model's last snowfall there -> its "no snow" is outdated: the model decides there
   // (snowpack.json "ls" = last day with >= 2 mm of new snow per point; snowpack.py does the same in its satellite check)
@@ -1024,8 +1026,17 @@ map.on('click',e=>{
   // model depth at the (blended) time of the satellite's look here
   function lookDepth(la,lo,h,T){ const g=satAGat(la,lo); if(g===255) return null; const t=g/10, n0=Math.floor(t), fr=t-n0, d0=lookDay(n0); if(!d0) return null;
     let v=spDepth(la,lo,h,d0,T); const d1=fr>0?lookDay(n0+1):null; if(d1&&d1!==d0) v+=fr*(spDepth(la,lo,h,d1,T)-v); return v; }
-  function satAt2(cm,la,lo,h,T,useSP){ const q=satFK(la,lo); if(!q) return cm; if(!useSP) return satAdj(cm,q[0],q[1],T[0]);
-    const dl=lookDepth(la,lo,h,T); return dl!=null?satMix(cm,dl,q[0],q[1],T[0]):cm; }
+  function satAt2(cm,la,lo,h,T,useSP,day){ const q=satFK(la,lo); if(!q) return cm; if(!useSP) return satAdj(cm,q[0],q[1],T[0]);
+    const dl=lookDepth(la,lo,h,T), sw=day?stSatW(day):null; return dl!=null?satMix(cm,dl,q[0],q[1]*(sw?1-sw(la,lo,h):1),T[0]):cm; }
+  // close to a station (~2 km, ±200 m) its reading beats the satellite (the station is right; a cloud / shadow / wind-blown
+  // ridge in the image is not)
+  const SWD=new Map();
+  function stSatW(day){ if(SWD.has(day)) return SWD.get(day); let f=null; const S0=[];
+    for(const o of ((SP&&SP.obs)||[])){ if(o.cm==null||o.lat==null||!o.valid) continue; const di=SP.days.indexOf(o.valid.slice(0,10)), dd=SP.days.indexOf(day); if(di<0||dd<di) continue;
+      S0.push([o.lat,o.lon,o.alt,Math.pow(0.85,dd-di)]); }
+    if(S0.length) f=(la,lo,h)=>{ let m=0; for(const [a,b,z,k] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk>6) continue;
+      const w=k*Math.exp(-((dk/2)**2))*Math.exp(-(((h-z)/200)**2)); if(w>m) m=w; } return m; };
+    SWD.set(day,f); return f; }
   // ARSO stations are right: the model nearby is shifted to what they measured (Gaussian: ~5 km, ±250 m of height), on the day of
   // the reading and fading over the next days; the snowpack job has already pulled the model towards them
   const SCD=new Map();
@@ -1597,13 +1608,13 @@ function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
     const head=trace(g,base.pe,en); const taken=[];
     for(const e of ends){ if(taken.length>=2) break; const tr=trace(g,res.pe,e);
       if(taken.some(t=>{ let k=0; for(const x of tr.nodes) if(t.has(x)&&res.dist[x]>300) k++; return k/tr.nodes.length>0.3; })) continue;
-      taken.push(new Set(tr.nodes));
       let nodes=tr.nodes.concat(head.nodes.slice(1)), edges=tr.edges.concat(head.edges), end=e, st=startAt.get(e)||null;
-      const ne=nearEnd(g.lat[e],g.lon[e]); if(ne<0) continue; // relation ends on another peak
-      if(!ne){ // continue down to the nearest parking
+      const ne=nearEnd(g.lat[e],g.lon[e]);   // ends on another peak (ridge traverse, e.g. Jubilejna pot Prisojnik - Razor) or at a hut: on down to a parking
+      if(ne<=0){ // continue down to the nearest parking
         const r2=search(g,e,9000); let bn=-1, bd=Infinity; for(const [n] of startAt) if(r2.dist[n]<bd&&base.dist[n]>base.dist[e]){ bd=r2.dist[n]; bn=n; }
         if(bn<0) continue; const tail=trace(g,r2.pe,bn); nodes=tail.nodes.concat(nodes.slice(1)); edges=tail.edges.concat(edges); end=bn; st=startAt.get(bn); }
-      ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)) continue;   // runs over / crosses itself, or wanders off
+      ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)){ if(window.__relDbg) __relDbg.push([ri,e,'bad']); continue; }   // runs over / crosses itself, or wanders off
+      taken.push(new Set(tr.nodes));   // only a variant that is kept blocks its look-alikes
       out.push({ri, end, st, nodes, edges, set:new Set(nodes)}); }
   }
   return out;
@@ -2912,9 +2923,9 @@ const STEPS = [
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn', open:()=>PHONE()?'map':'layers'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.', sel:()=>'.panel .grp', open:'layers'},
-  {t:'⚙ Nastavitve in moj profil', d:'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Tu so tudi napredne nastavitve: hitri teren, namestitev aplikacije, območja brez signala in ta vodič.', sel:()=>PHONE()?'#tabbar [data-t="settings"]':'#gearBtn', open:'map'},
+  {t:'⚙ Nastavitve in moj profil', d:'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Odpreš jih z okroglim gumbom ☰ spodaj levo na karti — tam so tudi račun, lestvica, prijatelji, skupine in ta vodič. V nastavitvah so še napredne možnosti: hitri teren, namestitev aplikacije, območja brez signala.', sel:()=>'#fab .fb', open:'map'},
   {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
-  {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitve → Vodič.'},
+  {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš z gumbom ☰ → ❓ Vodič.'},
   {t:'Račun (neobvezno)', d:'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo, se pridružiš lestvici ter dodaš prijatelje in skupine (skupni načrti tur). Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.', acc:true}
 ];
 Object.assign(EN, {
@@ -2937,14 +2948,14 @@ Object.assign(EN, {
   'Podlage in sloji':'Base maps and layers',
   'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, parkings, via ferratas, snow and weather; text size. On a computer the panel hides with the blue tab on the left edge.',
   '⚙ Nastavitve in moj profil':'⚙ Settings and my profile',
-  'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Tu so tudi napredne nastavitve: hitri teren, namestitev aplikacije, območja brez signala in ta vodič.':'Winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings. Advanced settings live here too: fast terrain, installing the app, offline areas and this guide.',
+  'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Odpreš jih z okroglim gumbom ☰ spodaj levo na karti — tam so tudi račun, lestvica, prijatelji, skupine in ta vodič. V nastavitvah so še napredne možnosti: hitri teren, namestitev aplikacije, območja brez signala.':'Winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings. Open them with the round ☰ button at the bottom left of the map — account, leaderboard, friends, groups and this guide are there too. Settings also hold the advanced options: fast terrain, installing the app, offline areas.',
   'Srečno na poti!':'Have a good hike!',
   'Namigi':'Tips',
   '• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.':'• <b>Legends</b> (height, snow): on a computer drag them by the title, double-click the title to put them back; – shrinks them to a small button.<br>• <b>Tilt and north</b>: right mouse button or two fingers tilt the map, the compass turns it back to north, 2D/3D switches the view.<br>• <b>My peaks</b>: click a name in the list to fly there; under "Obiskal sem" add the date (☐ today), route and a note; "✓ Šel sem po tej poti" in a route card ticks the peak with that route.<br>• <b>Sharing</b>: ✎ Draw → My routes → ⤴ (link or public). 🏆 Leaderboard sits next to your progress in the peak list.<br>• Route and profile windows on a computer also move by their title.',
   'Račun (neobvezno)':'Account (optional)',
   'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo, se pridružiš lestvici ter dodaš prijatelje in skupine (skupni načrti tur). Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.':'With an account (username + password) your climbed peaks, dates and routes, your drawn routes and settings are on your phone and computer, you can share routes by link, join the leaderboard and add friends and groups (shared tour plans). Without one everything works and is saved in this browser. Manage it in ⚙ Settings.',
   'Ne zdaj':'Not now',
-  'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitve → Vodič.':'The data is automatic (OSM, LiDAR, weather model, satellite, snow model) — always check conditions before you go. The site updates itself. Replay the guide in ⚙ Settings → Guide.'
+  'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš z gumbom ☰ → ❓ Vodič.':'The data is automatic (OSM, LiDAR, weather model, satellite, snow model) — always check conditions before you go. The site updates itself. Replay the guide with ☰ → ❓ Guide.'
 });
 let step = 0, ov = null, ui0 = null;
 // each step opens what it talks about (map & layers sheet, peak list) so the real thing is lit up; the end puts things back
@@ -3403,13 +3414,7 @@ if (adv){
   b.textContent = '⚙ ' + L('Nastavitve in napredno', 'Settings & advanced'); b.onclick = open;
   adv.replaceWith(b);
 }
-// PC: ⚙ next to SL/EN
-const lang = $s('langsw');
-if (lang){ const g = document.createElement('button'); g.id = 'gearBtn'; g.title = L('Nastavitve','Settings'); g.textContent = '⚙'; g.onclick = open; lang.after(g); }
-// phone: 4th tab
-const tb = $s('tabbar');
-if (tb){ const t = document.createElement('button'); t.dataset.t = 'settings'; t.innerHTML = `<span class="ic">⚙</span>${L('Nastavitve','Settings')}`;
-  t.addEventListener('click', e => { e.stopPropagation(); open(); }); tb.append(t); }
+// opened from the round menu (◉, account.js) - no separate ⚙ button / tab any more
 })();
 
 // ===================== accounts: username + password (+ Cloudflare Turnstile), all inside ⚙ Nastavitve =====================
@@ -3657,10 +3662,18 @@ const css = document.createElement('style'); css.textContent = `
 #accBox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 #accBox .danger{border-color:#d9a5a1;color:#b3261e}
 #accBox #accSoc{width:100%;text-align:left}
-#socGear{float:right;margin:2px 4px 0 0;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--mute);font:600 calc(11px*var(--ui,1)) system-ui,sans-serif;padding:3px 7px;cursor:pointer}
-#socGear .bdg{margin-left:3px;vertical-align:1px}
-#socTab{position:relative}#socTab .bdg.tb{position:absolute;top:4px;left:calc(50% + 6px);margin:0}
-@media (max-width:700px){ #socGear{display:none} }
+#fab{position:absolute;z-index:9;left:calc(var(--lw,0px) + 16px);bottom:58px;width:54px;height:54px;transition:left .25s}
+#fab .fb{position:absolute;inset:0;border-radius:50%;border:0;background:#1d2321;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .2s;z-index:2}
+#fab .fb:hover{filter:brightness(1.15)}#fab.open .fb{transform:rotate(90deg);background:#c62828}#fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
+#fab .fo{position:absolute;left:3px;top:3px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
+  display:flex;align-items:center;justify-content:center;transform:translate(0,0) scale(.3);opacity:0;transition:transform .22s cubic-bezier(.3,1.4,.6,1),opacity .15s;padding:0}
+#fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
+#fab .fo .oi{font-size:21px;line-height:1}#fab .fo .ol{position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px system-ui,sans-serif;color:#1d2321;
+  background:rgba(255,255,255,.92);border-radius:6px;padding:1px 5px;pointer-events:none}
+#fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}#fab .fo:hover{background:#eef3f1}
+#fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.18);display:none}#fabBg.on{display:block}
+body.in360 #fab,body.drawing #fab{display:none}
+@media (max-width:700px){ #fab{left:calc(12px + env(safe-area-inset-left));bottom:calc(var(--tab) + 14px)} body.menu #fab{display:none} }
 #accBox .ts{margin-top:10px;min-height:65px}
 #accBox .me{display:flex;gap:12px;align-items:center;margin:2px 0 6px}
 #accBox .av{width:42px;height:42px;border-radius:50%;background:#1565c0;color:#fff;display:flex;align-items:center;justify-content:center;font:700 1.15em system-ui,sans-serif;flex:none}
@@ -3796,18 +3809,33 @@ function paintFoot(){ const f = document.querySelector('#dfoot .fnote'); if (!f)
   else f.innerHTML = `${L('shranjeno v brskalniku', 'saved in this browser')} · <a id="accFoot">${L('prijava', 'sign in')}</a>`;
   $a('accFoot').onclick = () => openAccount('in'); }
 function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accForm')) draw(); }
-// signed in: 👥 next to the other tabs (phone tab bar: Karta · Vrhovi · Riši · 👥 · Nastavitve; PC: next to ⚙)
-function socBtns(){ const tb = $a('tabbar'), set = tb && tb.querySelector('[data-t="settings"]'); let t = $a('socTab'), g = $a('socGear');
-  if (!S){ if (t) t.remove(); if (g) g.remove(); return; }
-  const n = typeof SO !== 'undefined' ? badgeN() : 0, lab = L('Prijatelji','Friends');
-  if (tb && !t){ t = document.createElement('button'); t.id = 'socTab'; t.dataset.t = 'social';
-    t.addEventListener('click', e => { e.stopPropagation(); document.body.classList.remove('menu'); const d = $a('drawer'); if (d) d.classList.remove('open');
-      soOpen(SO.badge.requests || !SO.badge.invites ? 'fr' : 'gr'); });
-    set ? tb.insertBefore(t, set) : tb.append(t); }
-  if (t) t.innerHTML = `<span class="ic">👥</span>${lab}${n ? `<i class="bdg tb">${n}</i>` : ''}`;
-  const gear = $a('gearBtn');
-  if (gear && !g){ g = document.createElement('button'); g.id = 'socGear'; g.title = L('Prijatelji in skupine','Friends & groups'); g.onclick = () => soOpen(SO.badge.requests || !SO.badge.invites ? 'fr' : 'gr'); gear.after(g); }
-  if (g) g.innerHTML = `👥${n ? `<i class="bdg">${n}</i>` : ''}`; }
+// ---------- ◉ round menu (bottom left of the map): settings, account, leaderboard, friends, groups, guide ----------
+// tap -> the options pop out around it on an arc; tap outside / Esc / the button again -> closed
+const fab = document.createElement('div'); fab.id = 'fab';
+fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"><span class="fi">☰</span></button>`;
+document.body.append(fab);
+const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.append(fabBg);
+const fabItems = () => [['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
+  ['👤', S ? L('Račun','Account') : L('Prijava','Sign in'), () => openAccount(S ? undefined : 'in')],
+  ['🏆', L('Lestvica','Leaderboard'), () => leaderboard()],
+  ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
+  ['❓', L('Vodič','Guide'), () => window.startTour && startTour()]];
+function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
+// positions on a quarter circle up / right of the button (0° = right, -90° = up); more than 4 options -> two rings
+function fabPos(n){ const ring = (m, R, a0, a1) => [...Array(m)].map((_, k) => [R, a0 + (a1 - a0) * (m > 1 ? k / (m - 1) : 0.5)]);
+  return n <= 4 ? ring(n, 116, -90, 0) : ring(3, 86, -90, 0).concat(ring(n - 3, 156, -78, -12)); }
+function fabOpen(){ const it = fabItems(), P = fabPos(it.length);
+  fab.querySelectorAll('.fo').forEach(o => o.remove());
+  it.forEach(([ic, lab, fn, b], k) => { const R0 = P[k][0], a = P[k][1] * Math.PI / 180, o = document.createElement('button');
+    o.className = 'fo'; o.style.setProperty('--x', Math.round(Math.cos(a) * R0) + 'px'); o.style.setProperty('--y', Math.round(Math.sin(a) * R0) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
+    o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
+    o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
+  fabBg.classList.add('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
+fab.querySelector('.fb').onclick = e => { e.stopPropagation(); fab.classList.contains('open') ? fabClose() : fabOpen(); };
+fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
+window.openMenu = fabOpen;
+function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
+  if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 
 // ---------- small window (leaderboard, public profile, sharing) ----------
 const win = document.createElement('div'); win.id = 'accWin'; win.innerHTML = '<div class="acard"></div>'; document.body.append(win);
@@ -3827,9 +3855,11 @@ const avc = u => COLS[[...String(u)].reduce((h, c) => (h * 31 + c.charCodeAt(0))
 const av = (u, nm, sz = 34) => `<span class="lav" style="width:${sz}px;height:${sz}px;background:${avc(u)};font-size:${Math.round(sz * .42)}px">${esc(((nm || u || '?').trim()[0] || '?').toUpperCase())}</span>`;
 const lb = document.createElement('div'); lb.id = 'lbPage'; document.body.append(lb);
 const lbCss = document.createElement('style'); lbCss.textContent = `
-#lbPage{position:fixed;inset:0;z-index:61;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+#lbPage{position:fixed;inset:0;z-index:61;background:#f3f5f4;display:none;justify-content:center;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 #lbPage.on{display:flex}
-#lbPage .lbc{background:#fff;color:#1d2321;border-radius:16px;width:min(760px,100%);height:min(88vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 44px rgba(0,0,0,.35);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbc{background:#fff;color:#1d2321;width:min(860px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.12);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbh{padding-top:calc(14px + env(safe-area-inset-top))}
+#lbPage .lbx.bk{width:auto;border-radius:16px;padding:0 12px;font:600 .95em system-ui,sans-serif;white-space:nowrap}
 #lbPage .lbh{padding:14px 18px 10px;border-bottom:1px solid #e6eae8;background:linear-gradient(180deg,#fff8e6,#fff)}
 #lbPage .lbt{display:flex;align-items:center;gap:10px}#lbPage .lbt h3{margin:0;font-size:1.3em;flex:1}
 #lbPage .lbx{border:0;background:rgba(0,0,0,.06);width:32px;height:32px;border-radius:50%;font-size:1.3em;cursor:pointer;color:#444}
@@ -3951,11 +3981,14 @@ async function lbProfile(u, back){
   const rm = $a('pfRm'); if (rm){ act('pfRm', () => rpc('friend_remove', {uname: u}, true)); const doIt = rm.onclick; rm.onclick = () => { if (st !== 'friend' || confirmTwice(rm)) doIt(); }; }
   const mp = $a('pfMap'); if (mp) mp.onclick = () => { lbClose(); ringsShow(`${nm}: ${A.length} ${L('vrhov','peaks')}`, Object.fromEntries(A.map(a => [a.peak_id, {n: 1, of: 1, who: [a.climbed_on ? fmtD(a.climbed_on) : '✓']}]))); };
 }
-function leaderboard(){ lbShell(); lb.classList.add('on'); document.body.classList.remove('menu'); lbLoad(true); }
-function lbClose(){ lb.classList.remove('on'); }
+// its own page: opening adds a step to the browser history, so the phone's / browser's back button returns to the map
+function lbShow(){ if (!lb.classList.contains('on')){ try{ history.pushState({lbp: 1}, ''); }catch(_){} } lb.classList.add('on'); document.body.classList.remove('menu'); }
+function leaderboard(){ lbShell(); lbShow(); lbLoad(true); }
+function lbClose(){ if (!lb.classList.contains('on')) return; if (history.state && history.state.lbp){ history.back(); return; } lb.classList.remove('on'); }
+addEventListener('popstate', () => { if (lb.classList.contains('on') && !(history.state && history.state.lbp)) lb.classList.remove('on'); });
 lb.onclick = e => { if (e.target === lb) lbClose(); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && lb.classList.contains('on')) lbClose(); });
-async function profile(u){ lbShell(); lb.classList.add('on'); LB.rows = []; await lbProfile(u, () => lbLoad(true)); }
+async function profile(u){ lbShell(); lbShow(); LB.rows = []; await lbProfile(u, () => lbLoad(true)); }
 window.showLeaderboard = leaderboard; window.showProfile = profile;
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#lbBtn')){ e.preventDefault(); leaderboard(); } });
 
@@ -3968,8 +4001,8 @@ const nPlan = n => n + ' ' + plSl(n, ['načrt', 'načrta', 'načrti', 'načrtov'
 const badgeN = () => (SO.badge.requests || 0) + (SO.badge.invites || 0);
 const PAGES = [['lb', '🏆', L('Lestvica','Leaderboard')], ['fr', '👥', L('Prijatelji','Friends')], ['gr', '⛰', L('Skupine','Groups')]];
 function head(p){ lb.dataset.p = p;
-  return `<div class="lbt"><div class="lbnav">${PAGES.map(([k, i, t]) => { const n = k === 'fr' ? SO.badge.requests : k === 'gr' ? SO.badge.invites : 0;
-    return `<button data-p="${k}" class="${k === p ? 'on' : ''}">${i} ${t}${n ? `<i class="bdg">${n}</i>` : ''}</button>`; }).join('')}</div><button class="lbx" aria-label="${L('Zapri','Close')}">×</button></div>`; }
+  return `<div class="lbt"><button class="lbx bk" aria-label="${L('Nazaj na karto','Back to the map')}">‹ ${L('Karta','Map')}</button><div class="lbnav">${PAGES.map(([k, i, t]) => { const n = k === 'fr' ? SO.badge.requests : k === 'gr' ? SO.badge.invites : 0;
+    return `<button data-p="${k}" class="${k === p ? 'on' : ''}">${i} ${t}${n ? `<i class="bdg">${n}</i>` : ''}</button>`; }).join('')}</div></div>`; }
 const chips = () => `<div class="lbtabs">${BOARDS.map(([k, t, m]) => `<button data-b="${k}" class="${k === LB.board ? 'on' : ''}">${t} <span style="opacity:.6">${m}</span></button>`).join('')}</div>`;
 function bindHead(onBoard){
   lb.querySelector('.lbx').onclick = lbClose;
@@ -4006,7 +4039,7 @@ function soShell(p){
     : L('Skupine so zasebne. Povabiš lahko samo svoje prijatelje. Člani vidijo vrhove z datumi in skupne načrte.','Groups are private. You can only invite your friends. Members see peaks with dates and shared plans.')}</div>${chips()}</div>
     <div class="lbb" id="lbBody"><div class="empty">…</div></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
   bindHead(() => SO.re && SO.re()); }
-function soOpen(p){ lb.classList.add('on'); document.body.classList.remove('menu'); soShell(p);
+function soOpen(p){ lbShow(); soShell(p);
   if (!S){ $a('lbBody').innerHTML = `<div class="empty">${L('Prijatelji in skupine potrebujejo račun.','Friends and groups need an account.')}<br><br><button class="sb pri" id="soIn">${L('Prijava / nov račun','Sign in / new account')}</button></div>`;
     $a('soIn').onclick = () => { lbClose(); openAccount('in'); }; return; }
   refreshBadge(); (p === 'gr' ? grList : frList)(); }

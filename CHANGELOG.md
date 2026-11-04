@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.49 — 2026-11-04
+- Snow map at the ARSO stations: within ~2 km (±200 m of height) the station's reading beats the satellite (a bare pixel next to
+  Kredarica no longer cuts the station's 24 cm down to the new snow only); together with the v0.48 correction the map shows
+  what the stations measure.
+- Snowpack model learns from the stations: a snowfall multiplier is nudged once a day by how far the model was from the readings
+  (model too low -> more snow from the same precipitation, too high -> less; ±15 % of the error per day, bounded 0.6–1.8).
+  It is kept in the model state and shown in snowpack.json ("pk").
+- Routes: official relations that end on another peak (ridge traverses) now also give a route, continued down to a parking,
+  e.g. Jubilejna pot on Prisojnik (iz Vršiča, 5.3 km); a rejected variant no longer hides its look-alikes.
+- ☰ round menu (bottom left of the map, phone and PC): tap -> round buttons pop out around it: ⚙ Nastavitve, 👤 Račun / Prijava,
+  🏆 Lestvica, 👥 Prijatelji, ⛰ Skupine (signed in), ❓ Vodič; red number for new requests / invitations. Replaces the ⚙ button,
+  the 👥 button / tab and the Nastavitve tab. Phone tab bar: Karta · Vrhovi · Riši.
+- Lestvica / Prijatelji / Skupine is its own page (full screen, "‹ Karta" back; the phone / browser back button returns to the map).
+
 ## web-v0.48 — 2026-11-04
 - Snow map, new rule: the model says how much, the satellite where - but only for what lay there when it looked. Where it saw
   snow -> model depth; where it saw bare ground -> only the snow that fell since (model now minus model at the end of the day

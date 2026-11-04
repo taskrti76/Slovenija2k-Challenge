@@ -67,11 +67,5 @@ if (adv){
   b.textContent = '⚙ ' + L('Nastavitve in napredno', 'Settings & advanced'); b.onclick = open;
   adv.replaceWith(b);
 }
-// PC: ⚙ next to SL/EN
-const lang = $s('langsw');
-if (lang){ const g = document.createElement('button'); g.id = 'gearBtn'; g.title = L('Nastavitve','Settings'); g.textContent = '⚙'; g.onclick = open; lang.after(g); }
-// phone: 4th tab
-const tb = $s('tabbar');
-if (tb){ const t = document.createElement('button'); t.dataset.t = 'settings'; t.innerHTML = `<span class="ic">⚙</span>${L('Nastavitve','Settings')}`;
-  t.addEventListener('click', e => { e.stopPropagation(); open(); }); tb.append(t); }
+// opened from the round menu (◉, account.js) - no separate ⚙ button / tab any more
 })();

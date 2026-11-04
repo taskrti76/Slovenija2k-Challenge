@@ -243,10 +243,18 @@ const css = document.createElement('style'); css.textContent = `
 #accBox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 #accBox .danger{border-color:#d9a5a1;color:#b3261e}
 #accBox #accSoc{width:100%;text-align:left}
-#socGear{float:right;margin:2px 4px 0 0;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--mute);font:600 calc(11px*var(--ui,1)) system-ui,sans-serif;padding:3px 7px;cursor:pointer}
-#socGear .bdg{margin-left:3px;vertical-align:1px}
-#socTab{position:relative}#socTab .bdg.tb{position:absolute;top:4px;left:calc(50% + 6px);margin:0}
-@media (max-width:700px){ #socGear{display:none} }
+#fab{position:absolute;z-index:9;left:calc(var(--lw,0px) + 16px);bottom:58px;width:54px;height:54px;transition:left .25s}
+#fab .fb{position:absolute;inset:0;border-radius:50%;border:0;background:#1d2321;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .2s;z-index:2}
+#fab .fb:hover{filter:brightness(1.15)}#fab.open .fb{transform:rotate(90deg);background:#c62828}#fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
+#fab .fo{position:absolute;left:3px;top:3px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
+  display:flex;align-items:center;justify-content:center;transform:translate(0,0) scale(.3);opacity:0;transition:transform .22s cubic-bezier(.3,1.4,.6,1),opacity .15s;padding:0}
+#fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
+#fab .fo .oi{font-size:21px;line-height:1}#fab .fo .ol{position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px system-ui,sans-serif;color:#1d2321;
+  background:rgba(255,255,255,.92);border-radius:6px;padding:1px 5px;pointer-events:none}
+#fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}#fab .fo:hover{background:#eef3f1}
+#fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.18);display:none}#fabBg.on{display:block}
+body.in360 #fab,body.drawing #fab{display:none}
+@media (max-width:700px){ #fab{left:calc(12px + env(safe-area-inset-left));bottom:calc(var(--tab) + 14px)} body.menu #fab{display:none} }
 #accBox .ts{margin-top:10px;min-height:65px}
 #accBox .me{display:flex;gap:12px;align-items:center;margin:2px 0 6px}
 #accBox .av{width:42px;height:42px;border-radius:50%;background:#1565c0;color:#fff;display:flex;align-items:center;justify-content:center;font:700 1.15em system-ui,sans-serif;flex:none}
@@ -382,18 +390,33 @@ function paintFoot(){ const f = document.querySelector('#dfoot .fnote'); if (!f)
   else f.innerHTML = `${L('shranjeno v brskalniku', 'saved in this browser')} · <a id="accFoot">${L('prijava', 'sign in')}</a>`;
   $a('accFoot').onclick = () => openAccount('in'); }
 function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accForm')) draw(); }
-// signed in: 👥 next to the other tabs (phone tab bar: Karta · Vrhovi · Riši · 👥 · Nastavitve; PC: next to ⚙)
-function socBtns(){ const tb = $a('tabbar'), set = tb && tb.querySelector('[data-t="settings"]'); let t = $a('socTab'), g = $a('socGear');
-  if (!S){ if (t) t.remove(); if (g) g.remove(); return; }
-  const n = typeof SO !== 'undefined' ? badgeN() : 0, lab = L('Prijatelji','Friends');
-  if (tb && !t){ t = document.createElement('button'); t.id = 'socTab'; t.dataset.t = 'social';
-    t.addEventListener('click', e => { e.stopPropagation(); document.body.classList.remove('menu'); const d = $a('drawer'); if (d) d.classList.remove('open');
-      soOpen(SO.badge.requests || !SO.badge.invites ? 'fr' : 'gr'); });
-    set ? tb.insertBefore(t, set) : tb.append(t); }
-  if (t) t.innerHTML = `<span class="ic">👥</span>${lab}${n ? `<i class="bdg tb">${n}</i>` : ''}`;
-  const gear = $a('gearBtn');
-  if (gear && !g){ g = document.createElement('button'); g.id = 'socGear'; g.title = L('Prijatelji in skupine','Friends & groups'); g.onclick = () => soOpen(SO.badge.requests || !SO.badge.invites ? 'fr' : 'gr'); gear.after(g); }
-  if (g) g.innerHTML = `👥${n ? `<i class="bdg">${n}</i>` : ''}`; }
+// ---------- ◉ round menu (bottom left of the map): settings, account, leaderboard, friends, groups, guide ----------
+// tap -> the options pop out around it on an arc; tap outside / Esc / the button again -> closed
+const fab = document.createElement('div'); fab.id = 'fab';
+fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"><span class="fi">☰</span></button>`;
+document.body.append(fab);
+const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.append(fabBg);
+const fabItems = () => [['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
+  ['👤', S ? L('Račun','Account') : L('Prijava','Sign in'), () => openAccount(S ? undefined : 'in')],
+  ['🏆', L('Lestvica','Leaderboard'), () => leaderboard()],
+  ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
+  ['❓', L('Vodič','Guide'), () => window.startTour && startTour()]];
+function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
+// positions on a quarter circle up / right of the button (0° = right, -90° = up); more than 4 options -> two rings
+function fabPos(n){ const ring = (m, R, a0, a1) => [...Array(m)].map((_, k) => [R, a0 + (a1 - a0) * (m > 1 ? k / (m - 1) : 0.5)]);
+  return n <= 4 ? ring(n, 116, -90, 0) : ring(3, 86, -90, 0).concat(ring(n - 3, 156, -78, -12)); }
+function fabOpen(){ const it = fabItems(), P = fabPos(it.length);
+  fab.querySelectorAll('.fo').forEach(o => o.remove());
+  it.forEach(([ic, lab, fn, b], k) => { const R0 = P[k][0], a = P[k][1] * Math.PI / 180, o = document.createElement('button');
+    o.className = 'fo'; o.style.setProperty('--x', Math.round(Math.cos(a) * R0) + 'px'); o.style.setProperty('--y', Math.round(Math.sin(a) * R0) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
+    o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
+    o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
+  fabBg.classList.add('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
+fab.querySelector('.fb').onclick = e => { e.stopPropagation(); fab.classList.contains('open') ? fabClose() : fabOpen(); };
+fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
+window.openMenu = fabOpen;
+function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
+  if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 
 // ---------- small window (leaderboard, public profile, sharing) ----------
 const win = document.createElement('div'); win.id = 'accWin'; win.innerHTML = '<div class="acard"></div>'; document.body.append(win);
@@ -413,9 +436,11 @@ const avc = u => COLS[[...String(u)].reduce((h, c) => (h * 31 + c.charCodeAt(0))
 const av = (u, nm, sz = 34) => `<span class="lav" style="width:${sz}px;height:${sz}px;background:${avc(u)};font-size:${Math.round(sz * .42)}px">${esc(((nm || u || '?').trim()[0] || '?').toUpperCase())}</span>`;
 const lb = document.createElement('div'); lb.id = 'lbPage'; document.body.append(lb);
 const lbCss = document.createElement('style'); lbCss.textContent = `
-#lbPage{position:fixed;inset:0;z-index:61;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:16px}
+#lbPage{position:fixed;inset:0;z-index:61;background:#f3f5f4;display:none;justify-content:center;padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left)}
 #lbPage.on{display:flex}
-#lbPage .lbc{background:#fff;color:#1d2321;border-radius:16px;width:min(760px,100%);height:min(88vh,900px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 44px rgba(0,0,0,.35);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbc{background:#fff;color:#1d2321;width:min(860px,100%);height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 30px rgba(0,0,0,.12);font-size:calc(14px*var(--ui,1))}
+#lbPage .lbh{padding-top:calc(14px + env(safe-area-inset-top))}
+#lbPage .lbx.bk{width:auto;border-radius:16px;padding:0 12px;font:600 .95em system-ui,sans-serif;white-space:nowrap}
 #lbPage .lbh{padding:14px 18px 10px;border-bottom:1px solid #e6eae8;background:linear-gradient(180deg,#fff8e6,#fff)}
 #lbPage .lbt{display:flex;align-items:center;gap:10px}#lbPage .lbt h3{margin:0;font-size:1.3em;flex:1}
 #lbPage .lbx{border:0;background:rgba(0,0,0,.06);width:32px;height:32px;border-radius:50%;font-size:1.3em;cursor:pointer;color:#444}
@@ -537,11 +562,14 @@ async function lbProfile(u, back){
   const rm = $a('pfRm'); if (rm){ act('pfRm', () => rpc('friend_remove', {uname: u}, true)); const doIt = rm.onclick; rm.onclick = () => { if (st !== 'friend' || confirmTwice(rm)) doIt(); }; }
   const mp = $a('pfMap'); if (mp) mp.onclick = () => { lbClose(); ringsShow(`${nm}: ${A.length} ${L('vrhov','peaks')}`, Object.fromEntries(A.map(a => [a.peak_id, {n: 1, of: 1, who: [a.climbed_on ? fmtD(a.climbed_on) : '✓']}]))); };
 }
-function leaderboard(){ lbShell(); lb.classList.add('on'); document.body.classList.remove('menu'); lbLoad(true); }
-function lbClose(){ lb.classList.remove('on'); }
+// its own page: opening adds a step to the browser history, so the phone's / browser's back button returns to the map
+function lbShow(){ if (!lb.classList.contains('on')){ try{ history.pushState({lbp: 1}, ''); }catch(_){} } lb.classList.add('on'); document.body.classList.remove('menu'); }
+function leaderboard(){ lbShell(); lbShow(); lbLoad(true); }
+function lbClose(){ if (!lb.classList.contains('on')) return; if (history.state && history.state.lbp){ history.back(); return; } lb.classList.remove('on'); }
+addEventListener('popstate', () => { if (lb.classList.contains('on') && !(history.state && history.state.lbp)) lb.classList.remove('on'); });
 lb.onclick = e => { if (e.target === lb) lbClose(); };
 addEventListener('keydown', e => { if (e.key === 'Escape' && lb.classList.contains('on')) lbClose(); });
-async function profile(u){ lbShell(); lb.classList.add('on'); LB.rows = []; await lbProfile(u, () => lbLoad(true)); }
+async function profile(u){ lbShell(); lbShow(); LB.rows = []; await lbProfile(u, () => lbLoad(true)); }
 window.showLeaderboard = leaderboard; window.showProfile = profile;
 document.addEventListener('click', e => { if (e.target.closest && e.target.closest('#lbBtn')){ e.preventDefault(); leaderboard(); } });
 
@@ -554,8 +582,8 @@ const nPlan = n => n + ' ' + plSl(n, ['načrt', 'načrta', 'načrti', 'načrtov'
 const badgeN = () => (SO.badge.requests || 0) + (SO.badge.invites || 0);
 const PAGES = [['lb', '🏆', L('Lestvica','Leaderboard')], ['fr', '👥', L('Prijatelji','Friends')], ['gr', '⛰', L('Skupine','Groups')]];
 function head(p){ lb.dataset.p = p;
-  return `<div class="lbt"><div class="lbnav">${PAGES.map(([k, i, t]) => { const n = k === 'fr' ? SO.badge.requests : k === 'gr' ? SO.badge.invites : 0;
-    return `<button data-p="${k}" class="${k === p ? 'on' : ''}">${i} ${t}${n ? `<i class="bdg">${n}</i>` : ''}</button>`; }).join('')}</div><button class="lbx" aria-label="${L('Zapri','Close')}">×</button></div>`; }
+  return `<div class="lbt"><button class="lbx bk" aria-label="${L('Nazaj na karto','Back to the map')}">‹ ${L('Karta','Map')}</button><div class="lbnav">${PAGES.map(([k, i, t]) => { const n = k === 'fr' ? SO.badge.requests : k === 'gr' ? SO.badge.invites : 0;
+    return `<button data-p="${k}" class="${k === p ? 'on' : ''}">${i} ${t}${n ? `<i class="bdg">${n}</i>` : ''}</button>`; }).join('')}</div></div>`; }
 const chips = () => `<div class="lbtabs">${BOARDS.map(([k, t, m]) => `<button data-b="${k}" class="${k === LB.board ? 'on' : ''}">${t} <span style="opacity:.6">${m}</span></button>`).join('')}</div>`;
 function bindHead(onBoard){
   lb.querySelector('.lbx').onclick = lbClose;
@@ -592,7 +620,7 @@ function soShell(p){
     : L('Skupine so zasebne. Povabiš lahko samo svoje prijatelje. Člani vidijo vrhove z datumi in skupne načrte.','Groups are private. You can only invite your friends. Members see peaks with dates and shared plans.')}</div>${chips()}</div>
     <div class="lbb" id="lbBody"><div class="empty">…</div></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
   bindHead(() => SO.re && SO.re()); }
-function soOpen(p){ lb.classList.add('on'); document.body.classList.remove('menu'); soShell(p);
+function soOpen(p){ lbShow(); soShell(p);
   if (!S){ $a('lbBody').innerHTML = `<div class="empty">${L('Prijatelji in skupine potrebujejo račun.','Friends and groups need an account.')}<br><br><button class="sb pri" id="soIn">${L('Prijava / nov račun','Sign in / new account')}</button></div>`;
     $a('soIn').onclick = () => { lbClose(); openAccount('in'); }; return; }
   refreshBadge(); (p === 'gr' ? grList : frList)(); }

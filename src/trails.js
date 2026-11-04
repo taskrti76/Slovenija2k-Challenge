@@ -162,13 +162,13 @@ function relationRoutes(g, s, base, starts, nearEnd, RMAX=7000){
     const head=trace(g,base.pe,en); const taken=[];
     for(const e of ends){ if(taken.length>=2) break; const tr=trace(g,res.pe,e);
       if(taken.some(t=>{ let k=0; for(const x of tr.nodes) if(t.has(x)&&res.dist[x]>300) k++; return k/tr.nodes.length>0.3; })) continue;
-      taken.push(new Set(tr.nodes));
       let nodes=tr.nodes.concat(head.nodes.slice(1)), edges=tr.edges.concat(head.edges), end=e, st=startAt.get(e)||null;
-      const ne=nearEnd(g.lat[e],g.lon[e]); if(ne<0) continue; // relation ends on another peak
-      if(!ne){ // continue down to the nearest parking
+      const ne=nearEnd(g.lat[e],g.lon[e]);   // ends on another peak (ridge traverse, e.g. Jubilejna pot Prisojnik - Razor) or at a hut: on down to a parking
+      if(ne<=0){ // continue down to the nearest parking
         const r2=search(g,e,9000); let bn=-1, bd=Infinity; for(const [n] of startAt) if(r2.dist[n]<bd&&base.dist[n]>base.dist[e]){ bd=r2.dist[n]; bn=n; }
         if(bn<0) continue; const tail=trace(g,r2.pe,bn); nodes=tail.nodes.concat(nodes.slice(1)); edges=tail.edges.concat(edges); end=bn; st=startAt.get(bn); }
-      ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)) continue;   // runs over / crosses itself, or wanders off
+      ({nodes, edges}=loopErase(nodes, edges)); if(badRoute(g, nodes, s)){ if(window.__relDbg) __relDbg.push([ri,e,'bad']); continue; }   // runs over / crosses itself, or wanders off
+      taken.push(new Set(tr.nodes));   // only a variant that is kept blocks its look-alikes
       out.push({ri, end, st, nodes, edges, set:new Set(nodes)}); }
   }
   return out;

@@ -31,7 +31,9 @@ API = 'https://api.open-meteo.com/v1/forecast'
 UA = {'User-Agent': 'dvatisocaki-snowpack/2.0 (+https://taskrti76.github.io/Slovenija2k-Challenge/)'}
 FUT = 5                     # forecast days fetched (today + 4) - covers the 4 days of the weather rating
 VER = 2; DLA, DLO = 0.04, 0.055; STEP = 250; LOW = 750; SEASON_START = (10, 1)
-PK = 1.0                    # precipitation multiplier (calibration knob; 1 = model precipitation as is)
+PK = 1.0                    # precipitation (snowfall) multiplier - learned from the ARSO stations day by day (see CAL_*), kept in the state
+CAL_RATE, CAL_MIN, CAL_MAX = 0.15, 0.6, 1.8   # per day: PK *= exp(0.15 × mean log((station+5)/(model+5))) over today's readings with snow
+INNOV = []                  # today's log((station+5)/(model+5)) before each Kalman update
 TF, SRF, TT = 0.05, 0.0094, 1.0          # ETI melt: mm/h/°C, mm/h per W/m², threshold °C
 SLOPE = 30.0; VARIANTS = (None, 0.0, 180.0)   # flat, north-facing, south-facing (aspect from north, clockwise)
 BASE = ['temperature_2m', 'relative_humidity_2m', 'precipitation']
@@ -299,6 +301,8 @@ def analysis(pts, cur, PV, obs):
     if not use: print('Kalman update: no station near a model point'); return []
     n = len(use); sig = np.array([math.sqrt(PV[mi]) for _, _, mi in use])
     y = np.array([o['cm'] - mv for o, mv, _ in use])
+    for o, mv, _ in use:                       # calibration signal: where there is snow (station or model), how far off is the model?
+        if max(o['cm'], mv) >= 3: INNOV.append(math.log((o['cm'] + 5) / (mv + 5)))
     A = np.zeros((n, n))
     for a in range(n):
         for b in range(n):
@@ -344,10 +348,14 @@ def main():
     # nothing is counted twice, today is recomputed with all that is known now.
     yday = today - datetime.timedelta(days=1); base = st.get('base')
     LSN = st.get('ls') or [None] * len(pts)                                   # last day with >= 2 mm of new snow (water), per point
+    pk0 = st.get('pk', 1.0)                                                   # snowfall multiplier at the end of yesterday
     if done == today and base and base.get('done') == yday.isoformat():
         S = st['s'] = [[dict(x) for x in row] for row in base['s']]; PV = list(base['pv']); LSN = list(base.get('ls') or LSN); done = yday
+        pk0 = base.get('pk', 1.0)
         print('another run today: recomputing today from the end of yesterday')
-    if done == yday: st['base'] = {'done': yday.isoformat(), 's': [[dict(x) for x in row] for row in S], 'pv': list(PV), 'ls': list(LSN)}
+    if done == yday: st['base'] = {'done': yday.isoformat(), 's': [[dict(x) for x in row] for row in S], 'pv': list(PV), 'ls': list(LSN), 'pk': pk0}
+    global PK; PK = pk0; INNOV.clear()
+    print(f'snowfall multiplier (learned from the stations): {PK:.3f}')
     if (today - done).days <= 3: satellite_check(pts, S, today, LSN)
     V = BASE + accepted(pts[len(pts) // 2]); print('variables:', V)
     past = min(92, max(1, (today - done).days))
@@ -406,10 +414,13 @@ def main():
     st['s'] = [[{k: round(v, 3) for k, v in x.items()} for x in row] for row in S]
     st['pv'] = [round(v, 1) for v in PV]
     st['done'] = today.isoformat(); st['ls'] = list(LSN)
+    # learn: model systematically below the stations -> more snow from the same precipitation, above -> less (slowly, bounded)
+    st['pk'] = round(min(CAL_MAX, max(CAL_MIN, PK * math.exp(CAL_RATE * sum(INNOV) / len(INNOV)))), 4) if INNOV else PK
+    if INNOV: print(f'calibration: {len(INNOV)} readings, mean log ratio {sum(INNOV) / len(INNOV):+.3f} -> multiplier {PK:.3f} -> {st["pk"]:.3f} (from tomorrow)')
     st['hist'] = {d: depth[d] for d in out_days if d <= today.isoformat()}
     json.dump(st, open(STATE, 'w'), separators=(',', ':'))
     json.dump({'ver': VER, 'gen': datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%MZ'), 'step': STEP, 'low': LOW,
-               'slope': SLOPE, 'pts': pts, 'days': out_days, 'cm': [depth[d] for d in out_days], 'ls': LSN,
+               'slope': SLOPE, 'pts': pts, 'days': out_days, 'cm': [depth[d] for d in out_days], 'ls': LSN, 'pk': PK,
                'obs': [{k: o.get(k) for k in ('name', 'alt', 'lat', 'lon', 'cm', 'valid', 'model', 'after')} for o in obs]},
               open(OUT, 'w'), separators=(',', ':'))
     t = today.isoformat()

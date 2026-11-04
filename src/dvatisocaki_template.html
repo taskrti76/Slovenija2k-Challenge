@@ -405,8 +405,8 @@
 </div>
 <nav id="tabbar">
   <button data-t="layers"><span class="ic">◧</span>Karta</button>
-  <button data-t="draw"><span class="ic">✎</span>Riši</button>
   <button data-t="peaks"><span class="ic">▲</span>Vrhovi <em id="vcount2"></em></button>
+  <button data-t="draw"><span class="ic">✎</span>Riši</button>
 </nav>
 <div id="v360pad"></div>
 <div id="v360lbl"></div>
@@ -771,7 +771,7 @@ map.on('click',e=>{
       const deg=T[0], f=fitAt(lat,lng); if(!f&&!spDay(dt.value)) return null;
       let cm=spDay(dt.value)?spDepth(lat,lng,h,dt.value,T):depthPx(f,h,slopeFac(deg))*T[3], sat=null;
       if(satDayOK(dt.value)){ const v=window.satSnow(lat,lng,0), sp=spDay(dt.value); if(v&&v.cls) sat=v;
-        const before=cm; cm=satAt2(cm,lat,lng,h,T,sp); if(sat&&sp){ const dl=lookDepth(lat,lng,h,T); if(dl!=null&&before-dl>=1) sat=Object.assign({},sat,{nw:Math.round(before-dl)}); } }
+        const before=cm; cm=satAt2(cm,lat,lng,h,T,sp,dt.value); if(sat&&sp){ const dl=lookDepth(lat,lng,h,T); if(dl!=null&&before-dl>=1) sat=Object.assign({},sat,{nw:Math.round(before-dl)}); } }
       cm=Math.round(cm);
       return {cm, h:Math.round(h), deg:Math.round(deg), line:f&&f[3]>-1e3&&f[3]<9e3?Math.round(f[3]/50)*50:null, sat}; }
     // nothing cached yet (map still loading / tile not drawn yet): fetch the z12 height tile for this spot once
@@ -786,7 +786,7 @@ map.on('click',e=>{
     let H=HC.get(k); if(!H){ try{ const rs=await fetch(`https://tiles.mapterhorn.com/${k}.webp`); if(!rs.ok) return null; H=await decodeTerrarium(await rs.blob(),512); }catch(_){ return null; }
       if(!H) return null; HC.set(k,H); if(HC.size>40) HC.delete(HC.keys().next().value); }
     const S=512, px=Math.min(S-1,Math.floor((X%1)*S)), py=Math.min(S-1,Math.floor((Y%1)*S)), mpp=40075016*Math.cos(r)/(n*S), T=snowTerr(H,S,px,py,mpp,[0,0,0,1,0]);
-    let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)) cm=satAt2(cm,lat,lng,H[py*S+px],T,true);
+    let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)) cm=satAt2(cm,lat,lng,H[py*S+px],T,true,day);
     return Math.round(cm); };
   const tip=document.createElement('div'); tip.id='snowtip'; document.body.append(tip);
   const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:30;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
@@ -830,7 +830,7 @@ map.on('click',e=>{
   ${satMix}
   const slopeFac=deg=>deg<35?1:deg>60?0.15:1-0.85*(deg-35)/25;
   self.onmessage=async e=>{ const m=e.data; if(m.type==='sat'){ K.sat=m.sat; return; }
-    const {id,z,x,y,prof,NG,useSat,slopeRef,RGB,AI}=m, N1=NG*NG*3*NH0;
+    const {id,z,x,y,prof,NG,useSat,slopeRef,RGB,AI,SW}=m, N1=NG*NG*3*NH0;
     try{ const r=await fetch('https://tiles.mapterhorn.com/'+z+'/'+x+'/'+y+'.webp'); if(!r.ok) throw new Error('dem '+r.status);
       const bmp=await createImageBitmap(await r.blob(),{colorSpaceConversion:'none',premultiplyAlpha:'none'}), S=bmp.width;
       const cv=new OffscreenCanvas(S,S), c=cv.getContext('2d',{willReadFrequently:true}); c.drawImage(bmp,0,0);
@@ -857,7 +857,8 @@ map.on('click',e=>{
               if(!AI) dd=satAdj(dd,sat.F[si],sat.K[si],deg);                       // old height fit: no history -> plain override
               else { const g=sat.G[si]; if(g<255){ const t=g/10, n0=Math.floor(t), fr=t-n0, i0=AI[n0], i1=AI[Math.min(25,n0+1)];
                 if(i0>=0){ const w=[0,0,0]; prv((i0+1)*N1,w); let dl=mixS(w); if(fr>0&&i1>=0&&i1!==i0){ prv((i1+1)*N1,w); dl+=fr*(mixS(w)-dl); }
-                  dd=satMix(dd,Math.max(0,dl),sat.F[si],sat.K[si],deg); } } } } }
+                  let kk=sat.K[si]; if(SW){ let sw=0; for(let q=0;q<4;q++){ const ii=i0+(q&1), jj=j0+(q>>1), w=((q&1)?fx:1-fx)*((q>>1)?fy:1-fy); if(!w) continue; const b=(jj*NG+ii)*NH+k; sw+=w*(SW[b]*(1-th)+SW[b+1]*th); } kk*=1-Math.min(1,sw); }
+                  dd=satMix(dd,Math.max(0,dl),sat.F[si],kk,deg); } } } } }
           if(dd<1) continue; let s2=RGB.length-1; for(let q=1;q<RGB.length;q++) if(dd<RGB[q][0]){ s2=q; break; }
           const c0=RGB[Math.max(0,s2-1)], c1=RGB[s2], t=s2===0||dd>=c1[0]?1:(dd-c0[0])/(c1[0]-c0[0]), p4=o*4;
           px[p4]=c0[1]+(c1[1]-c0[1])*t; px[p4+1]=c0[2]+(c1[2]-c0[2])*t; px[p4+2]=c0[3]+(c1[3]-c0[3])*t; px[p4+3]=Math.min(255,60+dd*25); } }
@@ -895,18 +896,19 @@ map.on('click',e=>{
     return {AI,days}; }
   function tileProfiles(z,x,y,day,useSP,useSat){ const NG=z<=8?33:z<=10?17:9, n=2**z, N1=NG*NG*3*NH, R=SP&&SP.ver>=2?15:30;
     const L=useSP&&useSat?tileLooks(z,x,y):null, days=[day].concat(L?L.days:[]), prof=new Float32Array(N1*days.length);
-    const GPs=useSP?days.map(groupProfiles):null, SC=useSP?days.map(stCorr):null;
+    const GPs=useSP?days.map(groupProfiles):null, SC=useSP?days.map(d=>stCorr(d)):null, swf=L?stSatW(day):null, SW=swf?new Float32Array(NG*NG*NH):null;
     for(let j=0;j<NG;j++){ const tY=Math.PI*(1-2*(y+j/(NG-1))/n), la=Math.atan(Math.sinh(tY))*180/Math.PI;
       for(let i=0;i<NG;i++){ const lo=(x+i/(NG-1))/n*360-180, base=(j*NG+i)*3*NH;
         if(useSP){ // inverse-distance blend of the 3 nearest cells (same as snowpackAt) + the ARSO stations' correction nearby
           const best=[]; for(const g of SPG){ const dk=Math.hypot((g.la-la)*111.3,(g.lo-lo)*77); if(dk<=R) best.push([dk,g]); }
+          if(SW) for(let k=0;k<NH;k++) SW[(j*NG+i)*NH+k]=swf(la,lo,HZ0+k*HZS);
           if(!best.length) continue; best.sort((a,b)=>a[0]-b[0]); const B3=best.slice(0,3);
           for(let d=0;d<days.length;d++){ let sw=0; const acc=new Float32Array(3*NH), o=d*N1+base;
             for(const [dk,g] of B3){ const w=1/Math.max(1,dk)**2, a=GPs[d].get(g); if(!a) continue; sw+=w; for(let q=0;q<3*NH;q++) acc[q]+=w*a[q]; }
             if(!sw) continue; const sc=SC[d];
             for(let k=0;k<NH;k++){ const c=sc?sc(la,lo,HZ0+k*HZS):0; for(let s3=0;s3<3;s3++){ const q=s3*NH+k; prof[o+q]=Math.max(0,acc[q]/sw+c); } } }
         } else { const f=fitAt(la,lo); if(!f) continue; for(let k=0;k<NH;k++){ const v=depthPx(f,HZ0+k*HZS,1); prof[base+k]=v; prof[base+NH+k]=v; prof[base+2*NH+k]=v; } } } }
-    return {prof,NG,AI:L?L.AI:null}; }
+    return {prof,NG,AI:L?L.AI:null,SW}; }
 
   let protoOK=false;
   function setupProto(){ if(protoOK) return; protoOK=true;
@@ -915,8 +917,8 @@ map.on('click',e=>{
       if(P){ const m=params.url.match(/^snowpx:\/\/(\d+)\/(\d+)\/(\d+)/), z=+m[1], x=+m[2], y=+m[3];
         const useSat=/[?&]s=\d/.test(params.url)&&!!SAT, spD=(params.url.match(/[?&]d=([\d-]+)/)||[])[1], useSP=!!spD&&spDay(spD)&&/[?&]p=1/.test(params.url);
         if(useSat&&satSent!==SAT){ satSent=SAT; const sat={F:SAT.F,K:SAT.K,W:SAT.W,H:SAT.H,bbox:SAT.m.bbox,G:SAT.AG}; P.forEach(w=>w.postMessage({type:'sat',sat})); }
-        const {prof,NG,AI}=tileProfiles(z,x,y,spD,useSP,useSat), id=++PID, w=P.reduce((a,b)=>b.busy<a.busy?b:a); w.busy++;
-        const r=await new Promise((res,rej)=>{ PEND.set(id,{res,rej}); w.postMessage({id,z,x,y,prof,NG,useSat,slopeRef:(SP&&SP.slope)||30,RGB,AI},[prof.buffer]); });
+        const {prof,NG,AI,SW}=tileProfiles(z,x,y,spD,useSP,useSat), id=++PID, w=P.reduce((a,b)=>b.busy<a.busy?b:a); w.busy++;
+        const r=await new Promise((res,rej)=>{ PEND.set(id,{res,rej}); w.postMessage({id,z,x,y,prof,NG,useSat,slopeRef:(SP&&SP.slope)||30,RGB,AI,SW},SW?[prof.buffer,SW.buffer]:[prof.buffer]); });
         HC.set(z+'/'+x+'/'+y,r.H); if(HC.size>40) HC.delete(HC.keys().next().value);
         return {data:r.buf}; }
       return snowTileMain(params); });
@@ -933,7 +935,7 @@ map.on('click',e=>{
       for(let Y=0;Y<S;Y++){ const la=latOf(Y+.5), mpp=40075016*Math.cos(la*Math.PI/180)/(n*S);
         for(let X=0;X<S;X++){ const o=Y*S+X, h=H[o]; const lo=(x+(X+.5)/S)/n*360-180; const f=fitAt(la,lo); if(!f&&!useSP) continue;
           snowTerr(H,S,X,Y,mpp,T); const deg=T[0]; let d=useSP?spDepth(la,lo,h,spD,T):depthPx(f,h,slopeFac(deg))*T[3];
-          if(useSat) d=satAt2(d,la,lo,h,T,useSP);
+          if(useSat) d=satAt2(d,la,lo,h,T,useSP,spD);
           if(d<1) continue; let s=RGB.length-1; for(let q=1;q<RGB.length;q++) if(d<RGB[q][0]){ s=q; break; }
           const c0=RGB[Math.max(0,s-1)], c1=RGB[s], t=s===0||d>=c1[0]?1:(d-c0[0])/(c1[0]-c0[0]), p4=o*4;
           px[p4]=c0[1]+(c1[1]-c0[1])*t; px[p4+1]=c0[2]+(c1[2]-c0[2])*t; px[p4+2]=c0[3]+(c1[3]-c0[3])*t; px[p4+3]=Math.min(255,60+d*25); } }
@@ -1004,7 +1006,7 @@ map.on('click',e=>{
     SPP=(location.protocol.startsWith('http')?fetch('snowpack.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null):Promise.resolve(null)).then(j=>{
       if(!j||!j.pts) return null; SP=j; const G=new Map();
       j.pts.forEach(([la,lo,e],i)=>{ const k=la+','+lo; let g=G.get(k); if(!g) G.set(k,g={la,lo,e:[],i:[]}); g.e.push(e); g.i.push(i); });
-      SPG=[...G.values()]; GP=null; GPC.clear(); SCD.clear(); return SP; }).catch(()=>null);
+      SPG=[...G.values()]; GP=null; GPC.clear(); SCD.clear(); SWD.clear(); return SP; }).catch(()=>null);
     return SPP; };
   // the satellite saw a place before the model's last snowfall there -> its "no snow" is outdated: the model decides there
   // (snowpack.json "ls" = last day with >= 2 mm of new snow per point; snowpack.py does the same in its satellite check)
@@ -1024,8 +1026,17 @@ map.on('click',e=>{
   // model depth at the (blended) time of the satellite's look here
   function lookDepth(la,lo,h,T){ const g=satAGat(la,lo); if(g===255) return null; const t=g/10, n0=Math.floor(t), fr=t-n0, d0=lookDay(n0); if(!d0) return null;
     let v=spDepth(la,lo,h,d0,T); const d1=fr>0?lookDay(n0+1):null; if(d1&&d1!==d0) v+=fr*(spDepth(la,lo,h,d1,T)-v); return v; }
-  function satAt2(cm,la,lo,h,T,useSP){ const q=satFK(la,lo); if(!q) return cm; if(!useSP) return satAdj(cm,q[0],q[1],T[0]);
-    const dl=lookDepth(la,lo,h,T); return dl!=null?satMix(cm,dl,q[0],q[1],T[0]):cm; }
+  function satAt2(cm,la,lo,h,T,useSP,day){ const q=satFK(la,lo); if(!q) return cm; if(!useSP) return satAdj(cm,q[0],q[1],T[0]);
+    const dl=lookDepth(la,lo,h,T), sw=day?stSatW(day):null; return dl!=null?satMix(cm,dl,q[0],q[1]*(sw?1-sw(la,lo,h):1),T[0]):cm; }
+  // close to a station (~2 km, ±200 m) its reading beats the satellite (the station is right; a cloud / shadow / wind-blown
+  // ridge in the image is not)
+  const SWD=new Map();
+  function stSatW(day){ if(SWD.has(day)) return SWD.get(day); let f=null; const S0=[];
+    for(const o of ((SP&&SP.obs)||[])){ if(o.cm==null||o.lat==null||!o.valid) continue; const di=SP.days.indexOf(o.valid.slice(0,10)), dd=SP.days.indexOf(day); if(di<0||dd<di) continue;
+      S0.push([o.lat,o.lon,o.alt,Math.pow(0.85,dd-di)]); }
+    if(S0.length) f=(la,lo,h)=>{ let m=0; for(const [a,b,z,k] of S0){ const dk=Math.hypot((a-la)*111.3,(b-lo)*77); if(dk>6) continue;
+      const w=k*Math.exp(-((dk/2)**2))*Math.exp(-(((h-z)/200)**2)); if(w>m) m=w; } return m; };
+    SWD.set(day,f); return f; }
   // ARSO stations are right: the model nearby is shifted to what they measured (Gaussian: ~5 km, ±250 m of height), on the day of
   // the reading and fading over the next days; the snowpack job has already pulled the model towards them
   const SCD=new Map();
