@@ -2,6 +2,23 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.54 — 2026-11-05
+- 🏅 Badges redrawn: every badge has its own emblem: a hand-drawn outline of one peak with its landmark (Triglav with Aljažev stolp, Jalovec spire,
+  Mangart road, Škrlatica teeth, Kanin cable car, Ojstrica fang, Stol with Prešernova koča, Rogla tower, Pohorje forest,
+  Snežnik snow dome, Ratitovec with Krekova koča, Porezen memorial …). Count badges carry the number on the band, range badges
+  the peak name; ★ badges have a day sky, "all peaks" badges an evening sky with sun. Replaces the terrain skylines of v0.53 (too alike at badge size).
+  10 Mangart · 25 Jalovec · 50 Razor · 98 Triglav · Julijske ★ Škrlatica / all Visoki Kanin · Kamniško-Savinjske ★ Grintovec /
+  all Ojstrica · Karavanke ★ Stol / all Vrtača · Pohorje ★ Črni vrh / all Rogla · Snežnik ★ Veliki Snežnik / all Travica ·
+  Predalpe ★ Altemaver (Ratitovec) / all Porezen.
+
+## web-v0.53 — 2026-11-05
+- 🏅 Every badge has its own peak: the real skyline of one summit, worked out in the browser from the terrain tiles
+  (12 directions × 2 distances, the view where the peak stands out most), snow cap on the 2000 m peaks, kept in the browser
+  after the first time. 10 Mangart · 25 Jalovec · 50 Razor · 98 Triglav · Julijske ★ Škrlatica / all Visoki Kanin ·
+  Kamniško-Savinjske ★ Grintovec / all Ojstrica · Karavanke ★ Stol / all Vrtača · Pohorje ★ Črni vrh / all Rogla ·
+  Snežnik ★ Veliki Snežnik / all Travica · Predalpe ★ Altemaver (Ratitovec) / all Porezen. Until it is computed (or offline)
+  the old generic mountain shows.
+
 ## web-v0.52 — 2026-11-05 (shipped together with v0.51)
 - Leaderboard page: "📸 Vrh tedna" banner on top - a Slovenian prominent 2000er (changes every week), photo from Wikimedia Commons
   (free licence, photographer + licence shown, found via the Slovenian Wikipedia article), height, range, rank, the best day of

@@ -4291,33 +4291,69 @@ async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) r
 // Pohorje, Snežnik, Predalpe: the 1500–2000 m list). Each range badge shows its best-known summits.
 const sname = p => p.name.split(' (')[0];
 const RANGE_ORDER = ['Julijske Alpe', 'Kamniško-Savinjske Alpe', 'Karavanke', 'Pohorje', 'Snežnik', 'Predalpe'];
+// one peak per badge (SIL_PK), drawn as its own emblem (SIL_ART)
+const SIL_PK = {c10: 'Mangart', c25: 'Jalovec', c50: 'Razor', c98: 'Triglav', 'Julijske Alpe*': 'Škrlatica', 'Julijske Alpe': 'Visoki Kanin',
+  'Kamniško-Savinjske Alpe*': 'Grintovec', 'Kamniško-Savinjske Alpe': 'Ojstrica', 'Karavanke*': 'Stol', 'Karavanke': 'Vrtača',
+  'Pohorje*': 'Črni vrh', 'Pohorje': 'Rogla', 'Snežnik*': 'Veliki Snežnik', 'Snežnik': 'Travica', 'Predalpe*': 'Altemaver', 'Predalpe': 'Porezen'};
+const silPeak = (k, rng) => { const nm = SIL_PK[k], ok = p => sname(p) === nm && p.lat != null; return nm ? PEAKS.find(p => ok(p) && (!rng || p.range === rng)) || PEAKS.find(ok) || null : null; };
 function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = PEAKS.filter(isP2), out = [], tr = window.T || (x => x);
-  const nP2 = P2.filter(p => T0.has(p.id)).length, star = ['Triglav', 'Škrlatica', 'Mangart'];
-  for (const n of [10, 25, 50, P2.length]) out.push({k: 'c' + n, col: n >= P2.length ? '#b8860b' : n >= 50 ? '#c0392b' : n >= 25 ? '#6a1b9a' : '#1565c0', ring: n >= P2.length ? 'gold' : 'silver',
-    t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: n >= P2.length ? star : []});
+  const nP2 = P2.filter(p => T0.has(p.id)).length;
+  for (const n of [10, 25, 50, P2.length]){ const k = 'c' + (n >= P2.length ? 98 : n), pk = silPeak(k);
+    out.push({k, pk, col: n >= P2.length ? '#b8860b' : n >= 50 ? '#c0392b' : n >= 25 ? '#6a1b9a' : '#1565c0', ring: n >= P2.length ? 'gold' : 'silver',
+      t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : ''}); }
   for (const r of RANGE_ORDER){ const alp = PEAKS.some(p => p.range === r && p.tier !== '1500'), set = PEAKS.filter(p => p.range === r && (alp ? p.tier !== '1500' : p.tier === '1500'));
     if (!set.length) continue; const main = set.filter(alp ? isP2 : isP15), top = main.filter(p => !/^Vrh \d|^\d/.test(p.name)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 2).map(sname);
-    const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555';
-    if (main.length) out.push({k: r + '*', col, ring: 'gold', t: tr(r) + ' ★', sub: top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
-    if (set.length > main.length) out.push({k: r, col, ring: 'silver', t: tr(r), sub: top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
+    const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555', p1 = silPeak(r + '*', r), p2 = silPeak(r, r);
+    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [sname(p1)] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
+    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [sname(p2)] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
   return out; }
+
 let BID = 0;
-function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.n, C = 2 * Math.PI * 46, rim = b.ring === 'gold' ? ['#f9e08b', '#b8860b'] : ['#f4f6f7', '#90a4ae'];
-  const s2 = (b.sub || []).slice(0, 2).join(' · '), sub = s2.length > 16 ? (b.sub || [])[0] || '' : s2, fs = Math.min(11, 125 / Math.max(6, sub.length));   // one name if two do not fit
+// hand-drawn emblem per badge peak (100 × 100 box, mountain base at the bottom): m = mountain, k = rock / shadow side,
+// w = snow, x = landmark (white), l = lines (road, cable car), r = rock, d = trees / dark details. Shapes follow the peak's best-known outline.
+const HUT = (x, y) => `M${x - 3} ${y}v-3l3-2.6 3 2.6v3z`, TREE = (x, y, h = 7) => `M${x} ${y - h}l${h * .38} ${h}h${-h * .76}z`;
+const SIL_ART = {
+  Triglav: {m: 'M2 72L20 54L28 57L37 45L43 48L50 27L57 47L63 43L72 56L80 52L98 72Z', k: 'M50 27L57 47L63 43L72 56L80 52L98 72H50Z',
+    w: 'M43 48L50 27L57 47L54 44L51 49L48 43L45 48Z M37 45L43 48L40 49Z', x: 'M48.6 27v-5.2h2.8v5.2Z M47.9 21.9L50 18.4L52.1 21.9Z'},   // Aljažev stolp
+  Jalovec: {m: 'M2 72Q34 66 44 40L50 15L56 40Q66 66 98 72Z', k: 'M50 15L56 40Q66 66 98 72H50Z', w: 'M47 30L50 15L53 30L50 27Z M43 46l3-4 1 5Z M55 45l2-5 2 6Z'},
+  Mangart: {m: 'M2 72L18 56L26 52L36 38L44 31L58 28L66 30L70 40L77 44L82 52L98 72Z', k: 'M66 30L70 40L77 44L82 52L98 72H62Z',
+    w: 'M36 38L44 31L58 28L66 30L63 34L56 32L50 36L44 34L39 39Z', l: 'M12 68L26 64L16 60L30 56L22 52L34 48'},   // Mangart road
+  Razor: {m: 'M2 72L24 50L32 47L44 31L48 29L58 29L62 33L70 42L78 45L98 72Z', k: 'M58 29L62 33L70 42L78 45L98 72H56Z', w: 'M44 31L48 29L58 29L55 33L50 31L46 35Z', r: 'M47 35L52 47L56 35L52 39Z'},
+  'Škrlatica': {m: 'M2 72L16 55L21 58L27 42L31 47L36 33L40 41L44 28L48 34L51 22L55 31L59 26L62 37L67 31L70 44L75 40L82 55L98 72Z', k: 'M51 22L55 31L59 26L62 37L67 31L70 44L75 40L82 55L98 72H50Z',
+    w: 'M49 30L51 22L53 28Z M57.5 28.5L59 26L60.5 30Z M42 32L44 28L46 32Z M34.5 37L36 33L38 37Z'},
+  'Visoki Kanin': {m: 'M2 72L14 52L26 44L36 41L46 34L52 32L60 35L70 33L80 38L88 48L98 72Z', k: 'M60 35L70 33L80 38L88 48L98 72H58Z',
+    w: 'M26 44L36 41L46 34L52 32L60 35L70 33L80 38L74 40L66 37L58 40L50 37L42 41L32 45Z', l: 'M4 88L46 38', r: 'M17 70.5h5v4h-5Z M33 51.5h5v4h-5Z'},   // cable car
+  Grintovec: {m: 'M2 72L24 52L30 52L50 24L70 52L76 52L98 72Z', k: 'M50 24L70 52L76 52L98 72H50Z', w: 'M43 34L50 24L57 34L53 32L50 36L47 32Z'},
+  Ojstrica: {m: 'M2 72L26 63L38 50L46 36L53 20L57 30L59 46L62 62L98 72Z', k: 'M53 20L57 30L59 46L62 62L98 72H56Z', w: 'M49 28L53 20L55.5 27L52 26Z'},
+  Stol: {m: 'M2 72Q22 42 42 34Q52 31 60 33Q78 38 98 64V72Z', k: 'M60 33Q78 38 98 64V72H58Z', w: 'M36 37Q46 31 56 32Q63 33 66 35Q56 35 50 38Q44 36 36 40Z', x: HUT(70, 40)},   // Prešernova koča
+  'Vrtača': {m: 'M2 72L22 50L36 32L42 38L47 46L52 40L58 28L66 40L76 48L98 72Z', k: 'M58 28L66 40L76 48L98 72H56Z', w: 'M33 36L36 32L39 36Z M55 32L58 28L61 33Z'},
+  'Črni vrh': {m: 'M2 72Q28 36 50 34Q72 36 98 72Z', d: [[18,62,9],[26,54,10],[34,47,10],[42,42,10],[50,40,10],[58,42,10],[66,47,10],[74,54,10],[82,62,9],[30,62,9],[46,56,10],[62,58,10]].map(t => TREE(...t)).join('')},
+  Rogla: {m: 'M2 72Q30 44 50 42Q70 44 98 72Z', d: [[16,66,8],[26,60,8],[72,60,8],[82,66,8],[36,62,7],[64,62,7]].map(t => TREE(...t)).join(''),
+    x: 'M47 42L45.5 22H54.5L53 42Z M44 22h12v-2.5H44Z'},   // lookout tower
+  'Veliki Snežnik': {m: 'M2 72Q26 40 50 32Q74 40 98 72Z', k: 'M50 32Q74 40 98 72H50Z', w: 'M26 46Q38 34 50 32Q62 34 74 46Q66 44 60 48Q55 43 50 46Q44 42 38 48Q32 44 26 46Z', d: HUT(56, 36)},
+  Travica: {m: 'M2 72Q30 42 52 40Q74 44 98 72Z', d: [[14,67,7],[22,62,7],[80,63,7],[88,68,7]].map(t => TREE(...t)).join(''), l: 'M40 48l2-4 2 4 M50 45l2-4 2 4 M60 48l2-4 2 4'},
+  Altemaver: {m: 'M2 72L16 50L26 40L64 37L78 42L86 52L98 72Z', k: 'M64 37L78 42L86 52L98 72H62Z', r: 'M20 50L26 42L30 52Z M34 48L38 41L41 50Z', x: HUT(50, 38)},   // Krekova koča
+  Porezen: {m: 'M2 72Q26 44 50 38Q74 44 98 72Z', k: 'M50 38Q74 44 98 72H50Z', x: 'M48.6 38v-12l1.4-2.4 1.4 2.4v12Z'}};   // memorial
+function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.n, C = 2 * Math.PI * 46, gold = b.ring === 'gold', rim = gold ? ['#f9e08b', '#b8860b'] : ['#f4f6f7', '#90a4ae'];
+  const A = b.pk && SIL_ART[sname(b.pk)] || SIL_ART.Grintovec, band = b.big || (b.sub || [])[0] || '', fs = b.big ? (b.big.length > 2 ? 17 : 19) : Math.min(11, 125 / Math.max(6, band.length));
+  const sky = gold ? [b.col, '#fff'] : [b.col, '#ffcc80'];   // ★ = day sky, all peaks = evening sky
   return `<svg viewBox="0 0 100 100" width="76" height="76" aria-hidden="true"><defs><linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${rim[0]}"/><stop offset="1" stop-color="${rim[1]}"/></linearGradient>
-    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".25"/><stop offset="1" stop-color="#000" stop-opacity=".15"/></linearGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset=".25" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}" stop-opacity=".55"/></linearGradient>
     <clipPath id="${id}c"><circle cx="50" cy="50" r="39"/></clipPath></defs>
     <g${done ? '' : ' style="filter:grayscale(1);opacity:.5"'}>
     <circle cx="50" cy="50" r="47" fill="url(#${id}r)"/><circle cx="50" cy="50" r="39" fill="${b.col}"/><circle cx="50" cy="50" r="39" fill="url(#${id}s)"/>
-    <g clip-path="url(#${id}c)"><path d="M4 76 L27 46 L37 56 L52 30 L65 50 L73 42 L96 76 Z" fill="rgba(255,255,255,.3)"/><path d="M52 30 L45.5 41.5 L49.5 39.5 L52.5 43 L57.5 38.5 Z" fill="#fff"/>
-      <path d="M4 90 L26 64 L40 74 L56 52 L70 68 L82 60 L96 90 Z" fill="rgba(0,0,0,.25)"/>${sub ? `<rect x="0" y="66" width="100" height="16" fill="rgba(0,0,0,.38)"/>` : ''}</g>
-    ${b.big ? `<text x="50" y="${sub ? 57 : 62}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" style="font-size:${b.big.length > 2 ? 26 : 30}px" fill="#fff" stroke="rgba(0,0,0,.25)" stroke-width="1">${b.big}</text>`
-      : `<text x="50" y="24" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:11px" fill="#fff">${b.ring === 'gold' ? '★' : '▲'}</text>`}
-    ${sub ? `<text x="50" y="77" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="700" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(sub)}</text>` : ''}
+    <g clip-path="url(#${id}c)">${gold ? '' : `<circle cx="72" cy="30" r="6" fill="#fff3c4" opacity=".9"/>`}
+      <path d="${A.m}" fill="#eef2f4" stroke="#263238" stroke-width="1.6" stroke-linejoin="round"/>${A.k ? `<path d="${A.k}" fill="#90a4ae" opacity=".55"/>` : ''}
+      ${A.w ? `<path d="${A.w}" fill="#fff"/>` : ''}${A.r ? `<path d="${A.r}" fill="#546e7a"/>` : ''}${A.d ? `<path d="${A.d}" fill="#2e5d3a"/>` : ''}
+      ${A.l ? `<path d="${A.l}" fill="none" stroke="#263238" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>` : ''}${A.x ? `<path d="${A.x}" fill="#fff" stroke="#263238" stroke-width="1.2" stroke-linejoin="round"/>` : ''}
+      <path d="M0 72H100V100H0Z" fill="#263238" opacity=".22"/>
+      ${band ? `<rect x="0" y="64" width="100" height="${b.big ? 22 : 17}" fill="rgba(0,0,0,.5)"/>` : ''}</g>
+    ${band ? `<text x="50" y="${b.big ? 81 : 76.5}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="${b.big ? 900 : 700}" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(band)}</text>` : ''}
+    ${gold && !b.big ? `<text x="50" y="21" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:9px" fill="#b8860b">★</text>` : ''}
     </g>${done ? '' : `<circle cx="50" cy="50" r="46" fill="none" stroke="#e3e8e5" stroke-width="4"/><circle cx="50" cy="50" r="46" fill="none" stroke="${b.col}" stroke-width="4" stroke-dasharray="${(f * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>`}</svg>`; }
+const bdwInner = B => B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('');
 function badgeCard(){ const B = badgeDefs(), got = B.filter(b => b.d >= b.n).length;
-  return ac(`🏅 ${L('Značke','Badges')} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${got} / ${B.length}</span>`,
-    `<div class="bdw">${B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('')}</div>`); }
+  return ac(`🏅 ${L('Značke','Badges')} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${got} / ${B.length}</span>`, `<div class="bdw">${bdwInner(B)}</div>`); }
 
 // ---------- 📸 peak of the week (a Slovenian prominent 2000er, photo from Wikimedia Commons, best day of the next days) ----------
 async function potw(){ const box = $a('potw'); if (!box) return;
