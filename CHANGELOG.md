@@ -2,6 +2,21 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.55 — 2026-11-05 (+ app-v1.0)
+- 📱 Android app (APK, not from Google Play): `app/` (Capacitor shell that loads the website, so site updates reach the app at once)
+  + `.github/workflows/android.yml` builds, signs and attaches `dvatisocaki.apk` to a GitHub release. Signing key made on the first
+  run, kept encrypted in `app/release.jks.enc` (key = BACKUP_PASSPHRASE secret). Settings → "Aplikacija in brez signala" →
+  "📱 Android aplikacija (APK)" downloads the latest release.
+- 📍 GPS summit check (app only): ☰ → "GPS vrhovi" watches the location (also with the screen off, notification while on). Within 50 m
+  of a summit (accuracy ≤ 50 m, height roughly right) the peak is ticked, dated and marked with a blue ✓ "Potrjeno z GPS" (list +
+  peak window; local notification when the app is in the background). With an account the fix goes to `verify_ascent`
+  (supabase/07_verify.sql), which checks it again (≤ 80 m from the peak, accuracy ≤ 60 m, ≤ 30 days old); verified_at cannot be
+  written any other way. Without signal the fixes wait in a queue. Un-ticking a peak drops its confirmation.
+- supabase/03_peaks.sql now also carries lat / lon of every peak (needed by 07).
+- Leaderboard / friends / groups page: mountain panorama and contour-line pattern on the empty sides (wide screens).
+- 📸 Peak of the week: up to 12 photos (Wikipedia article picked by coordinates, its Commons category, geotagged photos near the summit),
+  ‹ › / dots / swipe, tap = full-screen viewer (arrows, swipe, ← → Esc, credit per photo). Best-day rating colours readable on the photo.
+
 ## web-v0.54 — 2026-11-05
 - 🏅 Badges redrawn: every badge has its own emblem: a hand-drawn outline of one peak with its landmark (Triglav with Aljažev stolp, Jalovec spire,
   Mangart road, Škrlatica teeth, Kanin cable car, Ojstrica fang, Stol with Prešernova koča, Rogla tower, Pohorje forest,

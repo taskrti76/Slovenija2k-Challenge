@@ -1,0 +1,14 @@
+{
+  "appId": "io.github.taskrti76.dvatisocaki",
+  "appName": "2000-čaki",
+  "webDir": "www",
+  "server": {
+    "url": "https://taskrti76.github.io/Slovenija2k-Challenge/",
+    "androidScheme": "https",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "useLegacyBridge": true,
+    "backgroundColor": "#0e3a86"
+  }
+}

@@ -195,6 +195,7 @@ if (!LS('dvat3d_tour_done')){ const st = LS('dvat3d_tour_step') ? 1 : 0; LS('dva
 // ---------- 3) installable app + offline areas ----------
 const grp = document.createElement('div'); grp.id = 'appgrp';
 grp.innerHTML = `<b style="display:block;margin:10px 0 4px;font-size:.86em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)">Aplikacija in brez signala</b>
+  <a class="btn" id="apkBtn" style="display:none;text-align:center;text-decoration:none" href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">📱 Android aplikacija (APK)</a><div id="apkHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0">Z GPS samodejno potrdi vrhove, ko si na vrhu (✓). Ni iz Google Play: ob namestitvi dovoli »nameščanje iz neznanih virov«.</div>
   <button class="btn" id="instBtn" style="display:none">Namesti aplikacijo</button><div id="instHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0"></div>
   <button class="btn btn2" id="offBtn">Prenesi to območje za brez signala</button><div id="offInfo" style="font-size:.82em;color:var(--mute);margin:4px 0"></div>
   <button class="btn btn2" id="offDel">Izbriši shranjena območja</button>
@@ -205,7 +206,11 @@ let deferred = null;
 const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
 // the browser only offers its install prompt sometimes (not when the app is already installed, shortly after an uninstall,
 // or in some browsers at all) -> the button is always there and falls back to instructions
-if (!standalone) $x('instBtn').style.display = '';
+const inApp = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+if (!standalone && !inApp) $x('instBtn').style.display = '';
+if (!inApp && !/iphone|ipad|ipod/i.test(navigator.userAgent)){ $x('apkBtn').style.display = ''; $x('apkHint').style.display = ''; }   // Android + computers (to send to a phone)
+EN['📱 Android aplikacija (APK)'] = '📱 Android app (APK)';
+EN['Z GPS samodejno potrdi vrhove, ko si na vrhu (✓). Ni iz Google Play: ob namestitvi dovoli »nameščanje iz neznanih virov«.'] = 'Confirms summits automatically by GPS when you are on top (✓). Not from Google Play: allow "install unknown apps" when installing.';
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
 addEventListener('appinstalled', () => { deferred = null; const h=$x('instHint'); h.style.display=''; h.textContent=T('Aplikacija je nameščena — najdeš jo na začetnem zaslonu.'); });
 $x('instBtn').onclick = async () => {
