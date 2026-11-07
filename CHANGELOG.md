@@ -2,6 +2,21 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.59 — 2026-11-07
+- Settings → App & offline: "📱 Android aplikacija" and "⭐ Spletna aplikacija" side by side (the APK link no longer overlaps the
+  heading), each with one line on what it is (APK: GPS confirms summits, also with the screen off, not from Google Play; web app: icon
+  from the browser, no download, also iPhone / computer, everything except GPS confirmation).
+- Offline maps: overview map of Slovenia - border, the five ranges (dashed, click = save), saved areas in blue (click = show on the
+  map), the current view in red, "all on the map" (outlines of every saved area). The bar now shows what is saved out of everything
+  that can be saved (all five ranges, estimate); free space on the device is a note under it.
+- ☰ menu: bubbles placed on rings of 100 / 178 / 256 px with at most 3 / 4 / 5 bubbles (no more overlapping labels; the last one stays
+  above the phone tab bar); the bubble under the mouse / finger grows and turns blue.
+
+## web-v0.58 — 2026-11-07 (shipped with v0.59)
+- Guide starts on a clean map: both side panels and every window (peak popup, route card, leaderboard / profile page, settings,
+  account, weather overview, photo viewer, shared route, drawing) closed; on a computer each step now opens only what it talks about
+  (layers panel / peak list / nothing), so the panels no longer pile up. The state from before the guide comes back at the end.
+
 ## web-v0.57 — 2026-11-07 (+ app-v1.0.3)
 - Offline map manager: storage bar (saved areas / viewed tiles + app / free, from the browser's storage estimate).
 - App updates: the page in the app is always the newest website (as before); the APK now tells its version in the user agent

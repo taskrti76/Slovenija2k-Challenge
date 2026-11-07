@@ -145,11 +145,17 @@ let step = 0, ov = null, ui0 = null;
 const B = () => document.body.classList, DR = () => document.getElementById('drawer');
 function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contains('lclosed'), B().contains('menu'), !!(d && d.classList.contains('open'))];
   if (PHONE()){ B().toggle('menu', o === 'layers'); if (d) d.classList.toggle('open', o === 'peaks'); }
-  else { if (o === 'layers') B().remove('lclosed'); if (o === 'peaks' && d) d.classList.add('open'); }
+  else { B().toggle('lclosed', o !== 'layers'); if (d) d.classList.toggle('open', o === 'peaks'); }   // only what the step talks about
   const now = [B().contains('lclosed'), B().contains('menu'), !!(d && d.classList.contains('open'))]; return now.some((v, i) => v !== was[i]); }
 function uiRestore(){ if (!ui0) return; const d = DR(); B().toggle('lclosed', ui0[0]); B().toggle('menu', ui0[1]); if (d) d.classList.toggle('open', ui0[2]); ui0 = null; }
 function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
-  document.body.classList.remove('menu'); showStep(); }
+  document.body.classList.remove('menu'); clearUI(); showStep(); }
+// the guide starts on a clean map: side panels and every window closed (put back at the end)
+function clearUI(){ try{ popClose(); if (window.closeRoutes) closeRoutes(); if (window.DRAW_ON && window.stopDraw) stopDraw();
+    ['lbPage', 'accWin'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('on'); });
+    ['potwLb', 'wxBig'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
+    const sh = document.querySelector('#shCard.on .x'); if (sh) sh.click(); }catch(_){}
+  const d = DR(); if (!PHONE()) B().add('lclosed'); if (d) d.classList.remove('open'); B().remove('menu'); }
 function endTour(){ if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
 // routes and 360 are shown on Triglav: the map flies there, its routes / its window open, the real thing is lit up
 let curDemo = null; const TRI = 'triglav-2864';
@@ -201,8 +207,9 @@ if (!LS('dvat3d_tour_done')){ const st = LS('dvat3d_tour_step') ? 1 : 0; LS('dva
 // ---------- 3) installable app + offline areas ----------
 const grp = document.createElement('div'); grp.id = 'appgrp';
 grp.innerHTML = `<b style="display:block;margin:10px 0 4px;font-size:.86em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)">Aplikacija in brez signala</b>
-  <a class="btn" id="apkBtn" style="display:none;text-align:center;text-decoration:none" href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">📱 Android aplikacija (APK)</a><div id="apkHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0">Z GPS samodejno potrdi vrhove, ko si na vrhu (✓). Ni iz Google Play: ob namestitvi dovoli »nameščanje iz neznanih virov«.</div>
-  <button class="btn" id="instBtn" style="display:none">Namesti aplikacijo</button><div id="instHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0"></div>
+  <div class="appbtns"><a class="btn" id="apkBtn" style="display:none" href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">📱 Android aplikacija</a><button class="btn btn2" id="instBtn" style="display:none">⭐ Spletna aplikacija</button></div>
+  <div id="apkHint" class="apph" style="display:none">📱 Android aplikacija (APK): GPS sam potrdi vrh, ko stojiš na njem (✓), tudi z ugasnjenim zaslonom. Ni iz Google Play — ob namestitvi dovoli »nameščanje iz neznanih virov«.</div>
+  <div id="pwaHint" class="apph" style="display:none">⭐ Spletna aplikacija: ikona na začetnem zaslonu kar iz brskalnika — brez prenosa, tudi za iPhone in računalnik. Vse deluje, razen potrjevanja vrhov z GPS.</div><div id="instHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0"></div>
   <div id="offMgr"></div>
   <button class="btn btn2" id="tourBtn" style="margin-top:8px">Vodič</button>`;
 const adv = document.querySelector('details.adv'); if (adv) adv.insertBefore(grp, adv.querySelector('#tstatus'));
@@ -212,10 +219,11 @@ const standalone = matchMedia('(display-mode: standalone)').matches || navigator
 // the browser only offers its install prompt sometimes (not when the app is already installed, shortly after an uninstall,
 // or in some browsers at all) -> the button is always there and falls back to instructions
 const inApp = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-if (!standalone && !inApp) $x('instBtn').style.display = '';
+if (!standalone && !inApp){ $x('instBtn').style.display = ''; $x('pwaHint').style.display = ''; }
 if (!inApp && !/iphone|ipad|ipod/i.test(navigator.userAgent)){ $x('apkBtn').style.display = ''; $x('apkHint').style.display = ''; }   // Android + computers (to send to a phone)
-EN['📱 Android aplikacija (APK)'] = '📱 Android app (APK)';
-EN['Z GPS samodejno potrdi vrhove, ko si na vrhu (✓). Ni iz Google Play: ob namestitvi dovoli »nameščanje iz neznanih virov«.'] = 'Confirms summits automatically by GPS when you are on top (✓). Not from Google Play: allow "install unknown apps" when installing.';
+Object.assign(EN, {'📱 Android aplikacija':'📱 Android app', '⭐ Spletna aplikacija':'⭐ Web app',
+  '📱 Android aplikacija (APK): GPS sam potrdi vrh, ko stojiš na njem (✓), tudi z ugasnjenim zaslonom. Ni iz Google Play — ob namestitvi dovoli »nameščanje iz neznanih virov«.':'📱 Android app (APK): GPS confirms a summit by itself when you stand on it (✓), also with the screen off. Not from Google Play — allow "install unknown apps" when installing.',
+  '⭐ Spletna aplikacija: ikona na začetnem zaslonu kar iz brskalnika — brez prenosa, tudi za iPhone in računalnik. Vse deluje, razen potrjevanja vrhov z GPS.':'⭐ Web app: a home-screen icon straight from the browser — no download, also for iPhone and computers. Everything works except confirming summits by GPS.'});
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
 addEventListener('appinstalled', () => { deferred = null; const h=$x('instHint'); h.style.display=''; h.textContent=T('Aplikacija je nameščena — najdeš jo na začetnem zaslonu.'); });
 $x('instBtn').onclick = async () => {
@@ -314,10 +322,11 @@ const offProg = () => { const i = $x('offInfo'); if (i && job) i.innerHTML = `${
   const st = $x('offStop'); if (st) st.onclick = () => { if (job) job.stop = true; }; };
 async function offRender(){ const M = $x('offMgr'); if (!M) return;
   let legacy = 0; try{ if ('caches' in window && await caches.has('dvat-region')) legacy = (await (await caches.open('dvat-region')).keys()).length; }catch(_){}
-  let use = '', bar = ''; try{ if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(), q = e.quota || 0, reg = REG.reduce((a, r) => a + (r.bytes || 0), 0), oth = Math.max(0, (e.usage || 0) - reg);
-      use = `${LL('Zasedeno v napravi','Used on this device')}: ${mb(e.usage)}${q ? ' / ' + mb(q) : ''}`;
-      if (q) bar = `<div class="offbar" title="${use}"><i class="a" style="width:${Math.min(100, reg / q * 100).toFixed(2)}%"></i><i class="o" style="width:${Math.min(100, oth / q * 100).toFixed(2)}%"></i></div>
-        <div class="offleg"><span><i class="a"></i>${LL('shranjena območja','saved areas')} ${mb(reg)}</span><span><i class="o"></i>${LL('ogledano + aplikacija','viewed + app')} ${mb(oth)}</span><span><i></i>${LL('prosto','free')} ${mb(Math.max(0, q - (e.usage || 0)))}</span></div>`; } }catch(_){}
+  // bar: what is saved out of everything there is to save (all five ranges, ~estimate); free space on the device as a note
+  const reg = REG.reduce((a, r) => a + (r.bytes || 0), 0), all = PRESET.reduce((a, r) => { const b = rangeBox(r); return a + (b ? est(regUrls(b, 13, '{z}/{x}/{y}')) : 0); }, 0);
+  const bar = `<div class="offbar" title="${mb(reg)} / ~${mb(all)}"><i class="a" style="width:${Math.min(100, reg / Math.max(1, all) * 100).toFixed(1)}%"></i></div>
+    <div class="offleg"><span>${LL('Shranjeno','Saved')} <b>${mb(reg)}</b> ${LL('od','of')} ~${mb(all)} (${LL('vsa pogorja','all ranges')})</span></div>`;
+  let use = ''; try{ if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); if (e.quota) use = `${LL('Prostora v napravi še','Free on this device')}: ${mb(Math.max(0, e.quota - (e.usage || 0)))}`; } }catch(_){}
   const tr = window.T || (x => x), have = new Set(REG.filter(r => r.range).map(r => r.range));
   M.innerHTML = `<div class="offh">🗺 ${LL('Zemljevidi brez signala','Offline maps')}</div>
     ${REG.length || legacy ? '' : `<div class="hint">${LL('Še nič shranjenega. Shrani pogled ali celo pogorje — potem karta tam deluje tudi brez signala.','Nothing saved yet. Save the view or a whole range — the map then works there without signal.')}</div>`}
@@ -326,7 +335,7 @@ async function offRender(){ const M = $x('offMgr'); if (!M) return;
     ${legacy ? `<div class="offr"><div class="on"><b>${LL('Starejša shranjena območja','Older saved areas')}</b><small>${legacy} ${LL('ploščic terena','terrain tiles')}</small></div><button data-a="legacy" title="${LL('Izbriši','Delete')}">🗑</button></div>` : ''}
     <button class="btn" id="offBtn">＋ ${LL('Shrani trenutni pogled','Save the current view')}</button>
     <div class="hint">${LL('ali celo pogorje:','or a whole range:')}</div><div class="chips offpre">${PRESET.map(r => `<button data-r="${r}"${have.has(r) ? ' class="on"' : ''}>${esc2(tr(r))}</button>`).join('')}</div>
-    <div id="offInfo" class="hint"></div>${bar}<div class="hint">${use}${use ? ' · ' : ''}${LL('Satelit in OpenTopoMap se shranita samo, kar si pogledal (pogoji uporabe).','Satellite and OpenTopoMap keep only what you looked at (terms of use).')}</div>`;
+    <div id="offInfo" class="hint"></div>${bar}${offMini()}<div class="hint">${use}${use ? ' · ' : ''}${LL('Satelit in OpenTopoMap se shranita samo, kar si pogledal (pogoji uporabe).','Satellite and OpenTopoMap keep only what you looked at (terms of use).')}</div>`;
   M.querySelectorAll('.offr button').forEach(bt => bt.onclick = () => { const r = REG[+bt.dataset.i], a = bt.dataset.a;
     if (a === 'legacy'){ caches.delete('dvat-region').then(offRender); return; }
     if (a === 'show') regShow(r); else if (a === 'upd') regDownload(r, true);
@@ -340,7 +349,33 @@ async function offRender(){ const M = $x('offMgr'); if (!M) return;
     const old = REG.find(x => x.range === rg); if (old){ regShow(old); return; }
     let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
     const r = {id: Date.now().toString(36), name: tr(rg), range: rg, b, z: 13}; ask(r, regUrls(b, 13, tpl)); });
+  M.querySelectorAll('.offmini [data-ri]').forEach(g => g.onclick = () => regShow(REG[+g.dataset.ri]));
+  M.querySelectorAll('.offmini [data-pr]').forEach(g => g.onclick = () => { const b = M.querySelector(`.offpre button[data-r="${g.dataset.pr}"]`); if (b) b.click(); });
+  const all2 = $x('offAll'); if (all2) all2.onclick = () => regShowAll();
   if (job) offProg(); }
+// overview of Slovenia: border, the five ranges (dashed = not saved yet, click = save), saved areas in blue (click = show on the map),
+// the current view in red
+const MB0 = [13.3, 45.38, 16.65, 46.92], MW = 300, MH = Math.round(MW * (MB0[3] - MB0[1]) / ((MB0[2] - MB0[0]) * Math.cos(46.2 * Math.PI / 180)));
+const mx = lo => ((lo - MB0[0]) / (MB0[2] - MB0[0]) * MW).toFixed(1), my = la => ((MB0[3] - la) / (MB0[3] - MB0[1]) * MH).toFixed(1);
+const mrect = (b, a) => `<rect x="${mx(b[0])}" y="${my(b[3])}" width="${(mx(b[2]) - mx(b[0])).toFixed(1)}" height="${(my(b[1]) - my(b[3])).toFixed(1)}" ${a}/>`;
+let borderD = null;
+function offMini(){ const tr = window.T || (x => x);
+  if (!borderD) try{ const src = map.getStyle().sources.border, C = src && src.data && src.data.geometry.coordinates;
+    borderD = C ? C.map(l => 'M' + l.filter((_, i) => i % 3 === 0 || i === l.length - 1).map(p => mx(p[0]) + ' ' + my(p[1])).join('L')).join('') : ''; }catch(_){ borderD = ''; }
+  const have = new Set(REG.filter(r => r.range).map(r => r.range)), v = viewBox();
+  return `<div class="offmini"><svg viewBox="0 0 ${MW} ${MH}" role="img" aria-label="${LL('Pregled shranjenih območij','Overview of saved areas')}">
+    <path d="${borderD}" fill="none" stroke="#7d8a85" stroke-width="1.2"/>
+    ${PRESET.map(r => { const b = rangeBox(r); return b && !have.has(r) ? `<g data-pr="${r}" class="pr">${mrect(b, 'fill="rgba(25,118,210,.04)" stroke="#90a4ae" stroke-dasharray="4 3"')}<text x="${mx((b[0] + b[2]) / 2)}" y="${my((b[1] + b[3]) / 2)}">${esc2(tr(r))}</text></g>` : ''; }).join('')}
+    ${REG.map((r, i) => `<g data-ri="${i}" class="sv">${mrect(r.b, 'fill="rgba(25,118,210,.28)" stroke="#1976d2" stroke-width="1.5"')}<text x="${mx((r.b[0] + r.b[2]) / 2)}" y="${my((r.b[1] + r.b[3]) / 2)}">${esc2(r.range ? tr(r.range) : r.name.replace(/^(Okolica|Around):? ?/, ''))}</text></g>`).join('')}
+    ${mrect(v, 'fill="none" stroke="#c62828" stroke-width="1.5"')}
+  </svg><div class="offleg"><span><i class="a"></i>${LL('shranjeno','saved')}</span><span><i class="p"></i>${LL('pogorje (klik = shrani)','range (click = save)')}</span><span><i class="v"></i>${LL('trenutni pogled','current view')}</span>${REG.length ? `<a id="offAll">${LL('vse na karti','all on the map')}</a>` : ''}</div></div>`; }
+function regShowAll(){ if (!REG.length) return; closeSettingsWin();
+  const d = {type: 'FeatureCollection', features: REG.map(r => { const [w, s, e, n] = r.b; return {type: 'Feature', properties: {}, geometry: {type: 'Polygon', coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}}; })};
+  try{ if (map.getSource('offreg')) map.getSource('offreg').setData(d);
+    else { map.addSource('offreg', {type: 'geojson', data: d}); map.addLayer({id: 'offreg', type: 'line', source: 'offreg', paint: {'line-color': '#1976d2', 'line-width': 3, 'line-dasharray': [2, 1.5]}}); }
+    clearTimeout(regShow.t); regShow.t = setTimeout(() => { try{ map.removeLayer('offreg'); map.removeSource('offreg'); }catch(_){} }, 10000); }catch(_){}
+  const W = Math.min(...REG.map(r => r.b[0])), S = Math.min(...REG.map(r => r.b[1])), E = Math.max(...REG.map(r => r.b[2])), N = Math.max(...REG.map(r => r.b[3]));
+  map.fitBounds([[W, S], [E, N]], {padding: 40, duration: 900}); }
 const esc2 = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 window.offRender = offRender; offRender();
 // fresh list (sizes, storage) every time the settings window opens
@@ -349,7 +384,13 @@ const offCss = document.createElement('style'); offCss.textContent = `#offMgr .o
 #offMgr .offr{display:flex;align-items:center;gap:4px;border:1px solid #dfe4e1;border-radius:10px;padding:6px 6px 6px 10px;margin:5px 0}#offMgr .offr.busy{border-color:#1976d2;background:#f2f7fd}
 #offMgr .offr .on{flex:1;min-width:0}#offMgr .offr .on b{display:block;font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#offMgr .offr .on small{color:#5b6461;font-size:.8em}
 #offMgr .offr button{border:0;background:#eef2f0;border-radius:8px;min-width:32px;height:30px;cursor:pointer;font-size:.9em;padding:0 6px}#offMgr .offr button:hover{background:#dde4e0}
-#offMgr .offbar{display:flex;height:10px;border-radius:5px;background:#e3e8e5;overflow:hidden;margin:8px 0 4px}#offMgr .offbar i{display:block;height:100%}#offMgr .offbar .a,#offMgr .offleg .a{background:#1976d2}#offMgr .offbar .o,#offMgr .offleg .o{background:#90a4ae}
+#offMgr .offbar{display:flex;height:10px;border-radius:5px;background:#e3e8e5;overflow:hidden;margin:8px 0 4px}#offMgr .offbar i{display:block;height:100%;min-width:2px}#offMgr .offbar .a,#offMgr .offleg .a{background:#1976d2}
+#offMgr .offleg .p{background:none;border:1px dashed #90a4ae}#offMgr .offleg .v{background:none;border:1.5px solid #c62828}
+#offMgr .offmini{margin:8px 0 2px;border:1px solid #e3e8e5;border-radius:10px;padding:6px;background:#f8faf9}#offMgr .offmini svg{width:100%;height:auto;display:block}
+#offMgr .offmini text{font:600 8px system-ui,sans-serif;fill:#1d2321;text-anchor:middle;dominant-baseline:middle;pointer-events:none;paint-order:stroke;stroke:#f8faf9;stroke-width:2.5px}
+#offMgr .offmini g{cursor:pointer}#offMgr .offmini g.pr:hover rect{fill:rgba(25,118,210,.14)}#offMgr .offmini g.sv:hover rect{fill:rgba(25,118,210,.45)}
+#setWin .appbtns{display:flex;gap:6px}#setWin .appbtns .btn{flex:1;display:flex!important;align-items:center;justify-content:center;text-align:center;margin:4px 0!important;width:auto!important;min-height:42px;box-sizing:border-box;text-decoration:none}
+#setWin .appbtns .btn[style*="display:none"]{display:none!important}#setWin .apph{font-size:.82em;color:#4a524f;margin:3px 0}
 #offMgr .offleg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.8em;color:#4a524f}#offMgr .offleg i{display:inline-block;width:9px;height:9px;border-radius:2px;background:#e3e8e5;margin-right:4px;vertical-align:-1px}
 #offMgr .offpre{margin:4px 0}#offMgr .offpre button.on{background:#e8f1fb;color:#1d2321;border-color:#1976d2}#offMgr a{color:#1565c0;cursor:pointer;text-decoration:underline}`;
 document.head.append(offCss);

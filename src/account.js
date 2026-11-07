@@ -316,7 +316,9 @@ const css = document.createElement('style'); css.textContent = `
 #fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
 #fab .fo .oi{font-size:21px;line-height:1}#fab .fo .ol{position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px system-ui,sans-serif;color:#1d2321;
   background:rgba(255,255,255,.92);border-radius:6px;padding:1px 5px;pointer-events:none}
-#fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}#fab .fo:hover{background:#eef3f1}
+#fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}
+#fab.open .fo:hover,#fab.open .fo:focus-visible,#fab.open .fo:active{background:#1976d2;color:#fff;z-index:6;transform:translate(var(--x),var(--y)) scale(1.18);box-shadow:0 6px 18px rgba(25,118,210,.45);outline:none}
+#fab .fo:hover .ol,#fab .fo:focus-visible .ol,#fab .fo:active .ol{background:#1976d2;color:#fff}
 #fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.18);display:none}#fabBg.on{display:block}
 body.in360 #fab,body.drawing #fab{display:none}
 @media (max-width:700px){ #fab{left:calc(12px + env(safe-area-inset-left));bottom:calc(var(--tab) + 14px)} body.menu #fab{display:none} }
@@ -477,8 +479,12 @@ const fabItems = () => [['⚙', L('Nastavitve','Settings'), () => (window.openSe
   ['❓', L('Vodič','Guide'), () => window.startTour && startTour()]];
 function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
 // positions on a quarter circle up / right of the button (0° = right, -90° = up); more than 4 options -> two rings
-function fabPos(n){ const ring = (m, R, a0, a1) => [...Array(m)].map((_, k) => [R, a0 + (a1 - a0) * (m > 1 ? k / (m - 1) : 0.5)]);
-  return n <= 4 ? ring(n, 116, -90, 0) : ring(3, 86, -90, 0).concat(ring(n - 3, 156, -78, -12)); }
+// rings of 100 / 178 / 256 px hold 3 / 4 / 5 bubbles (≥ ~75 px apart, room for the label under each)
+function fabPos(n){ const ring = (m, R, a0, a1) => [...Array(m)].map((_, k) => [R, m > 1 ? a0 + (a1 - a0) * k / (m - 1) : (a0 + a1) / 2]);
+  if (n <= 3) return ring(n, 112, -90, -14);
+  const cap = [3, 4, 5], R = [100, 178, 256], out = []; let left = n;
+  for (let i = 0; i < 3 && left > 0; i++){ const m = Math.min(cap[i], left); out.push(...ring(m, R[i], i ? -84 : -90, i ? -8 : -14));   /* not down to 0°: the last label stays above the tab bar */ left -= m; }
+  return out; }
 function fabOpen(){ const it = fabItems(), P = fabPos(it.length);
   fab.querySelectorAll('.fo').forEach(o => o.remove());
   it.forEach(([ic, lab, fn, b], k) => { const R0 = P[k][0], a = P[k][1] * Math.PI / 180, o = document.createElement('button');
