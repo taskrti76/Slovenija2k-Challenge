@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.66 — 2026-11-07
+- Guide: the lit spot follows its target while the map flies or a window slides in (360° step); the red button is fully
+  visible while the guide points at it.
+- Legends (height, snow) sit at the right edge under the map buttons, not movable, only – / ▸; snow data note behind ⓘ.
+- Snow depth: fixed multi-colour scale (1 · 5 · 15 · 30 · 60 · 100 · 200+ cm: pale blue → blue → violet → magenta → wine), the same
+  colour is the same depth every day.
+- Height profile: peak names never overlap (highest first, moved up a row with a thin leader line, or left out with a small ▲);
+  the big profile uses the panel colours, bigger text, and can be resized from its corner (chart redrawn to fit).
+- App: the map also fills the strip next to the front camera (phone held sideways); map buttons keep clear of it.
+- Admin: names in the selected route are edited right in the text (start, huts on the way, route name, note; Enter saves for
+  everybody); huts / bivouacs / shelters / parkings / trailheads / springs / via ferratas: click → 🛠 Uredi točko (name, kind,
+  grade, move, hide) and 🛠 Admin → ＋ new point. Only admins see the ✎ marks and hidden items; everybody else just sees the
+  corrected data. Admin route drawing box readable in dark mode. Needs supabase/09_admin_routes.sql (run again).
+
 ## web-v0.65 — 2026-11-07
 - Red button menu: bubbles laid out on rings with every bubble and label checked against the others and the screen edges
   (no overlap at any count or screen size). Phone: the button is "☰ Meni"; a "︿ Vrhovi · n/98" tab under it opens the peak list

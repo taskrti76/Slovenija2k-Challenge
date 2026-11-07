@@ -315,7 +315,7 @@ const css = document.createElement('style'); css.textContent = `
 #fab .fb .fi{line-height:1}#fab .fb .fl{font:700 10px system-ui,sans-serif;letter-spacing:.02em;margin-top:2px}
 #fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
 #fab.open .fb{background:#1d2321}#fab.open .fb .fl,#fab.open .fb .fi{display:none}#fab .fb .fx{display:none;font-size:26px;line-height:1}#fab.open .fb .fx{display:block}
-@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible{opacity:1;transform:none} #fab .fb .fl{display:none} }
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible,body.touring #fab .fb{opacity:1;transform:none} #fab .fb .fl{display:none} }
 #fab .fo{position:absolute;left:5px;top:5px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;transform:translate(0,0) scale(.3);opacity:0;transition:transform .22s cubic-bezier(.3,1.4,.6,1),opacity .15s;padding:0}
 #fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
@@ -976,9 +976,10 @@ window.showMe = meOpen;
 // Everybody loads the fixes and the page applies them: peak position / height / name, route T-grade / via ferrata / name / note /
 // hidden, closed paths (left out of routing). Only an admin (profiles.role = 'admin') can write them.
 const FXK = 'dvat3d_fixes';
-window.FIXES = {peak: {}, route: {}, closed: {}};
+window.FIXES = {peak: {}, route: {}, closed: {}, poi: {}};
 const PEAK0 = {};   // original values, so a removed fix can be undone in this session
-function applyFixes(F, first){ const old = window.FIXES; window.FIXES = F;
+function applyFixes(F, first){ const old = window.FIXES; window.FIXES = F; F.poi = F.poi || {};
+  if (JSON.stringify(old.poi || {}) !== JSON.stringify(F.poi)) setTimeout(() => window.poiFixesChanged && poiFixesChanged(), 0);
   for (const id of new Set([...Object.keys(old.peak), ...Object.keys(F.peak)])){ const p = byId[id]; if (!p) continue;
     if (!PEAK0[id]) PEAK0[id] = {lat: p.lat, lon: p.lon, elev: p.elev, name: p.name};
     const f = F.peak[id] || {}; Object.assign(p, PEAK0[id]); if (f.lat != null && f.lon != null){ p.lat = +f.lat; p.lon = +f.lon; p.coord_status = 'ok'; } if (f.elev) p.elev = +f.elev; if (f.name) p.name = f.name; }
@@ -986,11 +987,11 @@ function applyFixes(F, first){ const old = window.FIXES; window.FIXES = F;
   window.DATA_FIX.closedIds = ids;
   if (!first || Object.keys(F.peak).length) window.refreshPeaksMap && window.refreshPeaksMap();
   if (!first && (ids.size !== (was ? was.size : 0) || [...ids].some(x => !was.has(x)) || JSON.stringify(old.route) !== JSON.stringify(F.route))) window.trailsFixesChanged && trailsFixesChanged(); }
-function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}}; for (const r of rows || []) if (F[r.kind]) F[r.kind][r.key] = Object.assign({}, r.data, {_at: r.updated_at}); return F; }
+function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; for (const r of rows || []) if (F[r.kind]) F[r.kind][r.key] = Object.assign({}, r.data, {_at: r.updated_at}); return F; }
 { const c = get(FXK); if (c) applyFixes(fixesFrom(c), true); }
 async function loadFixes(){ try{ const rows = await call('/rest/v1/fixes?select=kind,key,data,updated_at&limit=5000', {auth: false}); put(FXK, rows); applyFixes(fixesFrom(rows)); }catch(_){} }   // 08 not run yet -> nothing
 setTimeout(loadFixes, 1200);
-function setAdmin(){ const a = !!(S && S.role === 'admin'); if (a === !!window.ADMIN) return; window.ADMIN = a; window.rerenderRoutes && rerenderRoutes(); }
+function setAdmin(){ const a = !!(S && S.role === 'admin'); if (a === !!window.ADMIN) return; window.ADMIN = a; window.rerenderRoutes && rerenderRoutes(); window.poiFixesChanged && poiFixesChanged(); }
 setAdmin();
 async function saveFix(kind, key, data, del){
   if (del) await call(`/rest/v1/fixes?kind=eq.${kind}&key=eq.${encodeURIComponent(key)}`, {method: 'DELETE', headers: {Prefer: 'return=minimal'}});
@@ -1011,20 +1012,44 @@ window.adminPeakBox = p => { const box = document.createElement('div'); box.clas
   return box; };
 // move a peak: the window closes, a red pin can be dragged (or the map clicked); the bar on top saves it for everybody
 const fixPlain = f => { const o = Object.assign({}, f || {}); delete o._at; return o; };
-window.adminMovePeak = p => { document.querySelectorAll('.maplibregl-popup').forEach(e => e.remove()); if (window.closeRoutes) closeRoutes();
+window.adminPickPoint = (title, lat, lon, onSave, saveLabel) => { document.querySelectorAll('.maplibregl-popup').forEach(e => e.remove());
   const old = document.getElementById('admMove'); if (old && old._done) old._done();
-  window.ADM_MOVE = true; const mk = new maplibregl.Marker({draggable: true, color: '#c62828'}).setLngLat([p.lon, p.lat]).addTo(map);
+  window.ADM_MOVE = true; const mk = new maplibregl.Marker({draggable: true, color: '#c62828'}).setLngLat([lon, lat]).addTo(map);
   const bar = document.createElement('div'); bar.id = 'admMove';
-  bar.innerHTML = `<b>📍 ${esc(p.name)}</b><span class="d"></span><button class="sv">💾 ${L('Shrani','Save')}</button><button class="cx">✕</button><div class="h">${L('Povleci rdečo bucko ali klikni na karto.','Drag the red pin or click the map.')}</div>`;
-  document.body.append(bar); map.easeTo({center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 700});
-  const dist = () => { const q = mk.getLngLat(); return Math.round(Math.hypot((q.lat - p.lat) * 111320, (q.lng - p.lon) * 111320 * Math.cos(p.lat * Math.PI / 180))); };
+  bar.innerHTML = `<b>📍 ${esc(title)}</b><span class="d"></span><button class="sv">${saveLabel || '💾 ' + L('Shrani','Save')}</button><button class="cx">✕</button><div class="h">${L('Povleci rdečo bucko ali klikni na karto.','Drag the red pin or click the map.')}</div>`;
+  document.body.append(bar); map.easeTo({center: [lon, lat], zoom: Math.max(map.getZoom(), 15), duration: 700});
+  const dist = () => { const q = mk.getLngLat(); return Math.round(Math.hypot((q.lat - lat) * 111320, (q.lng - lon) * 111320 * Math.cos(lat * Math.PI / 180))); };
   const upd = () => { bar.querySelector('.d').textContent = '↔ ' + dist() + ' m'; }; upd(); mk.on('drag', upd);
   const onClick = e => { mk.setLngLat(e.lngLat); upd(); }; map.on('click', onClick);
   const done = () => { window.ADM_MOVE = false; map.off('click', onClick); mk.remove(); bar.remove(); }; bar._done = done;
   bar.querySelector('.cx').onclick = done;
   bar.querySelector('.sv').onclick = async () => { const q = mk.getLngLat(); bar.querySelector('.sv').disabled = true;
-    try{ await saveFix('peak', p.id, Object.assign(fixPlain(window.FIXES.peak[p.id]), {lat: +q.lat.toFixed(6), lon: +q.lng.toFixed(6)})); done(); toast(L('Vrh premaknjen za vse.','Peak moved for everybody.')); setTimeout(() => window.openPeak && openPeak(p.id), 300); }
-    catch(e){ bar.querySelector('.sv').disabled = false; bar.querySelector('.h').textContent = errText(e); } }; };
+    try{ await onSave(+q.lat.toFixed(6), +q.lng.toFixed(6)); done(); }catch(e){ bar.querySelector('.sv').disabled = false; bar.querySelector('.h').textContent = errText(e); } }; };
+window.adminMovePeak = p => { if (window.closeRoutes) closeRoutes();
+  adminPickPoint(p.name, p.lat, p.lon, async (la, lo) => { await saveFix('peak', p.id, Object.assign(fixPlain(window.FIXES.peak[p.id]), {lat: la, lon: lo}));
+    toast(L('Vrh premaknjen za vse.','Peak moved for everybody.')); setTimeout(() => window.openPeak && openPeak(p.id), 300); }); };
+// a point (hut, bivouac, shelter, parking, trailhead, spring, via ferrata): rename, change kind, move, hide - or a new one
+const PTYPES = [['hut', L('Planinska koča','Mountain hut')], ['biv', L('Bivak','Bivouac')], ['sh', L('Zavetišče','Shelter')], ['park', L('Parkirišče','Parking')], ['th', L('Izhodišče','Trailhead')], ['spring', L('Izvir','Spring')], ['ferr', L('Ferata','Via ferrata')]];
+window.adminPoiEdit = o => { const f = window.FIXES.poi[o.key] || {}, v = Object.assign({}, o, fixPlain(f), {lat: o.lat, lon: o.lon});
+  const grp = o.isNew ? PTYPES.map(x => x[0]) : o.t === 'ferr' ? ['ferr'] : ['hut', 'biv', 'sh'].includes(o.t) ? ['hut', 'biv', 'sh'] : ['park', 'th'].includes(o.t) ? ['park', 'th'] : [o.t];
+  modal(`<h3>🛠 ${o.isNew ? L('Nova točka','New point') : L('Uredi točko','Edit point')}</h3><div class="admform">
+    <label>${L('Vrsta','Kind')}<select id="apT">${PTYPES.filter(x => grp.includes(x[0])).map(([k, n]) => `<option value="${k}"${(v.t || o.t) === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label>${L('Ime','Name')}<input id="apN" maxlength="120" value="${esc(v.name || '')}"></label>
+    <label class="apg">${L('Težavnost ferate (npr. B/C)','Via ferrata grade (e.g. B/C)')}<input id="apG" maxlength="40" value="${esc(v.grade || '')}"></label>
+    <label>Lat / lon<span class="ll" style="display:flex;gap:6px"><input id="apLa" type="number" step="0.000001" value="${(+o.lat).toFixed(6)}"><input id="apLo" type="number" step="0.000001" value="${(+o.lon).toFixed(6)}"></span></label>
+    <div class="ab"><button class="sb" id="apM">📍 ${L('Premakni na karti','Move on the map')}</button></div>
+    <label><input type="checkbox" id="apH" ${v.hide ? 'checked' : ''}> ${L('skrij (napačna / ne obstaja več)','hide (wrong / gone)')}</label>
+    <div class="ab"><button class="sb pri" id="apS">💾 ${L('Shrani za vse','Save for everybody')}</button>${f._at ? `<button class="sb" id="apD">↺ ${o.key.startsWith('new|') ? L('Izbriši točko','Delete point') : L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="apE"></div></div>`);
+  const tg = () => { card.querySelector('.apg').style.display = $a('apT').value === 'ferr' ? '' : 'none'; }; tg(); $a('apT').onchange = tg;
+  const cur = () => ({t: $a('apT').value, name: $a('apN').value.trim(), grade: $a('apG').value.trim(), lat: +$a('apLa').value, lon: +$a('apLo').value, hide: $a('apH').checked});
+  $a('apM').onclick = () => { const c = cur(); closeModal(); adminPickPoint(c.name || L('točka','point'), c.lat, c.lon, async (la, lo) => { window.adminPoiEdit(Object.assign({}, o, c, {lat: la, lon: lo, _keep: c})); }, '✓ ' + L('Tukaj','Here')); };
+  if (o._keep){ $a('apN').value = o._keep.name; $a('apG').value = o._keep.grade; $a('apH').checked = o._keep.hide; $a('apT').value = o._keep.t; tg(); }
+  $a('apS').onclick = async () => { const c = cur(); if (c.t !== 'ferr') delete c.grade;
+    try{ await saveFix('poi', o.key, c); closeModal(); toast(L('Točka shranjena za vse.','Point saved for everybody.')); }catch(e){ $a('apE').textContent = errText(e); } };
+  const d = $a('apD'); if (d) d.onclick = async () => { try{ await saveFix('poi', o.key, null, true); closeModal(); toast(L('Popravek odstranjen.','Fix removed.')); }catch(e){ $a('apE').textContent = errText(e); } }; };
+window.adminNewPoint = () => { const c = map.getCenter(); adminPickPoint(L('nova točka','new point'), c.lat, c.lng, async (la, lo) => { window.adminPoiEdit({key: 'new|' + Date.now().toString(36), t: 'hut', name: '', lat: la, lon: lo, isNew: true}); }, '✓ ' + L('Tukaj','Here')); };
+// route card: a name edited right in the text (start, huts on the way, route name, note)
+window.adminRoutePatch = async (r, patch) => { await saveFix('route', r.key, Object.assign(fixPlain(r.fix), patch)); toast(L('Shranjeno za vse.','Saved for everybody.')); };
 // route: draw it again along the trails (or a new route) - the drawing tool in admin mode (trails.js), saved here
 window.adminRouteGeom = async (A, coords) => {
   if (!A.isNew){ await saveFix('route', A.key, Object.assign(fixPlain(A.fix), {geom: coords})); toast(L('Trasa poti shranjena za vse.','Route line saved for everybody.')); return true; }
@@ -1055,12 +1080,14 @@ window.adminRouteEdit = (p, r) => { const f = r.fix || {};
 // admin panel: list of fixes, close a path by clicking it
 window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.peak).map(([k, v]) => ['peak', k, (byId[k] ? byId[k].name : k) + ` · ${v.lat != null ? (+v.lat).toFixed(5) + ', ' + (+v.lon).toFixed(5) : ''}${v.elev ? ' · ' + v.elev + ' m' : ''}`, v._at]),
     ...Object.entries(F.route).map(([k, v]) => ['route', k, `${k.split('|')[0]} · ${v.hide ? L('skrita','hidden') : 'T' + v.t}${v.f ? ' ferata' : ''}${v.name ? ' · ' + v.name : ''}${v.note ? ' · ' + v.note : ''}`, v._at]),
-    ...Object.entries(F.closed).map(([k, v]) => ['closed', k, `⛔ ${v.name || L('pot brez imena','unnamed path')} (#${k})`, v._at])].sort((a, b) => String(b[3]).localeCompare(String(a[3])));
+    ...Object.entries(F.closed).map(([k, v]) => ['closed', k, `⛔ ${v.name || L('pot brez imena','unnamed path')} (#${k})`, v._at]),
+    ...Object.entries(F.poi || {}).map(([k, v]) => ['poi', k, `${(PTYPES.find(x => x[0] === v.t) || ['', ''])[1]} · ${v.name || ''}${v.hide ? ' · ' + L('skrita','hidden') : ''}${k.startsWith('new|') ? ' · ' + L('nova','new') : ''}`, v._at])].sort((a, b) => String(b[3]).localeCompare(String(a[3])));
   modal(`<h3>🛠 Admin</h3><div class="sub">${L('Popravki veljajo takoj za vse uporabnike.','Fixes apply to everybody at once.')} ${rows.length} ${L('popravkov','fixes')}.</div>
-    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button></div>
+    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button><button class="sb" id="adPoi">＋ ${L('Nova koča / bivak / ferata …','New hut / bivouac / ferrata …')}</button></div>
     <div class="admlist">${rows.map(([k, key, t, at]) => `<div class="it"><div><small>${k}</small> ${esc(t)}<br><small>${at ? new Date(at).toLocaleString() : ''}</small></div><button class="sb" data-k="${k}" data-key="${esc(key)}">↺</button></div>`).join('') || `<div class="sub">${L('Še ni popravkov.','No fixes yet.')}</div>`}</div>
-    <div class="sub">${L('Vrh popraviš v njegovem oknu (🛠 Uredi vrh), pot v kartici poti (🛠 Uredi pot).','Fix a peak in its window (🛠 Edit peak), a route in the route card (🛠 Edit route).')}</div>`);
+    <div class="sub">${L('Vrh popraviš v njegovem oknu (🛠 Uredi vrh), pot v kartici poti (🛠 Uredi pot ali klik na ime v izbrani poti), kočo / bivak / parkirišče / ferato s klikom nanjo na karti (🛠 Uredi točko). Popravke opazijo samo admini (✎); ostali vidijo popravljene podatke.','Fix a peak in its window (🛠 Edit peak), a route in the route card (🛠 Edit route or click a name in the selected route), a hut / bivouac / parking / ferrata by clicking it on the map (🛠 Edit point). Only admins see the ✎ marks; everybody else just sees the corrected data.')}</div>`);
   card.querySelectorAll('.admlist [data-k]').forEach(b => b.onclick = async () => { try{ await saveFix(b.dataset.k, b.dataset.key, null, true); adminPanel(); }catch(e){ toastErr(errText(e)); } });
+  $a('adPoi').onclick = () => { closeModal(); adminNewPoint(); };
   $a('adClose').onclick = () => { closeModal(); toast(L('Klikni na pot, ki je zaprta …','Click the closed path …')); map.getCanvas().style.cursor = 'crosshair';
     map.once('click', async e => { map.getCanvas().style.cursor = ''; const w = window.adminWayAt && adminWayAt(e.lngLat.lat, e.lngLat.lng);
       if (!w){ toastErr(L('Tu ni poti (približaj se in klikni na črto poti).','No path here (zoom in and click the line).')); return; }
@@ -1069,6 +1096,8 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
 { const c = document.createElement('style'); c.textContent = `.admbox{margin-top:6px;font-size:.9em}.admbox summary{cursor:pointer;color:#8a5a00}.admbox label{display:block;margin:4px 0}.admbox input{width:100%;box-sizing:border-box;font:inherit;padding:3px 5px}
 .admbox .ll{display:flex;gap:4px}.admbox .ab{display:flex;gap:6px;margin:6px 0}.admbox button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:4px 8px;font:inherit;cursor:pointer}.admbox .am{color:#c62828}
 .admform label{display:block;margin:8px 0}.admform input[type=text],.admform input:not([type]),.admform select{width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #c9d0cc;border-radius:8px}.admform .am{color:#c62828}
+.ri .ed{border-bottom:1px dashed currentColor;outline:none;min-width:2em;display:inline-block;cursor:text}.ri .ed:empty::before{content:attr(data-ph);opacity:.45}.ri .ed:focus{background:rgba(255,179,0,.18)}
+.afx{color:#e08a00;font-size:.85em}.admpoi{border:1px solid #c9d0cc;background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
 .admlist .it{display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #edf0ee;padding:6px 0}.admlist small{color:#5b6461}`; document.head.append(c); }
 
 // ---------- 🔔 notifications: friends, groups, weather ----------

@@ -451,6 +451,20 @@ const SLC=[[10,'#7cb342'],[20,'#fdd835'],[30,'#fb8c00'],[45,'#e53935'],[1e9,'#6a
 const slc=v=>SLC.findIndex(([m])=>Math.abs(v)<m);
 const TKC={r:'#8d8d8d',t:'#a1887f',m:'#d32f2f',p:'#f48fb1',f:'#4a148c'}, TKN={r:'cesta',t:'kolovoz',m:'markirana pot',p:'neoznačena pot',f:'ferata'};
 const PROFS=new Map(); let PROFN=0;
+// peak names on a profile without overlaps: highest first; each name tries its spot, then one to three rows higher (with a thin
+// leader line); a name that still does not fit is left out - its peak keeps a small ▲ on the line
+function profPeakLabels(P,w,H,X,Y,Z,mn,mx){ const pk=(P.peaks||[]).filter(x=>x&&x.name).slice().sort((a,b)=>(Z[b.i]??0)-(Z[a.i]??0));
+  const B=w>500, fs=B?12:9, taken=[[0,0,B?64:52,B?16:13],[0,H-(B?18:15),B?64:52,H],[w-(B?62:50),H-(B?18:15),w,H]], out=[];   // the max / min / km texts
+  const free=b=>!taken.some(t=>b[0]<t[2]+3&&t[0]<b[2]+3&&b[1]<t[3]+1&&t[1]<b[3]+1);
+  for(const x of pk.slice(0,12)){ const px=X(x.i), py=Y(Z[x.i]??mx), nm=esc(x.name.split(' (')[0]), tw=(x.name.split(' (')[0].length+1)*fs*0.6;
+    out.push(`<text x="${px.toFixed(1)}" y="${(py-1).toFixed(1)}" font-size="${B?9:7}" text-anchor="middle" fill="currentColor">▲</text>`);
+    const anc=px<tw/2+2?'start':px>w-tw/2-2?'end':'middle', x0=anc==='start'?Math.max(2,px-4):anc==='end'?Math.min(w-2,px+4)-tw:px-tw/2;
+    for(const dy of (B?[0,15,30,45]:[0,11,22,33])){ const yb=py-(B?11:9)-dy; if(yb-fs<1) break; const bx=[x0,yb-fs,x0+tw,yb+1];
+      if(!free(bx)) continue; taken.push(bx);
+      const tx=anc==='start'?x0:anc==='end'?x0+tw:px;
+      out.push((dy?`<line x1="${px.toFixed(1)}" x2="${px.toFixed(1)}" y1="${(py-8).toFixed(1)}" y2="${(yb+1).toFixed(1)}" stroke="currentColor" stroke-opacity=".35" stroke-width=".7"/>`:'')+
+        `<text x="${tx.toFixed(1)}" y="${yb.toFixed(1)}" font-size="${fs}" font-weight="700" text-anchor="${anc}" fill="currentColor">${nm}</text>`); break; } }
+  return out.join(''); }
 function profileSVG(P, w=300, h=96){
   const zs=(P.zs||P.z).filter(v=>v!=null); if(!zs.length) return '';
   const Z=P.zs||P.z, mn=Math.min(...zs), mx=Math.max(...zs), H=h-14, sx=w/(P.km||1), sy=(H-12)/((mx-mn)||1), X=i=>(P.dist[i]*sx), Y=v=>H-2-(v-mn)*sy;
@@ -464,11 +478,11 @@ function profileSVG(P, w=300, h=96){
   else fill=`<path d="M0,${H} L${P.dist.map((d,i)=>Z[i]==null?null:`${X(i).toFixed(1)},${Y(Z[i]).toFixed(1)}`).filter(Boolean).join(' L')} L${w},${H} Z" fill="rgba(212,42,31,.18)"/>`;
   const line=P.dist.map((d,i)=>Z[i]==null?null:`${X(i).toFixed(1)},${Y(Z[i]).toFixed(1)}`).filter(Boolean).join(' L');
   const mk=(P.huts||[]).map(x=>`<g><line x1="${X(x.i).toFixed(1)}" x2="${X(x.i).toFixed(1)}" y1="${Y(Z[x.i]??mn).toFixed(1)}" y2="${H}" stroke="#b3261e" stroke-dasharray="2 2"/><text x="${X(x.i).toFixed(1)}" y="${(Y(Z[x.i]??mn)-3).toFixed(1)}" font-size="10" text-anchor="middle">🏠</text></g>`).join('')
-    +(P.peaks||[]).slice(0,6).map(x=>`<text x="${Math.min(w-2,Math.max(2,X(x.i))).toFixed(1)}" y="${(Y(Z[x.i]??mx)-4).toFixed(1)}" font-size="9" font-weight="700" text-anchor="${X(x.i)<30?'start':X(x.i)>w-30?'end':'middle'}" fill="currentColor">▲ ${esc(x.name.split(' (')[0])}</text>`).join('');
+    +profPeakLabels(P,w,H,X,Y,Z,mn,mx);
   return `<svg class="pfx" data-pid="${id}" viewBox="0 0 ${w} ${h}" width="100%" height="${h}" style="display:block;touch-action:pan-y;overflow:visible">${fill}
     <path d="M${line}" fill="none" stroke="#b71c1c" stroke-width="1.5"/>${strip}${mk}
-    <text x="2" y="10" font-size="10" fill="currentColor">${Math.round(mx)} m</text><text x="2" y="${H-4}" font-size="10" fill="currentColor">${Math.round(mn)} m</text>
-    <text x="${w-2}" y="${H-4}" font-size="10" text-anchor="end" fill="currentColor">${P.km.toFixed(1)} km</text>
+    <text x="2" y="${w>500?13:10}" font-size="${w>500?12:10}" fill="currentColor">${Math.round(mx)} m</text><text x="2" y="${H-4}" font-size="${w>500?12:10}" fill="currentColor">${Math.round(mn)} m</text>
+    <text x="${w-2}" y="${H-4}" font-size="${w>500?12:10}" text-anchor="end" fill="currentColor">${P.km.toFixed(1)} km</text>
     <g class="pfh" style="display:none"><line y1="0" y2="${h-9}" stroke="#263238" stroke-width="1"/><circle r="3" fill="#263238"/><rect rx="4" height="15" fill="rgba(38,50,56,.88)"/><text font-size="10" fill="#fff" y="0"></text></g></svg>`; }
 // numbers under the chart: steepest bit, how much of the way is road / track / path / ferrata, highest T
 function profStats(P){ if(!P||!P.sl) return ''; const len={}; let smax=0, tmax=0; let pid=''; for(const [k,v] of PROFS) if(v===P) pid=k;
@@ -496,15 +510,25 @@ function profBig(P,title){ let o=el('pbig'); if(o) o.remove(); if(!P) return; o=
   const W=Math.min(1100,innerWidth-48), H=Math.max(200,Math.min(380,Math.round(innerHeight*0.42)));
   const fk=(window.PROFILE&&window.PROFILE.fitK)||1;
   o.innerHTML=`<div class="pbc"><div class="pbh"><b>${esc(title||'Višinski profil')}</b><span>${P.km.toFixed(1)} km · ↑ ${Math.round(P.up)} m · ↓ ${Math.round(P.down)} m · ⏱ ${fmtT(profT(P)*fk)}</span><button class="x" aria-label="Zapri">×</button></div>
-    <div class="prof">${profileSVG(P,W,H)}</div>${profStats(P).replace(/<button class="pbig"[^>]*>[^<]*<\/button>/,'')}</div>`;
+    <div class="prof">${profileSVG(P,W,H)}</div>${profStats(P).replace(/<button class="pbig"[^>]*>[^<]*<\/button>/,'')}<i class="pgrip" title="Povleci za velikost"></i></div>`;
   document.body.append(o); const close=()=>{ o.remove(); removeEventListener('keydown',key); profHide(); }, key=e=>{ if(e.key==='Escape') close(); };
-  o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); }; addEventListener('keydown',key); }
+  o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); }; addEventListener('keydown',key);
+  // resize: drag the bottom-right corner; the chart is drawn again for the new width and height
+  const pbc=o.querySelector('.pbc'), pr=o.querySelector('.prof'), grip=o.querySelector('.pgrip');
+  requestAnimationFrame(()=>{ const r=pbc.getBoundingClientRect(); pbc.style.width=r.width+'px'; pbc.style.height=r.height+'px'; pbc._h0=0; });
+  grip.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); grip.setPointerCapture(e.pointerId); const r0=pbc.getBoundingClientRect(), x0=e.clientX, y0=e.clientY;
+    const mv=ev=>{ const w=Math.max(300,Math.min(innerWidth-16,r0.width+2*(ev.clientX-x0))), h=Math.max(220,Math.min(innerHeight-16,r0.height+2*(ev.clientY-y0)));
+      const ph=pr.offsetHeight, dh=h-pbc.clientHeight; pbc.style.width=w+'px'; pbc.style.height=h+'px';
+      pr.innerHTML=profileSVG(P,Math.max(260,pr.clientWidth),Math.max(120,ph+dh)); };
+    const up=()=>{ grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up); };
+    grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up); }; }
 window.profBig=profBig;
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('.pbig'); if(!b) return; e.preventDefault(); e.stopPropagation(); profBig(PROFS.get(b.dataset.pid)); },true);
 { const c=document.createElement('style'); c.textContent=`#pbig{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
-#pbig .pbc{background:#fff;color:#1d2321;border-radius:14px;padding:12px 16px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35);max-width:100%;font-size:calc(14px*var(--ui,1))}
+#pbig .pbc{position:relative;box-sizing:border-box;background:var(--solid,#fff);color:var(--ink,#1d2321);border:1px solid var(--line);border-radius:14px;padding:12px 16px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35);max-width:100%;max-height:100%;overflow:hidden;display:flex;flex-direction:column;font-size:calc(14px*var(--ui,1))}
+#pbig .pbc .prof{flex:0 0 auto}#pbig .pgrip{position:absolute;right:3px;bottom:3px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,var(--mute) 50%,var(--mute) 58%,transparent 58%,transparent 70%,var(--mute) 70%,var(--mute) 78%,transparent 78%);opacity:.7}
 #pbig .pbh{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}#pbig .pbh span{color:var(--mute)}#pbig .x{margin-left:auto;border:0;background:none;font-size:1.7em;line-height:1;cursor:pointer;color:inherit}
-#pbig svg.pfx text{font-size:12px}#pbig .pst{font-size:calc(12.5px*var(--ui,1))}
+#pbig .pst{font-size:calc(12.5px*var(--ui,1))}
 .pbig{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:0 6px;font:inherit;font-size:1em;cursor:pointer}`; document.head.append(c); }
 window.__prof={profile,profileSVG,profStats,profT,terrainAt};
 const fmtT=hh=>{ const m=Math.round(hh*60); return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} h`; };
@@ -569,6 +593,28 @@ async function ensureGraph(la,lo,margin=0.1){
 }
 window.ensureGraph=ensureGraph;
 let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=false;
+// ---------- admin fixes for points (account.js, fixes kind "poi"): huts, bivouacs, shelters, parkings, trailheads, springs,
+// via ferratas - renamed, moved, hidden, or new ones; OSM data is kept in BASE, the fixes are laid over it
+const BASE={pf:null,HUTS:null,STARTS:null,SPRINGS:null,ff:null};
+const POIT={hut:'hut',biv:'biv',sh:'biv',park:'park',th:'th',spring:'spring'};
+function poiApply(){ const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+  const mv=(o,x)=>x&&x.lat!=null&&x.lon!=null?{lat:+x.lat,lon:+x.lon}:{};
+  const news=Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.lat!=null&&!hid(x));
+  if(BASE.pf){
+    HUTS=BASE.HUTS.filter(o=>!hid(F[o.id])).map(o=>{ const x=F[o.id]; return x?{...o,...mv(o,x),name:x.name||o.name,k:['hut','biv','sh'].includes(x.t)?x.t:o.k}:o; })
+      .concat(news.filter(([,x])=>['hut','biv','sh'].includes(x.t)).map(([k,x])=>({name:x.name||TNAME[POIT[x.t]],lat:+x.lat,lon:+x.lon,k:x.t,id:k})));
+    STARTS_ALL=BASE.STARTS.filter(o=>!hid(F[o.id])).map(o=>{ const x=F[o.id]; return x?{...o,...mv(o,x),name:x.name||o.name}:o; })
+      .concat(news.filter(([,x])=>x.t==='park'||x.t==='th').map(([k,x])=>({node:-1,name:x.name||'parkirišče',lat:+x.lat,lon:+x.lon,kind:x.t,id:k})));
+    SPRINGS=BASE.SPRINGS.filter(o=>!hid(F[o.id])).map(o=>({...o,...mv(o,F[o.id])})).concat(news.filter(([,x])=>x.t==='spring').map(([k,x])=>({lat:+x.lat,lon:+x.lon,id:k})));
+    const pf=BASE.pf.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x);
+      return {type:'Feature',properties:{...f.properties,name:x.name||f.properties.name,t:x.t?POIT[x.t]||f.properties.t:f.properties.t,hid:x.hide?1:0},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
+      .concat(news.filter(([,x])=>x.t!=='ferr').map(([k,x])=>({type:'Feature',properties:{t:POIT[x.t]||'hut',name:x.name||'',ele:x.ele||'',web:'',key:k,hid:x.hide?1:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
+    if(map.getSource('poi')) map.getSource('poi').setData({type:'FeatureCollection',features:pf}); }
+  if(BASE.ff){ const ff=BASE.ff.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x), nm=x.name||f.properties.name, gr=x.grade!=null&&x.grade!==''?x.grade:f.properties.grade;
+      return {type:'Feature',properties:{...f.properties,name:nm,grade:gr,t:[nm||'Ferata',gr].filter(Boolean).join('\n')},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
+      .concat(news.filter(([,x])=>x.t==='ferr').map(([k,x])=>({type:'Feature',properties:{name:x.name||'',grade:x.grade||'',key:k,t:[x.name||'Ferata',x.grade||''].filter(Boolean).join('\n'),len:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
+    if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); } }
+window.poiFixesChanged=()=>{ poiApply(); G=null; if(RT) window.peakRoutesUI(RT.peak.id); };
 const EMPTY={type:'FeatureCollection',features:[]};
 const status=t=>{ const s=el('tstatus'); if(s) s.textContent=t; };
 
@@ -626,6 +672,8 @@ function addLayers(){
   add({id:'ferr-sign',type:'symbol',source:'ferr',minzoom:10.5,layout:{'icon-image':'i-ferr','icon-size':['interpolate',['linear'],['zoom'],11,.5,14,.75],'icon-allow-overlap':true,
       'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
     paint:{'text-color':'#bf360c','text-halo-color':'rgba(255,255,255,.92)','text-halo-width':1.6}});
+  map.on('click','ferr-sign',e=>{ if(window.DRAW_ON||!window.ADMIN) return; e.preventDefault(); const f=e.features[0], p=f.properties, c=f.geometry.coordinates;
+    window.adminPoiEdit&&adminPoiEdit({key:p.key,t:'ferr',name:p.name,grade:p.grade,lat:c[1],lon:c[0]}); });
   for(const id of ['poi-hut','poi-park','poi-spring']){
     map.on('click',id,e=>{ if(window.DRAW_ON) return; e.preventDefault(); poiPopup(e.features[0]); });
     map.on('mouseenter',id,()=>map.getCanvas().style.cursor=window.DRAW_ON?'crosshair':'pointer');
@@ -633,9 +681,12 @@ function addLayers(){
   }
 }
 const TNAME={hut:'Planinska koča',biv:'Bivak / zavetišče',park:'Parkirišče',th:'Izhodišče',spring:'Izvir'};
-function poiPopup(f){ const p=f.properties;
-  new maplibregl.Popup({offset:12,maxWidth:'260px'}).setLngLat(f.geometry.coordinates).setHTML(
-    `<b>${p.name||TNAME[p.t]}</b><br><span style="color:#666">${TNAME[p.t]}${p.ele?' · '+p.ele+' m':''}</span>${p.web?`<br><a href="${p.web}" target="_blank" rel="noopener">spletna stran</a>`:''}`).addTo(map); }
+function poiPopup(f){ const p=f.properties, c=f.geometry.coordinates;
+  const pp=new maplibregl.Popup({offset:12,maxWidth:'260px'}).setLngLat(c).setHTML(
+    `<b>${esc(p.name||TNAME[p.t])}</b><br><span style="color:#666">${TNAME[p.t]}${p.ele?' · '+p.ele+' m':''}</span>${p.web?`<br><a href="${p.web}" target="_blank" rel="noopener">spletna stran</a>`:''}${p.hid?'<br><i>(skrita — admin)</i>':''}`+
+    (window.ADMIN&&p.key?'<div style="margin-top:6px"><button class="admpoi">🛠 Uredi točko</button></div>':'')).addTo(map);
+  const b=pp.getElement().querySelector('.admpoi'); if(b) b.onclick=()=>{ pp.remove(); const h=HUTS.find(x=>x.id===p.key);
+    window.adminPoiEdit&&adminPoiEdit({key:p.key,t:h?h.k:p.t,name:p.name,lat:c[1],lon:c[0]}); }; }
 
 async function loadData(force){
   if(loading) return; loading=true;
@@ -722,8 +773,8 @@ async function build(poi,tr,src){
       const q=o.best[Math.floor(o.best.length/2)]; o.fsTxt=hardest(o.fs,o.raw);
       const fx=(FIX.ferratas||[]).find(f=>hav(q.lat,q.lon,f[0],f[1])<f[2]); if(fx){ if(fx[3]) o.name=fx[3]; if(fx[4]){ o.fs=0; o.fsTxt=fx[4]; } }
       const grade=[o.fs>=0?o.fsTxt:'', o.sac?SACT[o.sac]:''].filter(Boolean).join(' · ');
-      ff.push({type:'Feature',properties:{t:[o.name||'Ferata', grade].filter(Boolean).join('\n'),len:Math.round(o.len)},geometry:{type:'Point',coordinates:[q.lon,q.lat]}}); }
-    if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); }
+      ff.push({type:'Feature',properties:{t:[o.name||'Ferata', grade].filter(Boolean).join('\n'),len:Math.round(o.len),name:o.name||'',grade,key:`ferr|${q.lat.toFixed(4)},${q.lon.toFixed(4)}`},geometry:{type:'Point',coordinates:[q.lon,q.lat]}}); }
+    BASE.ff=ff; }
   // POIs
   const pf=[]; STARTS=[]; HUTS=[]; PLACES=[]; SPRINGS=[];
   for(const e of poi.elements){ if(e.type==='relation') continue; const t=e.tags||{}, la=e.lat??e.center?.lat, lo=e.lon??e.center?.lon; if(la==null) continue;
@@ -732,10 +783,11 @@ async function build(poi,tr,src){
     if(t.tourism==='alpine_hut') k='hut'; else if(t.tourism==='wilderness_hut'||t.amenity==='shelter') k='biv';
     else if(t.amenity==='parking') k='park'; else if(t.highway==='trailhead') k='th'; else if(t.natural==='spring') k='spring';
     if(!k) continue;
-    if(k==='park'||k==='th'){ if(t.access==='private') continue; STARTS.push({node:-1,name:t.name||'',lat:la,lon:lo,kind:k}); }
-    if(k==='spring') SPRINGS.push({lat:la,lon:lo});
-    if(k==='hut'||k==='biv') HUTS.push({name:t.name||TNAME[k],lat:la,lon:lo,k:k==='biv'&&/^(lean_to|rock_shelter)$/.test(t.shelter_type||'')?'sh':k});
-    pf.push({type:'Feature',properties:{t:k,name:t.name||'',ele:t.ele||'',web:t.website||t['contact:website']||''},geometry:{type:'Point',coordinates:[lo,la]}});
+    const id='osm|'+(e.type||'n')[0]+e.id;
+    if(k==='park'||k==='th'){ if(t.access==='private') continue; STARTS.push({node:-1,name:t.name||'',lat:la,lon:lo,kind:k,id}); }
+    if(k==='spring') SPRINGS.push({lat:la,lon:lo,id});
+    if(k==='hut'||k==='biv') HUTS.push({name:t.name||TNAME[k],lat:la,lon:lo,k:k==='biv'&&/^(lean_to|rock_shelter)$/.test(t.shelter_type||'')?'sh':k,id});
+    pf.push({type:'Feature',properties:{t:k,name:t.name||'',ele:t.ele||'',web:t.website||t['contact:website']||'',key:id},geometry:{type:'Point',coordinates:[lo,la]}});
   }
   // nearest named place within 4 km: grid of ~5 km buckets instead of comparing every parking with every place (was ~0.5 s on load)
   const PG=new Map(), pk=(la,lo)=>Math.floor(la/0.045)+','+Math.floor(lo/0.065);
@@ -745,7 +797,7 @@ async function build(poi,tr,src){
     s.name=best?`pri ${best}`:'parkirišče'; }
   for(const s of STARTS){ const f=(FIX.starts||[]).find(f=>hav(s.lat,s.lon,f[0],f[1])<f[2]); if(f) s.name=f[3]; }
   STARTS_ALL=STARTS; STARTS=[];
-  map.getSource('poi').setData({type:'FeatureCollection',features:pf});
+  BASE.pf=pf; BASE.HUTS=HUTS; BASE.STARTS=STARTS_ALL; BASE.SPRINGS=SPRINGS; poiApply();
   const nr=feats.filter(f=>f.properties.k==='r').length;
   status(`Poti: ${(feats.length-nr).toLocaleString('sl')} odsekov${nr?` · ceste: ${nr.toLocaleString('sl')}`:''} · koče/bivaki: ${HUTS.length} · izhodišča: ${STARTS_ALL.length} · ${src}`);
 }
@@ -799,6 +851,7 @@ window.peakRoutesUI = async function(id){
   // routes an admin drew are added
   res.routes=res.routes.filter(r=>{ r.key=routeKey(p,r); const f=FXR[r.key]; if(!f) return true; r.fix=f;
     if(f.t) r.stats.sac=+f.t; if(f.f!=null) r.stats.ferrata=!!f.f;
+    if(f.start) r.start={...r.start,name:f.start};
     if(f.geom&&f.geom.length>1){ r.coords=f.geom.map(x=>x.slice()); r.stats.len=lineLen(r.coords); r.gap=0; r.adm=true; const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); }
     return !f.hide||window.ADMIN; }).concat(ADD);
   if(!res.routes.length){ RT=null; setRoutesLayer(); c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Ni poti.</div>`; return; }
@@ -864,7 +917,7 @@ window.__peakRouteLines = async function(id){ if(RL.has(id)) return RL.get(id); 
 const RN=new Map();
 window.__peakRouteNames = async function(id){ if(!RN.has(id)) await window.__peakRouteLines(id); return RN.get(id)||[]; };
 function routeLabel(r){ const s=r.stats, ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null, nm=R?relName(R):r.fname;
-  return 'iz '+r.start.name.replace(/^pri /,'')+(nm?' · '+nm:''); }
+  const n2=(r.fix&&r.fix.name)||nm; return 'iz '+r.start.name.replace(/^pri /,'')+(n2?' · '+n2:''); }
 // fit routes into the part of the map not covered by the route card (phone: card is a bottom sheet)
 function routePad(){ const c=rcard(), W=innerWidth, H=innerHeight;
   const pad=DESK()?{top:60,bottom:60,right:60,left:Math.min(W*0.45,(c.offsetLeft||274)+(c.offsetWidth||340)+30)}
@@ -899,13 +952,19 @@ function renderRoutes(){
   c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       const ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null;
-      return `<div class="ri${i===RT.sel?' on':''}${r.fix&&r.fix.hide?' rhid':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}${r.fix&&r.fix.hide?' <span class="via">(skrita — admin)</span>':''}</div>
-        ${r.fix&&r.fix.name?`<div class="rp">✎ ${esc(r.fix.name)}</div>`:''}${r.fix&&r.fix.note?`<div class="rnote2">ⓘ ${esc(r.fix.note)}</div>`:''}
-        ${!R&&r.fname?`<div class="rp">⛓ ${esc(r.fname)}</div>`:''}${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
+      // names shown to everybody as if they came from OSM; an admin edits them right in the text (selected route, dashed underline)
+      const f=r.fix||{}, A=!!window.ADMIN&&i===RT.sel, ed=(k,v,ph)=>A?`<span class="ed" data-k="${k}" data-ph="${ph}" contenteditable="plaintext-only" spellcheck="false">${esc(v)}</span>`:esc(v);
+      const stN=r.start.name.replace(/^pri /,''), via=f.via!=null?f.via:r.huts.slice(0,2).join(', '), rn=f.name||(R?relName(R):r.fname||''), pz=s.pzs>0.6||(R&&relPZS(R));
+      return `<div class="ri${i===RT.sel?' on':''}${f.hide?' rhid':''}" data-i="${i}"><div><b>iz ${ed('start',stN,'izhodišče')}</b>${via||A?` <span class="via">čez ${ed('via',via,'koče na poti')}</span>`:''}${window.ADMIN&&f.hide?' <span class="via">(skrita — admin)</span>':''}${window.ADMIN&&r.fix?' <span class="afx" title="Popravljeno (vidijo samo admini)">✎</span>':''}</div>
+        ${f.note||A?`<div class="rnote2">ⓘ ${ed('note',f.note||'','opomba (ključna mesta, nevarnosti)')}</div>`:''}
+        ${rn||pz||A?`<div class="rp">${pz?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span> ':(!R&&r.fname&&!f.name?'⛓ ':'')}${rn||A?ed('name',rn,'ime poti'):'markirana pot'}${R&&R.ref&&R.name&&!f.name?` <span class="via">(${esc(R.ref)})</span>`:''}</div>`:''}
         <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}${profStats(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb">${window.ADMIN?'<button onclick="adminRoute()">🛠 Uredi pot</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button><button onclick="routeClimbed()" title="Odkljukaj vrh in shrani to pot kot tvojo">✓ Šel sem po tej poti</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
+  c.querySelectorAll('.ri .ed').forEach(x=>{ const v0=x.textContent; x.onclick=e=>e.stopPropagation(); x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); x.blur(); } if(e.key==='Escape'){ x.textContent=v0; x.blur(); } };
+    x.onblur=async()=>{ const v=x.textContent.trim(); if(v===v0.trim()) return; const r=RT.routes[RT.sel];
+      try{ await window.adminRoutePatch(r,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
   c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }
 window.routeClimbed=()=>{ if(!RT) return; const r=RT.routes[RT.sel]; window.climbedVia&&window.climbedVia(RT.peak.id, routeLabel(r)); };
@@ -983,7 +1042,7 @@ function makeLegendMovable(id){ const card=el(id); if(!card) return; const key=(
       else if(!e.target.closest('button')){ const t=Date.now(); if(t-lastTap<350){ try{ localStorage.removeItem(key()); }catch(_){} apply(); } lastTap=t; } };
     addEventListener('pointermove',mv,{passive:false}); addEventListener('pointerup',up); addEventListener('pointercancel',up); });
   card.addEventListener('click',e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; } },true); }   // a drag is not a click on – / ▸
-makeMovable('dcard'); makeMovable('rcard'); makeMovable('dprof','.ps'); makeLegendMovable('snowleg'); makeLegendMovable('hleg');
+makeMovable('dcard'); makeMovable('rcard'); makeMovable('dprof','.ps'); 
 function drawRender(){
   setDrawData();
   const card=el('dcard'), strip=el('dprof');

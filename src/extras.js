@@ -149,14 +149,16 @@ function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contai
   const now = [B().contains('lclosed'), B().contains('menu'), !!(d && d.classList.contains('open'))]; return now.some((v, i) => v !== was[i]); }
 function uiRestore(){ if (!ui0) return; const d = DR(); B().toggle('lclosed', ui0[0]); B().toggle('menu', ui0[1]); if (d) d.classList.toggle('open', ui0[2]); ui0 = null; }
 function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
-  document.body.classList.remove('menu'); clearUI(); showStep(); }
+  document.body.classList.remove('menu'); document.body.classList.add('touring'); clearUI(); placeStep.sc = -1; showStep();
+  // the lit spot follows its target while the map flies or a window slides in
+  clearInterval(tour.iv); tour.iv = setInterval(() => { if (ov) placeStep(); else clearInterval(tour.iv); }, 300); }
 // the guide starts on a clean map: side panels and every window closed (put back at the end)
 function clearUI(){ try{ popClose(); if (window.closeRoutes) closeRoutes(); if (window.DRAW_ON && window.stopDraw) stopDraw();
     ['lbPage', 'accWin'].forEach(id => { const e = document.getElementById(id); if (e) e.classList.remove('on'); });
     ['potwLb', 'wxBig'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
     const sh = document.querySelector('#shCard.on .x'); if (sh) sh.click(); }catch(_){}
   const d = DR(); if (!PHONE()) B().add('lclosed'); if (d) d.classList.remove('open'); B().remove('menu'); }
-function endTour(){ if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
+function endTour(){ clearInterval(tour.iv); document.body.classList.remove('touring'); if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
 // routes and 360 are shown on Triglav: the map flies there, its routes / its window open, the real thing is lit up
 let curDemo = null; const TRI = 'triglav-2864';
 const popClose = () => document.querySelectorAll('.maplibregl-popup .maplibregl-popup-close-button').forEach(b => b.click());
@@ -172,7 +174,7 @@ function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S
   clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ placeStep(); ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
 function placeStep(){ if (!ov) return;
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
-  let r = null; if (S.sel){ let el = document.querySelector(S.sel()); if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel')) el.scrollIntoView({block:'center'}); if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
+  let r = null; if (S.sel){ let el = document.querySelector(S.sel()); if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel') && placeStep.sc !== step){ placeStep.sc = step; el.scrollIntoView({block:'center'}); } if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
   // map steps: light up the whole map (minus the open side panels on PC), card in the middle
   if (r && S.center && !PHONE()){ const pn = document.querySelector('.panel'), dr = document.getElementById('drawer');
     const l = !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
