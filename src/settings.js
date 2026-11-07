@@ -56,6 +56,7 @@ const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k =
 win.querySelectorAll('.chips').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = c.dataset.k, v = +b.dataset.v;
   P[k] = k === 'ferrata' ? v === 1 : v; paintChips(); save(); });
 paintChips();
+window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
 const close = () => win.classList.remove('on');
 window.openSettings = open; window.closeSettings = close;

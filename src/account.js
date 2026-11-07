@@ -548,7 +548,7 @@ function fabPos(labels){ const n = labels.length, cv = fabPos.cv || (fabPos.cv =
 function fabOpen(it0){ const it = Array.isArray(it0) ? it0 : fabItems(), P = fabPos(it.map(x => x[1]));
   fab.querySelectorAll('.fo').forEach(o => o.remove());
   it.forEach(([ic, lab, fn, b], k) => { const o = document.createElement('button');
-    o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(P[k][0]) + 'px'); o.style.setProperty('--y', Math.round(P[k][1]) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
+    o.dataset.k = ic; o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(P[k][0]) + 'px'); o.style.setProperty('--y', Math.round(P[k][1]) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
     o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
     o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
   fabBg.classList.add('on'); document.body.classList.add('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
@@ -558,7 +558,7 @@ fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null
 addEventListener('pointerup', () => { fabY = null; });
 fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
-window.openMenu = () => fabOpen(); window.__fabOpen = fabOpen; window.__fabPos = fabPos;
+window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.__fabOpen = fabOpen; window.__fabPos = fabPos;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
   if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 

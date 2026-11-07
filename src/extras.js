@@ -91,25 +91,27 @@ function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.relo
 // ---------- 2) first-use guide ----------
 const PHONE = () => PHONE_UI();
 const STEPS = [
-  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.', lang:true},
+  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 16 korakih — lahko ga kadarkoli preskočiš.', lang:true},
+  {t:'Nastavi se', setup:true, d:'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):'},
   {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).', sel:()=>'#drawer', open:'peaks'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
   {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
   {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
   {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>'#wxChk', open:'layers'},
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
-  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri rdeči gumb → 🗓 Načrtovalnik.', sel:()=>'#fab .fb', open:'map'},
+  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri rdeči gumb → 🗓 Načrtovalnik.', sel:()=>'#fab .fo[data-k="✏️"]', fab:true, open:'map'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu. Na telefonu: rdeči gumb → ◧ Karta in sloji.', sel:()=>'.panel .grp', open:'layers'},
-  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.', sel:()=>'#fab .fb', open:'map'},
-  {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fb', open:'map'},
-  {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija z rdečim gumbom → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>'#fab .fb', open:'map'},
+  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.', sel:()=>'#fab', fabAll:true, fab:true, open:'map'},
+  {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fo[data-k="👤"]', fab:true, open:'map'},
+  {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija z rdečim gumbom → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>'#fab .fo[data-k="⚙"]', fab:true, open:'map'},
   {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov in v meniju (rdeči gumb).<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
   {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitvah (na telefonu tudi rdeči gumb → ❓ Vodič).'},
   {t:'Račun (neobvezno)', d:'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo, se pridružiš lestvici ter dodaš prijatelje in skupine (skupni načrti tur). Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.', acc:true}
 ];
 Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
-  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 15-step guide — skip it any time.',
+  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 16 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 16-step guide — skip it any time.',
+  'Nastavi se':'Set it up for you', 'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):':'So walking times, warnings and text fit you (change it later in ⚙ Settings):',
   'Seznam vrhov':'Peak list',
   '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters. On a phone the »︿ Peaks« tab under the red button opens it (tap or swipe up).',
   'Klikni vrh na karti':'Click a peak on the map',
@@ -141,6 +143,22 @@ Object.assign(EN, {
   'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitvah (na telefonu tudi rdeči gumb → ❓ Vodič).':'The data is automatic (OSM, LiDAR, weather model, satellite, snow model) — always check conditions before you go. The site updates itself. Replay the guide from ⚙ Settings (on a phone also red button → ❓ Guide).'
 });
 let step = 0, ov = null, ui0 = null;
+// first-use setup inside the guide: walking speed (with an example time), hardest grade, via ferratas, winter, text size
+function setupHTML(){ const P = window.PREFS ? PREFS.get() : {}, ch = (k, opts) => `<div class="tchips" data-k="${k}">${opts.map(([v, t]) => `<button data-v="${v}" class="${(k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k]) === v ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  const ts = document.getElementById('tscale');
+  return `<div class="tset"><div class="q">${LL('Hitrost hoje','Walking speed')}</div>`+
+    ch('fit5', [[0, LL('zelo počasi','very slow')], [1, LL('počasi','slow')], [2, LL('povprečno','average')], [3, LL('hitro','fast')], [4, LL('zelo hitro','very fast')]])+
+    `<div class="tex" id="tsEx"></div><div class="q">${LL('Najtežje, kar ti je še prijetno','Hardest you are comfortable with')}</div>`+
+    ch('maxT', [2, 3, 4, 5, 6].map(v => [v, 'T' + v]))+ch('ferrata', [[1, LL('ferate: da','via ferratas: yes')], [0, LL('ferate: ne','via ferratas: no')]])+
+    `<div class="q">${LL('Izkušnje z zimo','Winter experience')}</div>`+ch('winter', [[0, LL('brez','none')], [1, LL('lažje zimske ture','easy winter tours')], [2, LL('zimska alpinistika','winter alpinism')]])+
+    `<div class="q">${LL('Velikost besedila','Text size')} <span id="tsTv"></span></div><input type="range" id="tsT" min="0.6" max="1.4" step="0.1" value="${ts ? ts.value : 1}"></div>`; }
+function setupBind(card){ const ex = () => { const P = window.PREFS ? PREFS.get() : {}, k = (window.FIT_K || [1.35, 1.15, 1, 0.85, 0.72])[P.fit5 ?? 2] || 1, h = (Math.max(1000 / 400, 6 / 4.5) + Math.min(1000 / 400, 6 / 4.5) / 2) * k, m = Math.round(h * 60);
+    const e = card.querySelector('#tsEx'); if (e) e.textContent = LL(`Primer: 6 km in 1000 m vzpona ≈ ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`, `Example: 6 km and 1000 m of ascent ≈ ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')} h`); };
+  card.querySelectorAll('.tchips').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b || !window.setPref) return; setPref(c.dataset.k, +b.dataset.v);
+    c.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); ex(); });
+  const sl = card.querySelector('#tsT'), tv = card.querySelector('#tsTv'), ts = document.getElementById('tscale');
+  const st = () => { tv.textContent = (+sl.value).toFixed(1) + '×'; if (ts){ ts.value = sl.value; ts.dispatchEvent(new Event('input')); } };
+  sl.oninput = st; tv.textContent = (+sl.value).toFixed(1) + '×'; ex(); }
 // each step opens what it talks about (map & layers sheet, peak list) so the real thing is lit up; the end puts things back
 const B = () => document.body.classList, DR = () => document.getElementById('drawer');
 function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contains('lclosed'), B().contains('menu'), !!(d && d.classList.contains('open'))];
@@ -149,7 +167,7 @@ function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contai
   const now = [B().contains('lclosed'), B().contains('menu'), !!(d && d.classList.contains('open'))]; return now.some((v, i) => v !== was[i]); }
 function uiRestore(){ if (!ui0) return; const d = DR(); B().toggle('lclosed', ui0[0]); B().toggle('menu', ui0[1]); if (d) d.classList.toggle('open', ui0[2]); ui0 = null; }
 function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
-  document.body.classList.remove('menu'); document.body.classList.add('touring'); clearUI(); placeStep.sc = -1; showStep();
+  document.body.classList.remove('menu'); document.body.classList.add('touring'); clearUI(); placeStep.sc = -1; placeStep.pan = -1; showStep();
   // the lit spot follows its target while the map flies or a window slides in
   clearInterval(tour.iv); tour.iv = setInterval(() => { if (ov) placeStep(); else clearInterval(tour.iv); }, 300); }
 // the guide starts on a clean map: side panels and every window closed (put back at the end)
@@ -158,7 +176,7 @@ function clearUI(){ try{ popClose(); if (window.closeRoutes) closeRoutes(); if (
     ['potwLb', 'wxBig'].forEach(id => { const e = document.getElementById(id); if (e) e.remove(); });
     const sh = document.querySelector('#shCard.on .x'); if (sh) sh.click(); }catch(_){}
   const d = DR(); if (!PHONE()) B().add('lclosed'); if (d) d.classList.remove('open'); B().remove('menu'); }
-function endTour(){ clearInterval(tour.iv); document.body.classList.remove('touring'); if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
+function endTour(){ clearInterval(tour.iv); if (window.fabClose) fabClose(); document.body.classList.remove('touring'); if (ov){ ov.remove(); ov = null; } demo(null); uiRestore(); LS('dvat3d_tour_done', '1'); }
 // routes and 360 are shown on Triglav: the map flies there, its routes / its window open, the real thing is lit up
 let curDemo = null; const TRI = 'triglav-2864';
 const popClose = () => document.querySelectorAll('.maplibregl-popup .maplibregl-popup-close-button').forEach(b => b.click());
@@ -171,10 +189,16 @@ function demo(d){ if (d === curDemo) return false;
   return false; }
 let stT = 0;
 function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S.open() : S.open;
+  if (S.fab){ if (!document.querySelector('#fab.open') && window.openMenu) openMenu(); } else if (window.fabClose) fabClose();
   clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ placeStep(); ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
 function placeStep(){ if (!ov) return;
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
-  let r = null; if (S.sel){ let el = document.querySelector(S.sel()); if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel') && placeStep.sc !== step){ placeStep.sc = step; el.scrollIntoView({block:'center'}); } if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
+  let r = null;
+  if (S.fabAll){ const R = [...document.querySelectorAll('#fab .fo, #fab .fb')].map(e => e.getBoundingClientRect()).filter(b => b.width);
+    if (R.length){ const l = Math.min(...R.map(b => b.left)), t = Math.min(...R.map(b => b.top)) - 18, rr = Math.max(...R.map(b => b.right)), bb = Math.max(...R.map(b => b.bottom)); r = {left:l, top:t, width:rr - l, height:bb - t}; } }
+  else if (S.sel){ let el = document.querySelector(S.sel());
+    if (el && el.closest('.maplibregl-popup') && placeStep.pan !== step){ const b = el.getBoundingClientRect();
+      if (b.height && (b.top < 50 || b.bottom > innerHeight * 0.55)){ placeStep.pan = step; try{ el.scrollIntoView({block:'nearest'}); }catch(_){} const b2 = el.getBoundingClientRect(); map.panBy([0, b2.top - innerHeight * 0.3], {duration:500}); } } if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel') && placeStep.sc !== step){ placeStep.sc = step; el.scrollIntoView({block:'center'}); } if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
   // map steps: light up the whole map (minus the open side panels on PC), card in the middle
   if (r && S.center && !PHONE()){ const pn = document.querySelector('.panel'), dr = document.getElementById('drawer');
     const l = !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
@@ -186,10 +210,12 @@ function placeStep(){ if (!ov) return;
   if (card.dataset.step !== String(step)){ card.dataset.step = step;   // same step again (sheet slid in, routes loaded): only move it
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
       (S.lang ? `<div class="tl"><button data-l="sl" class="${LANG==='sl'?'on':''}">Slovenščina</button><button data-l="en" class="${LANG==='en'?'on':''}">English</button></div>` : '')+
+      (S.setup ? setupHTML() : '')+
       (S.acc && window.accountStepButtons ? `<div class="tacc">${window.accountStepButtons(endTour).map((b,i)=>`<button data-a="${i}">${b[0]}</button>`).join('')}</div>` : '')+
       `<div class="tbtns"><button class="sk">${T(step===STEPS.length-1?(S.acc?'Ne zdaj':'Konec'):'Preskoči')}</button><span></span>${step?`<button class="bk">${T('Nazaj')}</button>`:''}${step<STEPS.length-1?`<button class="nx">${T(step?'Naprej':'Začni')}</button>`:''}</div>`;
     card.querySelector('.sk').onclick = endTour;
     if (S.acc && window.accountStepButtons){ const A = window.accountStepButtons(endTour); card.querySelectorAll('.tacc button').forEach(b => b.onclick = () => A[+b.dataset.a][1]()); } const nx = card.querySelector('.nx'), bk = card.querySelector('.bk');
+    if (S.setup) setupBind(card);
     if (nx) nx.onclick = () => { step++; showStep(); }; if (bk) bk.onclick = () => { step--; showStep(); };
     card.querySelectorAll('.tl button').forEach(b => b.onclick = () => { LS('dvat3d_tour_step', '1'); setLang(b.dataset.l); }); }
   // place the card next to the highlighted element, never over it: beside it on a computer, else in the larger free band above or

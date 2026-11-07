@@ -49,6 +49,9 @@
   #tour button{font:inherit;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   #tour .nx{background:#c62828;border-color:#c62828;color:#fff}#tour .sk{border:0;color:var(--mute);padding-left:0}
   @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #tour .tc{font-size:13px;padding:11px 13px} #tour p{margin:0 0 9px;line-height:1.38} #tour h3{font-size:1.08em;margin:1px 0 4px} #tour button{padding:7px 12px} }
+  #tour .tset{margin:0 0 10px}#tour .tset .q{font-weight:600;margin:8px 0 4px;font-size:.92em}#tour .tchips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 4px}
+  #tour .tchips button{padding:4px 10px;border-radius:16px;font-weight:500;font-size:.88em}#tour .tchips button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+  #tour .tex{font-size:.85em;color:var(--mute)}#tour #tsT{width:100%}
   #tour .tl{display:flex;gap:8px;margin:0 0 12px}#tour .tl button.on{background:var(--ink);color:var(--panel)}
   .dlg{position:fixed;inset:0;z-index:60;background:rgba(10,14,13,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:15vh}
   .dlgc{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(360px,calc(100% - 32px));box-shadow:0 12px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);font-size:calc(14px * var(--ui,1))}
@@ -335,10 +338,10 @@
 </head>
 <body>
 <!-- loading screen with the logo until the map is there (in the app it continues the native splash screen) -->
-<div id="boot"><img src="icon-192.png" alt="" width="104" height="104"><b>Slovenski 2000-čaki</b><i></i></div>
+<div id="boot"><img src="icon-512.png" alt="" width="176" height="176"><b>Slovenski 2000-čaki</b><i></i></div>
 <style>#boot{position:fixed;inset:0;z-index:1000;background:#0e3a86;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font:700 19px system-ui,sans-serif;transition:opacity .45s}
-#boot.out{opacity:0;pointer-events:none}#boot img{border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
-#boot i{width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
+#boot.out{opacity:0;pointer-events:none}#boot img{width:min(176px,42vw);height:auto;border-radius:36px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
+#boot i{width:170px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
 <script>window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
 window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
@@ -1372,8 +1375,8 @@ new MutationObserver(syncTabs).observe(drawer,{attributes:true,attributeFilter:[
 map.on('movestart',e=>{ if(e.originalEvent) document.body.classList.remove('menu'); });
 $('closeDrawer').onclick=()=>drawer.classList.remove('open');
 // phone: range headers pin just below the pinned title
-const setDTH=()=>{ const h=$('dtitle').offsetHeight; if(h) drawer.style.setProperty('--dth',h+'px'); };
-addEventListener('resize',setDTH); new MutationObserver(setDTH).observe(drawer,{attributes:true,attributeFilter:['class']});
+const setDTH=()=>{ const h=$('dtitle').getBoundingClientRect().height; if(h) drawer.style.setProperty('--dth',Math.floor(h-0.5)+'px'); };
+addEventListener('resize',setDTH); new MutationObserver(setDTH).observe(drawer,{attributes:true,attributeFilter:['class']}); new ResizeObserver(setDTH).observe($('dtitle'));
 let FLT='rank', STF='all'; try{ FLT=localStorage.getItem('dvat3d_flt')||'rank'; if(FLT!=='rank'&&FLT!=='all') FLT='rank'; STF=localStorage.getItem('dvat3d_stf')||'all'; }catch(_){}
 const inScope=p=>inTier(p)&&(FLT!=='rank'||isMain(p)); const CLOSED=new Set(); // default: the 98 prominent 2000 m peaks
 $('q').oninput=renderList;

@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.68 — 2026-11-08
+- Guide: new step 2 "Nastavi se" - walking speed (with an example time), hardest grade, via ferratas, winter experience, text size,
+  set right there. Steps about menu items open the red button's menu and light up that bubble (✏️ Riši pot, 👤 Moj profil,
+  ⚙ Nastavitve, the whole menu for "Rdeči gumb"). 360° step: if the button is off screen in the peak window, the map moves so it
+  is in the upper part and the card goes under it.
+- Webcams: only cameras within 20 km of a peak (2000 m or 1500–2000 m list) are shown.
+- Phone peak list: the range header pins exactly under the title (also after rotating / changing text size) - no gap.
+- Loading screen: bigger logo (also in the app's own start screen).
+- App: MainActivity itself asks Android to draw next to the front camera (some phones ignore the theme setting).
+
 ## web-v0.67 — 2026-11-08
 - 📷 Webcams: Windy cameras in Slovenia + ~20 km over the border (layer "Spletne kamere", camera icons; list refreshed every
   Monday by the "Webcams list" Action into data/webcams.json). Tap = current picture (asked from Windy then, links to windy.com),

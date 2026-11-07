@@ -630,7 +630,9 @@ const WINDY_KEY='VEnkEnRvHPr9DEogeHFm8ofbW81dYsX6';
 const camOn=()=>{ try{ return localStorage.getItem('dvat3d_cams')!=='0'; }catch(_){ return true; } };
 let CAMS=null, camLoading=false;
 async function camsLoad(){ if(CAMS||camLoading||!location.protocol.startsWith('http')) return; camLoading=true;
-  try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''})); } }catch(_){}
+  try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''}));
+      // only cameras within 20 km of a peak (2000 m or 1500-2000 m list) - town and motorway cameras far from the mountains are left out
+      const PK=(typeof PEAKS!=='undefined'?PEAKS:[]).filter(q=>q.lat!=null); if(PK.length) CAMS=CAMS.filter(c=>PK.some(q=>Math.abs(q.lat-c.lat)<0.19&&Math.abs(q.lon-c.lon)<0.27&&hav(q.lat,q.lon,c.lat,c.lon)<20000)); } }catch(_){}
   camLoading=false; camApply(); }
 function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN;
   const L=(CAMS||[]).filter(c=>!(F[c.key]&&F[c.key].hide&&!A)).map(c=>{ const x=F[c.key]; return x?{...c,name:x.name||c.name,lat:x.lat!=null?+x.lat:c.lat,lon:x.lon!=null?+x.lon:c.lon,hid:x.hide?1:0}:c; })
