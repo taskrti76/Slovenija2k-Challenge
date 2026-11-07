@@ -2,6 +2,19 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.60 — 2026-11-07 (+ app-v1.0.4)
+- Website down (404 / 5xx) now counts like no signal: the service worker shows the saved copy instead of the error page (app and site).
+- Loading screen with the logo: blue screen, icon, name and a small bar until the map is drawn (max 12 s). In the app the native splash
+  screen (@capacitor/splash-screen, new APK) shows the same and is hidden by the page when the map is ready; Capacitor's default
+  splash pictures are replaced by ours, Android 12+ uses the blue background with the round icon.
+- Offline mode: no "retry" - without a connection the app/site runs from what is saved and a small "📴 Brez povezave — način brez
+  signala (N shranjenih območij)" note shows on top; when the connection is back "✓ Spet povezano — pošiljam spremembe". The app's
+  "no connection" page now only appears on the very first start without internet, and opens the app by itself once online.
+- Offline maps share one cache ("dvat-offline"): a tile two areas need is stored once, an area only downloads what is missing (the
+  estimate before downloading counts only those, "N že shranjenih"), tiles you already looked at are copied instead of downloaded,
+  deleting an area removes only tiles no other area uses. Areas saved with v0.56–0.59 move into it by themselves. The bar shows the
+  real stored size. Fixed: the "Saved …" note was wiped right after a download.
+
 ## web-v0.59 — 2026-11-07
 - Settings → App & offline: "📱 Android aplikacija" and "⭐ Spletna aplikacija" side by side (the APK link no longer overlaps the
   heading), each with one line on what it is (APK: GPS confirms summits, also with the screen off, not from Google Play; web app: icon

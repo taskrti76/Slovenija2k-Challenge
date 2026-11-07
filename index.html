@@ -318,6 +318,15 @@
 </style>
 </head>
 <body>
+<!-- loading screen with the logo until the map is there (in the app it continues the native splash screen) -->
+<div id="boot"><img src="icon-192.png" alt="" width="104" height="104"><b>Slovenski 2000-čaki</b><i></i></div>
+<style>#boot{position:fixed;inset:0;z-index:1000;background:#0e3a86;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font:700 19px system-ui,sans-serif;transition:opacity .45s}
+#boot.out{opacity:0;pointer-events:none}#boot img{border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
+#boot i{width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
+@keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
+<script>window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
+  try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:250}).catch(function(){}); }catch(e){} };
+setTimeout(window.bootOut,12000);</script>
 <div id="map"></div>
 <div id="v360"><div class="vt"><b id="v360name"></b><span id="v360dir"></span></div><div class="vh">Vleci = obrni se / poglej gor-dol · kolešček ali +/− = približaj · presledek = vrti · klik na ime = skoči na vrh</div><div class="vb"><div id="v360q" class="seg" title="Kakovost slike"></div><button id="v360out" aria-label="Oddalji">−</button><button id="v360auto">⟳ Vrti</button><button id="v360sun" title="Sončni vzhod / zahod danes s tega vrha">☀ Dan</button><button id="v360exit">✕ Izhod</button><button id="v360in" aria-label="Približaj">+</button></div></div>
 <div class="card" id="rcard"></div>
@@ -513,6 +522,7 @@ const map = new maplibregl.Map({ locale:SL_LOCALE,
   ...(LITE_ON?{pixelRatio:1, fadeDuration:0, antialias:false}:IS_PHONE||IS_IOS?{pixelRatio:Math.min(devicePixelRatio||1,2), prefetchZoomDelta:2, fadeDuration:120}:{}),
   hash:true
 });
+map.once('load',()=>setTimeout(window.bootOut,250));   // loading screen off as soon as the map is drawn
 // --- fast terrain (test switch): the 3D mesh is built from height tiles 1–2 zoom levels coarser than now, while the picture draped
 // on it (satellite / relief / hillshade) keeps full resolution - like Google Earth: coarse shape, sharp image. Far shading tiles coarser too.
 // Fewer height tiles = faster loading, less decoding and memory. 360 Visoka always uses full detail.
@@ -3118,7 +3128,7 @@ RX.push([/^360 se je prejšnjič sesul — kakovost znižana na (.+)\.$/, '360 c
 // (whole ranges z8–13), OpenFreeMap vector tiles (rivers, lakes, place names) z8–14 + their index. Trails, huts, peaks, routes,
 // weather / snow / avalanche data and the app itself are kept by the service worker anyway. Not included: satellite and
 // OpenTopoMap (their terms forbid bulk downloads; tiles you looked at stay cached) and live weather for a clicked spot.
-// Each area is its own cache "dvat-reg-<id>" (the service worker looks in all caches), its list in localStorage.
+// All areas share one cache "dvat-offline" (the service worker looks in all caches), the list of areas is in localStorage.
 const LL = (sl, en) => LANG === 'en' ? en : sl;
 const RK = 'dvat3d_regions', OFM = 'https://tiles.openfreemap.org/planet';
 const tX = (lo,z) => Math.floor((lo+180)/360*2**z), tY = (la,z) => { const r = la*Math.PI/180; return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**z); };
@@ -3140,27 +3150,51 @@ const viewBox = () => { const b = map.getBounds(), c = map.getCenter(), mxLa = .
 const mb = x => x >= 1e9 ? (x / 1e9).toFixed(1) + ' GB' : Math.max(1, Math.round(x / 1e6)) + ' MB';
 const est = urls => urls.reduce((a, u) => a + (u.includes('mapterhorn') ? 110e3 : 25e3), 0);
 let job = null;   // running download {id, done, n, stop}
+// all saved areas share one cache "dvat-offline": a tile two areas need is stored once; deleting an area removes only the tiles no
+// other area uses. OB = bytes in that cache (the bar), each area keeps its own full size r.bytes (shared tiles included).
+const OCN = 'dvat-offline', OBK = 'dvat3d_offbytes';
+let OB = +(localStorage.getItem(OBK) || 0) || 0; const saveOB = () => { try{ localStorage.setItem(OBK, String(Math.max(0, Math.round(OB)))); }catch(_){} };
+const sizeOf = async res => +res.headers.get('content-length') || (await res.clone().blob()).size;
+const areaUrls = r => regUrls(r.b, r.z, r.tpl || null);
 async function regDownload(r, fresh){
   if (job) return; if (!('caches' in window)){ offMsg(LL('Prenos območij ni podprt v tem brskalniku.', 'Area downloads are not supported in this browser.')); return; }
   try{ if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(_){}   // ask the browser not to clear it when space runs low
-  let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
-  const urls = regUrls(r.b, r.z, tpl).concat(tpl ? [OFM] : []), k = await caches.open('dvat-reg-' + r.id);
+  if (!r.tpl) try{ r.tpl = await ofmTiles(); }catch(_){}
+  const urls = areaUrls(r).concat(r.tpl ? [OFM] : []), k = await caches.open(OCN);
   if (!REG.includes(r)){ r.at = Date.now(); REG.push(r); saveReg(); }
-  job = {id: r.id, done: 0, n: urls.length, fail: 0, bytes: 0, stop: false}; offRender();
+  job = {id: r.id, done: 0, n: urls.length, fail: 0, bytes: 0, net: 0, stop: false}; offRender();
   const q = [...urls];
   await Promise.all(Array.from({length: 6}, async () => { while (q.length && !job.stop){ const u = q.shift();
-    try{ let hit = fresh ? null : await k.match(u);
-      if (!hit){ const res = await fetch(u, {mode: 'cors', cache: fresh ? 'no-cache' : 'default'}); if (res.ok){ await k.put(u, res.clone()); hit = res; } else job.fail++; }
-      if (hit) job.bytes += +hit.headers.get('content-length') || (await hit.clone().blob()).size; }
+    try{ const have = await k.match(u); let res = null;
+      if (have && !fresh) res = have;   // already saved for another area (or earlier)
+      else { const seen = fresh ? null : await caches.match(u);   // looked at before (viewed-tiles cache): copy instead of downloading
+        res = seen || await fetch(u, {mode: 'cors', cache: fresh ? 'no-cache' : 'default'});
+        if (res.ok || res.type === 'opaque'){ const sz = await sizeOf(res); if (have) OB -= await sizeOf(have); await k.put(u, res.clone()); OB += sz; if (!seen) job.net += sz; }
+        else { job.fail++; res = null; } }
+      if (res) job.bytes += await sizeOf(res); }
     catch(_){ job.fail++; }
-    job.done++; if (job.done % 8 === 0) offProg(); } }));
+    job.done++; if (job.done % 8 === 0){ offProg(); saveOB(); } } }));
+  saveOB();
   const ok = !job.stop && job.fail < urls.length * .1;
   Object.assign(r, {n: urls.length - job.fail, bytes: job.bytes, at: Date.now(), ok}); saveReg();
+  const shared = job.bytes - job.net > 2e6 ? ' ' + LL(`(${mb(job.bytes - job.net)} je bilo že shranjenega — ni prenešeno znova)`, `(${mb(job.bytes - job.net)} was already saved — not downloaded again)`) : '';
   const msg = job.stop ? LL('Prenos ustavljen — kar je prenešeno, ostane.', 'Download stopped — what was downloaded stays.')
-    : ok ? LL(`Shranjeno: ${r.name}. Brez signala delujejo teren, 3D, plastnice, vode, imena krajev, poti, koče, vrhovi in zadnja vremenska napoved.`, `Saved: ${r.name}. Offline you have terrain, 3D, contours, water, place names, trails, huts, peaks and the last forecast.`)
+    : ok ? LL(`Shranjeno: ${r.name}.`, `Saved: ${r.name}.`) + shared + ' ' + LL('Brez signala delujejo teren, 3D, plastnice, vode, imena krajev, poti, koče, vrhovi in zadnja vremenska napoved.', 'Offline you have terrain, 3D, contours, water, place names, trails, huts, peaks and the last forecast.')
     : LL('Del prenosa ni uspel — preveri povezavo in klikni ⟳ Posodobi.', 'Part of the download failed — check the connection and press ⟳ Update.');
-  job = null; offRender(); offMsg(msg); }
-async function regDelete(r){ try{ await caches.delete('dvat-reg-' + r.id); }catch(_){} REG = REG.filter(x => x !== r); saveReg(); offRender(); }
+  job = null; await offRender(); offMsg(msg); }   // after the list is drawn again, or the note would be wiped
+async function regDelete(r){ const rest = REG.filter(x => x !== r), keep = new Set(rest.flatMap(areaUrls)); if (rest.length) keep.add(OFM);
+  try{ const k = await caches.open(OCN);
+    for (const u of areaUrls(r).concat([OFM])){ if (keep.has(u)) continue; const h = await k.match(u); if (h){ OB -= await sizeOf(h); await k.delete(u); } }
+    if (!rest.length){ await caches.delete(OCN); OB = 0; } }catch(_){}
+  saveOB(); REG = rest; saveReg(); offRender(); }
+// areas saved by v0.56–0.59 had a cache each: move them into the shared one once (duplicates fall away)
+(async () => { if (!('caches' in window)) return; try{ const old = (await caches.keys()).filter(n => n.startsWith('dvat-reg-')); if (!old.length) return;
+  const k = await caches.open(OCN);
+  for (const n of old){ const c = await caches.open(n), ks = await c.keys(); const r = REG.find(x => 'dvat-reg-' + x.id === n);
+    for (const q of ks){ if (r && !r.tpl && /openfreemap\.org\/planet\/.+\/\d+\/\d+\/\d+/.test(q.url)) r.tpl = q.url.replace(/\/\d+\/\d+\/\d+(\.\w+)$/, '/{z}/{x}/{y}$1');
+      if (await k.match(q)) continue; const res = await c.match(q); if (res){ await k.put(q, res); OB += await sizeOf(res); } }
+    await caches.delete(n); }
+  saveOB(); saveReg(); offRender(); }catch(_){} })();
 function regShow(r){ closeSettingsWin(); const [w, s, e, n] = r.b, ring = [[w, s], [e, s], [e, n], [w, n], [w, s]];
   try{ const d = {type: 'Feature', properties: {}, geometry: {type: 'Polygon', coordinates: [ring]}};
     if (map.getSource('offreg')) map.getSource('offreg').setData(d);
@@ -3174,7 +3208,7 @@ const offProg = () => { const i = $x('offInfo'); if (i && job) i.innerHTML = `${
 async function offRender(){ const M = $x('offMgr'); if (!M) return;
   let legacy = 0; try{ if ('caches' in window && await caches.has('dvat-region')) legacy = (await (await caches.open('dvat-region')).keys()).length; }catch(_){}
   // bar: what is saved out of everything there is to save (all five ranges, ~estimate); free space on the device as a note
-  const reg = REG.reduce((a, r) => a + (r.bytes || 0), 0), all = PRESET.reduce((a, r) => { const b = rangeBox(r); return a + (b ? est(regUrls(b, 13, '{z}/{x}/{y}')) : 0); }, 0);
+  const reg = OB || REG.reduce((a, r) => a + (r.bytes || 0), 0), all = PRESET.reduce((a, r) => { const b = rangeBox(r); return a + (b ? est(regUrls(b, 13, '{z}/{x}/{y}')) : 0); }, 0);
   const bar = `<div class="offbar" title="${mb(reg)} / ~${mb(all)}"><i class="a" style="width:${Math.min(100, reg / Math.max(1, all) * 100).toFixed(1)}%"></i></div>
     <div class="offleg"><span>${LL('Shranjeno','Saved')} <b>${mb(reg)}</b> ${LL('od','of')} ~${mb(all)} (${LL('vsa pogorja','all ranges')})</span></div>`;
   let use = ''; try{ if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(); if (e.quota) use = `${LL('Prostora v napravi še','Free on this device')}: ${mb(Math.max(0, e.quota - (e.usage || 0)))}`; } }catch(_){}
@@ -3192,14 +3226,16 @@ async function offRender(){ const M = $x('offMgr'); if (!M) return;
     if (a === 'show') regShow(r); else if (a === 'upd') regDownload(r, true);
     else if (a === 'ren'){ const n = prompt(LL('Ime območja','Area name'), r.name); if (n && n.trim()){ r.name = n.trim().slice(0, 40); saveReg(); offRender(); } }
     else if (a === 'del'){ if (bt.dataset.sure){ regDelete(r); } else { bt.dataset.sure = 1; bt.textContent = LL('Res?','Sure?'); setTimeout(() => { if (bt.isConnected){ delete bt.dataset.sure; bt.textContent = '🗑'; } }, 3000); } } });
-  const ask = (r, urls) => { const i = $x('offInfo'); i.innerHTML = `${esc2(r.name)}: ~${mb(est(urls))} (${urls.length} ${LL('ploščic','tiles')}). <a id="offGo">${LL('Prenesi','Download')}</a> · <a id="offNo">${LL('prekliči','cancel')}</a>`;
+  const ask = async (r, urls) => { const i = $x('offInfo'); i.textContent = '…'; let miss = urls;   // only what is not saved yet counts
+    try{ const k = await caches.open(OCN), m = []; for (const u of urls) if (!(await k.match(u))) m.push(u); miss = m; }catch(_){}
+    i.innerHTML = `${esc2(r.name)}: ~${mb(est(miss))} (${miss.length} ${LL('ploščic','tiles')}${miss.length < urls.length ? `, ${urls.length - miss.length} ${LL('že shranjenih','already saved')}` : ''}). <a id="offGo">${LL('Prenesi','Download')}</a> · <a id="offNo">${LL('prekliči','cancel')}</a>`;
     $x('offGo').onclick = () => regDownload(r); $x('offNo').onclick = () => offMsg(''); };
   $x('offBtn').onclick = async () => { if (job) return; const b = viewBox(), c = map.getCenter(); let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
-    const r = {id: Date.now().toString(36), name: LL('Okolica: ', 'Around ') + nearName(c.lat, c.lng), b, z: 14}; ask(r, regUrls(b, 14, tpl)); };
+    const r = {id: Date.now().toString(36), name: LL('Okolica: ', 'Around ') + nearName(c.lat, c.lng), b, z: 14, tpl}; ask(r, regUrls(b, 14, tpl)); };
   M.querySelectorAll('.offpre button').forEach(bt => bt.onclick = async () => { if (job) return; const rg = bt.dataset.r, b = rangeBox(rg); if (!b) return;
     const old = REG.find(x => x.range === rg); if (old){ regShow(old); return; }
     let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
-    const r = {id: Date.now().toString(36), name: tr(rg), range: rg, b, z: 13}; ask(r, regUrls(b, 13, tpl)); });
+    const r = {id: Date.now().toString(36), name: tr(rg), range: rg, b, z: 13, tpl}; ask(r, regUrls(b, 13, tpl)); });
   M.querySelectorAll('.offmini [data-ri]').forEach(g => g.onclick = () => regShow(REG[+g.dataset.ri]));
   M.querySelectorAll('.offmini [data-pr]').forEach(g => g.onclick = () => { const b = M.querySelector(`.offpre button[data-r="${g.dataset.pr}"]`); if (b) b.click(); });
   const all2 = $x('offAll'); if (all2) all2.onclick = () => regShowAll();
@@ -3229,6 +3265,17 @@ function regShowAll(){ if (!REG.length) return; closeSettingsWin();
   map.fitBounds([[W, S], [E, N]], {padding: 40, duration: 900}); }
 const esc2 = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 window.offRender = offRender; offRender();
+// 📴 no connection: no "retry" - the map simply runs from what is saved; a small note on top says so, and ticks / GPS ✓ wait
+const net = document.createElement('div'); net.id = 'netPill'; document.body.append(net);
+function netUI(){ const off = navigator.onLine === false; document.body.classList.toggle('offline', off);
+  net.textContent = off ? LL(`📴 Brez povezave — način brez signala${REG.length ? ` (${REG.length} ${REG.length === 1 ? 'shranjeno območje' : 'shranjena območja'})` : ''}`, `📴 No connection — offline mode${REG.length ? ` (${REG.length} saved area${REG.length === 1 ? '' : 's'})` : ''}`) : ''; }
+addEventListener('offline', netUI);
+addEventListener('online', () => { netUI(); net.textContent = LL('✓ Spet povezano — pošiljam spremembe', '✓ Back online — sending changes'); document.body.classList.add('offline', 'netback');
+  setTimeout(() => document.body.classList.remove('offline', 'netback'), 3500); });
+netUI();
+const netCss = document.createElement('style'); netCss.textContent = `#netPill{display:none;position:fixed;z-index:27;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#37474f;color:#fff;border-radius:999px;padding:6px 13px;font:600 13px system-ui,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.25);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+body.offline #netPill{display:block}body.netback #netPill{background:#2e7d32}body.offline.gpson #gpsPill{top:calc(46px + env(safe-area-inset-top))}`;
+document.head.append(netCss);
 // fresh list (sizes, storage) every time the settings window opens
 addEventListener('load', () => { const w = document.getElementById('setWin'); if (w) new MutationObserver(() => { if (w.classList.contains('on')) offRender(); }).observe(w, {attributes: true, attributeFilter: ['class']}); });
 const offCss = document.createElement('style'); offCss.textContent = `#offMgr .offh{font-weight:700;margin:10px 0 4px}

@@ -11,5 +11,15 @@
     "useLegacyBridge": true,
     "backgroundColor": "#0e3a86",
     "appendUserAgent": " Dvat2000App"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 12000,
+      "launchAutoHide": true,
+      "launchFadeOutDuration": 300,
+      "backgroundColor": "#0e3a86",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_CROP"
+    }
   }
 }

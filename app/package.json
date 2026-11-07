@@ -7,7 +7,8 @@
     "@capacitor/android": "6.2.1",
     "@capacitor/core": "6.2.1",
     "@capacitor/local-notifications": "6.1.3",
-    "@capacitor-community/background-geolocation": "1.2.26"
+    "@capacitor-community/background-geolocation": "1.2.26",
+    "@capacitor/splash-screen": "6.0.4"
   },
   "devDependencies": {
     "@capacitor/cli": "6.2.1"
