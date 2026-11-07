@@ -32,7 +32,7 @@ function buildGraph(ways, marked){
   const eu=[], ev=[], ew=[], el=[], ey=[], W=[];
   for (const w of ways){
     const g = (w.geometry||[]).filter(Boolean); if (g.length < 2) continue;
-    if (isClosed(w.tags||{}, g)) continue;
+    if (isClosed(w.tags||{}, g) || (FIX.closedIds && FIX.closedIds.has(w.id))) continue;
     const t = w.tags||{}, kind = wayKind(t, marked.has(w.id)), f = wayFactor(t, kind), wi = W.length;
     W.push({id:w.id, kind, sac:SACN[t.sac_scale]||0, name:t.name||'', vis:/^(bad|horrible|no)$/.test(t.trail_visibility||''), rel:w.rel||null});
     let p = nid(g[0].lat, g[0].lon);
@@ -792,13 +792,28 @@ window.peakRoutesUI = async function(id){
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
     if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=(r.start.kind==='hut'?r.start.name:'')||hutNear(r.start)||r.start.name||relStartName(r,p);
     const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); });
+  // admin fixes (account.js, table "fixes"): hide a wrong route, correct its T-grade / via ferrata / name, add a note
+  const FXR=(window.FIXES&&window.FIXES.route)||{};
+  res.routes=res.routes.filter(r=>{ r.key=routeKey(p,r); const f=FXR[r.key]; if(!f) return true; r.fix=f;
+    if(f.t) r.stats.sac=+f.t; if(f.f!=null) r.stats.ferrata=!!f.f; return !f.hide||window.ADMIN; });
+  if(!res.routes.length){ RT=null; setRoutesLayer(); c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Ni poti.</div>`; return; }
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };
 window.rerenderRoutes = () => { if (RT) renderRoutes(); };
+// a route's key for admin fixes: peak · start point (~10 m) · its name (relation / ferrata / start)
+const routeKey=(p,r)=>{ const ri=r.rel!=null?r.rel:null, nm=ri!=null&&RELS[ri]?relName(RELS[ri]):r.fname||'';
+  return `${p.id}|${r.start.lat!=null?r.start.lat.toFixed(4)+','+r.start.lon.toFixed(4):'?'}|${nm}`.slice(0,200); };
+window.adminRoute=()=>{ if(RT&&window.adminRouteEdit) window.adminRouteEdit(RT.peak, RT.routes[RT.sel]); };
+// fixes changed (account.js): rebuild the trail network on next use, redraw the open routes
+window.trailsFixesChanged=()=>{ G=null; if(RT) window.peakRoutesUI(RT.peak.id); };
+// way under a map click (admin: close a path)
+window.adminWayAt=(la,lo)=>{ if(!G||!inG(la,lo)) return null; const i=nearestNode(G,la,lo,40,0,false); if(i<0) return null;
+  for(let q=G.off[i];q<G.off[i+1];q++){ const w=G.W[G.wy[q]]; if(w&&w.kind!=='g'&&w.id) return {id:w.id,name:w.name||'',kind:w.kind,lat:G.lat[i],lon:G.lon[i]}; } return null; };
 // difficulty class of a route / peak (used by the weather rating), as PZS marks paths in Slovenia: 1 lahka (T1–T2), 2 zahtevna (T3),
 // 3 zelo zahtevna (T4–T6 or ferrata) - OSM in Slovenia tags the 'zelo zahtevna' paths (Triglav, Jalovec, Mangart ...) mostly as T4
 window.routeClass = r => r ? (r.stats.ferrata || r.stats.sac >= 4 ? 3 : r.stats.sac >= 3 ? 2 : 1) : null;
+window.selRoute = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? RT.routes[RT.sel] : null;
 window.selRouteClass = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? window.routeClass(RT.routes[RT.sel]) : null;
 // tools/peak_tech.js: routes of a peak without touching the UI
 window.__peakTech = async function(id){ const p=byId[id]; if(!p||p.lat==null) return null;
@@ -855,11 +870,12 @@ function renderRoutes(){
   c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       const ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null;
-      return `<div class="ri${i===RT.sel?' on':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}</div>
+      return `<div class="ri${i===RT.sel?' on':''}${r.fix&&r.fix.hide?' rhid':''}" data-i="${i}"><div><b>iz ${r.start.name.replace(/^pri /,'')}</b>${r.huts.length?` <span class="via">čez ${r.huts.slice(0,2).join(', ')}</span>`:''}${r.fix&&r.fix.hide?' <span class="via">(skrita — admin)</span>':''}</div>
+        ${r.fix&&r.fix.name?`<div class="rp">✎ ${esc(r.fix.name)}</div>`:''}${r.fix&&r.fix.note?`<div class="rnote2">ⓘ ${esc(r.fix.note)}</div>`:''}
         ${!R&&r.fname?`<div class="rp">⛓ ${esc(r.fname)}</div>`:''}${R||s.pzs>0.6?`<div class="rp">${s.pzs>0.6||relPZS(R)?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span>':''}${R?` ${esc(relName(R))}${R.ref&&R.name?` <span class="via">(${esc(R.ref)})</span>`:''}`:' markirana pot'}</div>`:''}
         <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}${profStats(RT.routes[RT.sel].P)}</div>`:'')+
-    `<div class="rb"><button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button><button onclick="routeClimbed()" title="Odkljukaj vrh in shrani to pot kot tvojo">✓ Šel sem po tej poti</button></div>
+    `<div class="rb">${window.ADMIN?'<button onclick="adminRoute()">🛠 Uredi pot</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button><button onclick="routeClimbed()" title="Odkljukaj vrh in shrani to pot kot tvojo">✓ Šel sem po tej poti</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
   c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }

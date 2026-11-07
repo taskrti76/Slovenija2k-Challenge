@@ -188,14 +188,20 @@
   #snowleg.min{width:auto;padding:5px 8px}
   #snowleg.min .lb,#snowleg.min #snowlegdate,#snowleg.min .lt{display:none}
   #snowleg.dragging{opacity:.85}
-  @media (max-width:700px){#snowleg{bottom:132px;right:8px}}
   #hleg{display:none;position:absolute;right:12px;bottom:118px;width:max-content;min-width:calc(150px + 40px * var(--ui,1));background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);
     border-radius:10px;padding:7px 10px 6px;font-size:calc(12px * var(--ui,1));color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:5}
   #hleg .lh{display:flex;align-items:center;gap:5px;cursor:move;user-select:none}#hleg .lh b{white-space:nowrap}#hleg .lh .u{color:var(--mute);font-size:.9em}
   #hleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:calc(15px * var(--ui,1));line-height:1;padding:2px 4px;cursor:pointer}
   #hleg,#snowleg{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}#hleg.dragging,#snowleg.dragging{cursor:grabbing}
   #hleg.min{width:auto;min-width:0;padding:5px 8px}#hleg.min .lb,#hleg.min .u,#hleg.min .lt{display:none}#hleg.dragging{opacity:.85}
+  /* legends look like the map buttons (2D, location …): white, dark text, the same thin ring; they sit in the top row, left of the
+     button column, both on the same line */
+  #hleg,#snowleg{top:10px;bottom:auto;right:54px;background:#fff;color:#333;border:0;border-radius:6px;box-shadow:0 0 0 2px rgba(0,0,0,.1);backdrop-filter:none}
+  #hleg .lh button,#snowleg .lh button,#hleg .lh .u,#snowleg #snowlegdate,#snowleg .sl,#snowleg .sl3,#hleg .hl{color:#555}
+  #hleg.min,#snowleg.min{height:29px;box-sizing:border-box;display:flex;align-items:center;padding:0 6px}#hleg.min .lh,#snowleg.min .lh{width:100%}
+  @media (max-width:700px){#hleg,#snowleg{top:calc(10px + env(safe-area-inset-top));bottom:auto;right:52px}}
   #drawBtn{display:none!important}   /* drawing is in the round ☰ menu (PC) and the tab bar (phone) */
+  .ri.rhid{opacity:.5}.rnote2{font-size:.88em;color:#8a5a00;margin-top:2px}
   .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
   .pst{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:calc(11px * var(--ui,1));color:var(--mute);margin-top:3px;line-height:1.35}.pst b{color:var(--ink,inherit)}
   .pst i{display:inline-block;width:10px;height:7px;border-radius:2px;margin-right:3px;vertical-align:0}.pslc{opacity:.85}
@@ -204,7 +210,7 @@
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
   body.in360 #hleg{display:none!important}
-  @media (max-width:700px){#hleg{bottom:132px;right:8px} body.pop #hleg,body.pop #snowleg{display:none!important}}
+  @media (max-width:700px){body.pop #hleg,body.pop #snowleg{display:none!important}}
   /* 360 view */
   #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
   body.in360 #v360{display:block}
@@ -265,10 +271,10 @@
   .hlp{font-size:.82em;color:var(--mute);margin-top:6px}.hlp summary{cursor:pointer}
   @media (max-width:700px){
     #dprof{display:none!important}
-    :root{--tab:calc(58px + env(safe-area-inset-bottom))}
+    :root{--tab:env(safe-area-inset-bottom)}   /* no tab bar any more: one red button in the middle (account.js #fab) */
     .dsk{display:none!important}
     .panel,#drawer,.card,.maplibregl-popup-content{zoom:1!important}
-    #tabbar{display:flex;position:absolute;left:0;right:0;bottom:0;height:var(--tab);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box;
+    #tabbar{display:none!important;position:absolute;left:0;right:0;bottom:0;height:var(--tab);padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);box-sizing:border-box;
       background:var(--panel);backdrop-filter:blur(10px);border-top:1px solid var(--line);z-index:12}
     #tabbar button{flex:1;border:0;background:none;color:var(--mute);font:600 calc(11.5px * var(--ui,1)) system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
     #tabbar .ic{font-size:calc(20px * var(--ui,1));line-height:1}
@@ -630,7 +636,7 @@ new MutationObserver(updH).observe(document.getElementById('snowleg'),{attribute
   try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; }
 // legends (snow, height) stay clear of the peak list and its red tab on the right (unless you dragged them somewhere yourself)
 function placeLegends(){ for(const L of [document.getElementById('snowleg'),hleg]){ if(!L||L.dataset.moved) continue;
-    let right=innerWidth>700?12:8;
+    let right=innerWidth>700?54:52;   // left of the map button column
     if(innerWidth>700){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
       if(dr&&dr.classList.contains('open')) right=Math.max(right,innerWidth-dr.getBoundingClientRect().left+12);
       if(pt&&getComputedStyle(pt).display!=='none'){ const r=pt.getBoundingClientRect(); if(r.width) right=Math.max(right,innerWidth-r.left+10); } }
@@ -1280,7 +1286,7 @@ map.on('load',()=>{
   }
   applyScale(); refresh();
 });
-const refreshMap=()=>{const s=map.getSource('peaks'); if(s) s.setData(fc());};
+const refreshMap=()=>{const s=map.getSource('peaks'); if(s) s.setData(fc());}; window.refreshPeaksMap=()=>{ refreshMap(); refresh(); };
 
 // --- popup
 let popup=null;
@@ -1303,6 +1309,7 @@ function openPeak(id,fly){
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
   const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
+  if(window.adminPeakBox&&window.ADMIN) box.append(adminPeakBox(p));   // admin: correct position / height / name
   if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly

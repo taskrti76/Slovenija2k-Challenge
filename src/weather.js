@@ -66,7 +66,16 @@ const WINTER_K = [1.5, 1, 0.5];
 const CLS_N = () => [L('lahka','easy'), L('zahtevna','demanding'), L('zelo zahtevna','very demanding')];
 window.peakClass = p => (window.selRouteClass && window.selRouteClass(p.id)) || (p.tech && p.tech.c) || null;
 const chill = (T, V) => T <= 10 && V > 4.8 ? 13.12 + 0.6215*T - 11.37*V**0.16 + 0.3965*T*V**0.16 : T;
-function day(s, d, elev, cls){
+// hardest bit of the way (T-grade 1–6, via ferrata) - snow is judged by it: the selected route, else the peak's easiest route
+window.peakTG = p => { const r = window.selRoute && window.selRoute(p.id); if (r) return {t: r.stats.sac || 2, f: !!r.stats.ferrata};
+  const t = p.tech || {}; return {t: t.s || [0, 2, 3, 5][t.c || 0] || 2, f: !!t.f}; };
+// snow on the way, points off by depth (1–5 / 5–15 / 15–30 / 30–50 / > 50 cm) and the way's T-grade: a trodden or hard snow cover on
+// an easy path is fine even at 50 cm, a few cm on T4–T6 (over ice, on ledges and cables) are serious
+const SNOW_T = {1: [0, 3, 8, 15, 22], 2: [0, 4, 10, 18, 25], 3: [6, 14, 24, 34, 42], 4: [15, 35, 50, 62, 72], 5: [22, 45, 65, 78, 88], 6: [30, 58, 80, 95, 100]};
+const WINTER_SNOW = [1.3, 1, 0.55];   // winter experience: none / easy winter tours / winter alpinism
+const snowPts = (cm, tg, winter) => { if (!(cm >= 1)) return 0; const b = cm < 5 ? 0 : cm < 15 ? 1 : cm < 30 ? 2 : cm < 50 ? 3 : 4, t = tg.f ? 6 : Math.min(6, Math.max(1, tg.t || 2));
+  return Math.min(100, Math.round(SNOW_T[t][b] * (WINTER_SNOW[winter ?? 1] ?? 1))); };
+function day(s, d, elev, cls, tg){
   const ci = Math.min(3, Math.max(1, cls || 1)) - 1, pr = window.PROFILE || {}, wk = WINTER_K[pr.winter ?? 1] ?? 1;
   const nh = s.hours.length, all = s.hours.map((h, i) => d*nh + i);
   const win = all.filter((k, i) => s.hours[i] >= DAY_H[0] && s.hours[i] <= DAY_H[1]), pm = all.filter((k, i) => s.hours[i] >= PM_H && s.hours[i] <= DAY_H[1]);
@@ -101,7 +110,8 @@ function day(s, d, elev, cls){
   if (o.c != null) add(o.cloudLM ? (o.c >= 90 ? 20 : o.c >= 70 ? 8 : 0) : (o.c >= 95 ? 12 : o.c >= 85 ? 5 : 0),
     o.c >= 90 ? 'vrh v oblakih' : 'precej oblakov', o.c >= 90 ? 'summit in cloud' : 'quite cloudy', 'cloud');
   if (o.fl != null && o.fl < elev && o.p >= 0.3) add(15, 'sveži sneg', 'fresh snow', 'fresh');
-  if (o.snowcm != null) add(o.snowcm >= 50 ? 25 : o.snowcm >= 10 ? 15 : 0, `zimske razmere (sneg ~${o.snowcm} cm${o.sat ? ', satelit' : ''})`, `winter conditions (snow ~${o.snowcm} cm${o.sat ? ', satellite' : ''})`, 'snow');
+  if (o.snowcm != null){ const g = tg || {t: [0, 2, 3, 5][ci + 1] || 2, f: false}, sp = snowPts(o.snowcm, g, pr.winter);   // already weighted by T-grade + experience
+    if (sp > 0) o.pen.push([sp, L(`sneg ~${o.snowcm} cm na ${g.f ? 'feratni' : 'T' + g.t} poti${o.sat ? ' (satelit)' : ''}`, `snow ~${o.snowcm} cm on a ${g.f ? 'via ferrata' : 'T' + g.t} route${o.sat ? ' (satellite)' : ''}`)]); }
   // avalanche danger from ARSO's bulletin (avalanche.json): counts when there is snow on the way or the level is 3+
   const av = window.avaAt && s.lat != null ? window.avaAt(s.lat, s.lon, elev, s.days[d]) : null;
   if (av){ o.ava = av; if ((o.snowcm || 0) >= 10 || av.level >= 3) add([0, 0, 5, 20, 40, 60][av.level] || 0, `lavinska nevarnost ${av.level} (ARSO)`, `avalanche danger ${av.level} (ARSO)`, 'snow'); }
@@ -181,11 +191,11 @@ function big(p, s, D, DD, sel){
 // --- popup block
 // best day of the next days for one peak (peak of the week)
 window.wxBestDay = async p => { const s = await seriesFor(p); if (!s) return null; const d0 = Math.max(0, s.days.indexOf(today())); let b = null;
-  s.days.forEach((dd, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o && (!b || o.score > b.score)) b = {day:dd, score:o.score, r:o.r}; }); return b; };
+  s.days.forEach((dd, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2, window.peakTG(p)); if (o && (!b || o.score > b.score)) b = {day:dd, score:o.score, r:o.r}; }); return b; };
 
 // rating of one day (YYYY-MM-DD) for one peak (notifications: weather on a group plan's day)
 window.wxDayScore = async (p, dd) => { const s = await seriesFor(p); if (!s) return null; const i = s.days.indexOf(dd); if (i < 0) return null;
-  const o = day(s, i, topH(p), window.peakClass(p) || 2); return o ? {score:o.score, r:o.r} : null; };
+  const o = day(s, i, topH(p), window.peakClass(p) || 2, window.peakTG(p)); return o ? {score:o.score, r:o.r} : null; };
 
 // --- avalanche danger: ARSO's avalanche bulletin (tools/avalanche_fetch.py -> avalanche.json, in the season ~December–May)
 // Bulletin regions are matched to our mountain ranges by name; a level can differ above / below an elevation.
@@ -223,7 +233,7 @@ window.wxBox = p => {
   seriesFor(p).then(s => {
     if (!s){ box.querySelector('.wxs').textContent = L('Napoved trenutno ni dosegljiva.','Forecast not available right now.'); return; }
     const d0 = Math.max(0, s.days.indexOf(today()));
-    let D = [], DD = []; const mk = () => { D = []; DD = []; s.days.forEach((d, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o){ D.push(o); DD.push(i); } }); }; mk(); let sel = 0;
+    let D = [], DD = []; const mk = () => { D = []; DD = []; s.days.forEach((d, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2, window.peakTG(p)); if (o){ D.push(o); DD.push(i); } }); }; mk(); let sel = 0;
     const draw = () => {
       const o = D[sel], si = DD[sel], nh = s.hours.length, hrs = [6, 9, 12, 15, 18, 21];
       box.innerHTML = `<div class="wxh">${L('Vreme na vrhu','Summit weather')} · ${Math.round(topH(p))} m<button class="wxbig" title="${L('Povečaj','Enlarge')}">⤢ ${L('Povečaj','Enlarge')}</button></div>
@@ -272,7 +282,7 @@ if (grp){
     opt.querySelectorAll('button').forEach(b => b.onclick = () => { dsel = +b.dataset.i; paint(); });
     const d = di + dsel;
     PEAKS.forEach((p, id) => { if (p.lat == null) return; const main = p.rank != null || p.is_sub === 'no';
-      const s = main ? fromWX(p) : null, o = s ? day(s, d, topH(p), (p.tech && p.tech.c) || 2) : null;
+      const s = main ? fromWX(p) : null, o = s ? day(s, d, topH(p), (p.tech && p.tech.c) || 2, window.peakTG(p)) : null;
       try{ map.setFeatureState({source:'peaks', id}, {wx: o ? o.r : -1}); }catch(_){} });
   };
   const addLayer = () => { if (map.getLayer('pk-wx')) return;

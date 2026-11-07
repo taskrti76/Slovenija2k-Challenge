@@ -192,11 +192,12 @@ window.onTicks = (ids, on) => { if (!S) return; fresh(); ids.forEach(id => SY.di
 window.onPrefs = () => { put(PK, Date.now()); if (S){ setState('wait'); schedule(); } };
 window.onMyRoutes = () => { if (S){ setState('wait'); schedule(); } };
 async function syncProfile(){
-  let r; try{ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name,prefs,prefs_at,public,listed`); }
+  let r; try{ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name,prefs,prefs_at,public,listed,role`); }
   catch(e){ try{ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name,prefs,prefs_at,public`); }   // 04 not run yet
     catch(e2){ r = await call(`/rest/v1/profiles?id=eq.${S.uid}&select=username,display_name`); } }   // 02 not run yet
   const pr = r && r[0]; if (!pr) return;
-  Object.assign(S, {username: pr.username || S.username, display_name: pr.display_name, public: !!pr.public, listed: pr.listed !== false}); put(AK, S);
+  Object.assign(S, {username: pr.username || S.username, display_name: pr.display_name, public: !!pr.public, listed: pr.listed !== false, role: pr.role || 'user'}); put(AK, S);
+  setAdmin();
   if (!('prefs_at' in pr) || !window.PREFS) return;
   const lt = get(PK) || 0, st = pr.prefs_at ? Date.parse(pr.prefs_at) : 0;
   if (pr.prefs && st > lt){ PREFS.set(pr.prefs); put(PK, st); }
@@ -308,20 +309,26 @@ const css = document.createElement('style'); css.textContent = `
 #accBox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 #accBox .danger{border-color:#d9a5a1;color:#b3261e}
 #accBox #accSoc{width:100%;text-align:left}
-#fab{position:absolute;z-index:9;left:calc(var(--lw,0px) + 16px);bottom:58px;width:54px;height:54px;transition:left .25s}
-#fab .fb{position:absolute;inset:0;border-radius:50%;border:0;background:#1d2321;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .2s;z-index:2}
-#fab .fb:hover{filter:brightness(1.15)}#fab.open .fb{transform:rotate(90deg);background:#c62828}#fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
-#fab .fo{position:absolute;left:3px;top:3px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
+#fab{position:absolute;z-index:9;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));width:58px;height:58px;margin-left:-29px}
+#fab .fb{position:absolute;inset:0;border-radius:50%;border:0;background:#c62828;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .2s,opacity .25s,background .2s;z-index:2;touch-action:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;touch-action:none;padding:0}
+#fab .fb .fi{line-height:1}#fab .fb .fl{font:700 10px system-ui,sans-serif;letter-spacing:.02em;margin-top:2px}
+#fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
+#fab.open .fb{background:#1d2321}#fab.open .fb .fl,#fab.open .fb .fi{display:none}#fab .fb .fx{display:none;font-size:26px;line-height:1}#fab.open .fb .fx{display:block}
+@media (min-width:701px){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible{opacity:1;transform:none} #fab .fb .fl{display:none} }
+#fab .fo{position:absolute;left:5px;top:5px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;transform:translate(0,0) scale(.3);opacity:0;transition:transform .22s cubic-bezier(.3,1.4,.6,1),opacity .15s;padding:0}
 #fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
 #fab .fo .oi{font-size:21px;line-height:1}#fab .fo .ol{position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);white-space:nowrap;font:600 11px system-ui,sans-serif;color:#1d2321;
-  background:rgba(255,255,255,.92);border-radius:6px;padding:1px 5px;pointer-events:none}
+  background:rgba(255,255,255,.94);border-radius:6px;padding:1px 5px;pointer-events:none}
+#fab .fo.up .ol{top:auto;bottom:calc(100% + 2px)}
 #fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}
 #fab.open .fo:hover,#fab.open .fo:focus-visible,#fab.open .fo:active{background:#1976d2;color:#fff;z-index:6;transform:translate(var(--x),var(--y)) scale(1.18);box-shadow:0 6px 18px rgba(25,118,210,.45);outline:none}
 #fab .fo:hover .ol,#fab .fo:focus-visible .ol,#fab .fo:active .ol{background:#1976d2;color:#fff}
-#fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.18);display:none}#fabBg.on{display:block}
+#fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.22);display:none}#fabBg.on{display:block}
 body.in360 #fab,body.drawing #fab{display:none}
-@media (max-width:700px){ #fab{left:calc(12px + env(safe-area-inset-left));bottom:calc(var(--tab) + 14px)} body.menu #fab{display:none} }
+@media (max-width:700px){ #fab{width:66px;height:66px;margin-left:-33px;bottom:calc(16px + env(safe-area-inset-bottom))} #fab .fo{left:9px;top:9px} body.menu #fab,body.dopen #fab{display:none}
+  #fab .fb::before{content:'';position:absolute;top:7px;width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.7)} }
 #accBox .ts{margin-top:10px;min-height:65px}
 #accBox .me{display:flex;gap:12px;align-items:center;margin:2px 0 6px}
 #accBox .av{width:42px;height:42px;border-radius:50%;background:#1565c0;color:#fff;display:flex;align-items:center;justify-content:center;font:700 1.15em system-ui,sans-serif;flex:none}
@@ -467,33 +474,44 @@ function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accFor
 // ---------- ◉ round menu (bottom left of the map): settings, account, leaderboard, friends, groups, guide ----------
 // tap -> the options pop out around it on an arc; tap outside / Esc / the button again -> closed
 const fab = document.createElement('div'); fab.id = 'fab';
-fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"><span class="fi">☰</span></button>`;
-document.body.append(fab);
+const PHN = () => innerWidth <= 700;
+const fabFace = () => { const b = fab.querySelector('.fb'); if (!b) return; const n = b.querySelector('.bdg');
+  b.innerHTML = PHN() ? `<span class="fi">▲</span><span class="fl">${L('Vrhovi','Peaks')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
+  b.title = PHN() ? L('Tapni = meni · povleci gor = seznam vrhov','Tap = menu · swipe up = peak list') : L('Meni','Menu'); };
+fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"></button>`;
+document.body.append(fab); fabFace(); addEventListener('resize', fabFace);
+{ const dr = document.getElementById('drawer'); if (dr) new MutationObserver(() => document.body.classList.toggle('dopen', dr.classList.contains('open'))).observe(dr, {attributes: true, attributeFilter: ['class']}); }
 const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.append(fabBg);
-const fabItems = () => [['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
+const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'), () => { document.getElementById('drawer').classList.remove('open'); if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.add('menu'); }]] : []),
+  ['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
   ['👤', L('Moj profil','My profile'), () => meOpen()],
-  ...(innerWidth > 700 ? [['✏️', window.DRAW_ON ? L('Končaj risanje','Stop drawing') : L('Riši pot','Draw route'), () => { const b = document.getElementById('drawBtn'); if (b) b.click(); }]] : []),
+  ['✏️', window.DRAW_ON ? L('Končaj risanje','Stop drawing') : L('Riši pot','Draw route'), () => window.DRAW_ON ? stopDraw() : startDraw()],
   ['🗓', L('Načrtovalnik','Trip planner'), () => window.planOpen && planOpen()],
   ['🏆', L('Lestvica','Leaderboard'), () => leaderboard()],
   ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
   ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
-  ['❓', L('Vodič','Guide'), () => window.startTour && startTour()]];
+  ...(PHN() ? [['❓', L('Vodič','Guide'), () => window.startTour && startTour()]] : []),
+  ...(window.ADMIN ? [['🛠', L('Admin','Admin'), () => window.adminPanel && adminPanel()]] : [])];
 function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
-// positions on a quarter circle up / right of the button (0° = right, -90° = up); more than 4 options -> two rings
-// rings of 100 / 178 / 256 px hold 3 / 4 / 5 bubbles (≥ ~75 px apart, room for the label under each)
-function fabPos(n){ const ring = (m, R, a0, a1) => [...Array(m)].map((_, k) => [R, m > 1 ? a0 + (a1 - a0) * k / (m - 1) : (a0 + a1) / 2]);
-  if (n <= 3) return ring(n, 112, -90, -14);
-  const cap = [3, 4, 5], R = [100, 178, 256], out = []; let left = n;
-  for (let i = 0; i < 3 && left > 0; i++){ const m = Math.min(cap[i], left); out.push(...ring(m, R[i], i ? -84 : -90, i ? -8 : -14));   /* not down to 0°: the last label stays above the tab bar */ left -= m; }
-  return out; }
+// bubbles on symmetric arcs above the centred button: up to 4 on the inner arc, the rest on the outer one, each arc spread evenly
+// from left to right (170° … 10°); the outer arc's radius fits the screen width; outer labels sit above their bubbles
+function fabPos(n){ const Ro = Math.min(196, innerWidth / 2 - 36), Ri = Math.min(108, Ro - 64), arc = (m, R, up) => [...Array(m)].map((_, k) => {
+    const sp = m > 1 ? Math.min(160, 40 * (m - 1)) : 0, a = -90 - sp / 2 + (m > 1 ? sp * k / (m - 1) : 0); return [R, a, up]; });
+  if (n <= 4) return arc(n, Math.max(96, Ri), false);
+  const inner = n <= 6 ? 3 : 4; return arc(inner, Ri, false).concat(arc(n - inner, Ro, true)); }
 function fabOpen(){ const it = fabItems(), P = fabPos(it.length);
   fab.querySelectorAll('.fo').forEach(o => o.remove());
   it.forEach(([ic, lab, fn, b], k) => { const R0 = P[k][0], a = P[k][1] * Math.PI / 180, o = document.createElement('button');
-    o.className = 'fo'; o.style.setProperty('--x', Math.round(Math.cos(a) * R0) + 'px'); o.style.setProperty('--y', Math.round(Math.sin(a) * R0) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
+    o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(Math.cos(a) * R0) + 'px'); o.style.setProperty('--y', Math.round(Math.sin(a) * R0) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
     o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
     o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
   fabBg.classList.add('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
-fab.querySelector('.fb').onclick = e => { e.stopPropagation(); fab.classList.contains('open') ? fabClose() : fabOpen(); };
+let fabY = null, fabSw = false;
+fab.querySelector('.fb').addEventListener('pointerdown', e => { fabY = e.clientY; fabSw = false; try { e.currentTarget.setPointerCapture(e.pointerId); } catch(_){} });
+fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null || fabSw || !PHN()) return; if (fabY - e.clientY > 30){ fabSw = true; fabClose();
+  if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.remove('menu'); document.getElementById('drawer').classList.add('open'); } });
+addEventListener('pointerup', () => { fabY = null; });
+fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
 window.openMenu = fabOpen;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
@@ -912,6 +930,75 @@ async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC()
   $a('meFr').onclick = () => soOpen('fr'); $a('meGr').onclick = () => soOpen('gr'); bind(); }
 window.showMe = meOpen;
 
+// ---------- 🛠 admin: corrections in the app (supabase/08_admin.sql, table "fixes") ----------
+// Everybody loads the fixes and the page applies them: peak position / height / name, route T-grade / via ferrata / name / note /
+// hidden, closed paths (left out of routing). Only an admin (profiles.role = 'admin') can write them.
+const FXK = 'dvat3d_fixes';
+window.FIXES = {peak: {}, route: {}, closed: {}};
+const PEAK0 = {};   // original values, so a removed fix can be undone in this session
+function applyFixes(F, first){ const old = window.FIXES; window.FIXES = F;
+  for (const id of new Set([...Object.keys(old.peak), ...Object.keys(F.peak)])){ const p = byId[id]; if (!p) continue;
+    if (!PEAK0[id]) PEAK0[id] = {lat: p.lat, lon: p.lon, elev: p.elev, name: p.name};
+    const f = F.peak[id] || {}; Object.assign(p, PEAK0[id]); if (f.lat != null && f.lon != null){ p.lat = +f.lat; p.lon = +f.lon; p.coord_status = 'ok'; } if (f.elev) p.elev = +f.elev; if (f.name) p.name = f.name; }
+  window.DATA_FIX = window.DATA_FIX || {}; const ids = new Set(Object.keys(F.closed).map(Number)), was = window.DATA_FIX.closedIds;
+  window.DATA_FIX.closedIds = ids;
+  if (!first || Object.keys(F.peak).length) window.refreshPeaksMap && window.refreshPeaksMap();
+  if (!first && (ids.size !== (was ? was.size : 0) || [...ids].some(x => !was.has(x)) || JSON.stringify(old.route) !== JSON.stringify(F.route))) window.trailsFixesChanged && trailsFixesChanged(); }
+function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}}; for (const r of rows || []) if (F[r.kind]) F[r.kind][r.key] = Object.assign({}, r.data, {_at: r.updated_at}); return F; }
+{ const c = get(FXK); if (c) applyFixes(fixesFrom(c), true); }
+async function loadFixes(){ try{ const rows = await call('/rest/v1/fixes?select=kind,key,data,updated_at&limit=5000', {auth: false}); put(FXK, rows); applyFixes(fixesFrom(rows)); }catch(_){} }   // 08 not run yet -> nothing
+setTimeout(loadFixes, 1200);
+function setAdmin(){ const a = !!(S && S.role === 'admin'); if (a === !!window.ADMIN) return; window.ADMIN = a; window.rerenderRoutes && rerenderRoutes(); }
+setAdmin();
+async function saveFix(kind, key, data, del){
+  if (del) await call(`/rest/v1/fixes?kind=eq.${kind}&key=eq.${encodeURIComponent(key)}`, {method: 'DELETE', headers: {Prefer: 'return=minimal'}});
+  else await call('/rest/v1/fixes?on_conflict=kind,key', {method: 'POST', headers: {Prefer: 'resolution=merge-duplicates,return=minimal'}, body: [{kind, key, data}]});
+  await loadFixes(); }
+// peak window: correct position (also by clicking on the map), height, name
+window.adminPeakBox = p => { const box = document.createElement('div'); box.className = 'admbox';
+  const f = window.FIXES.peak[p.id] || {};
+  box.innerHTML = `<details><summary>🛠 ${L('Uredi vrh (admin)','Edit peak (admin)')}${f._at ? ' · ' + L('popravljeno','fixed') : ''}</summary>
+    <label>${L('Ime','Name')}<input class="an" value="${esc(p.name)}"></label><label>${L('Višina (m)','Height (m)')}<input class="ae" type="number" step="0.1" value="${p.elev}"></label>
+    <label>Lat / lon<span class="ll"><input class="ala" type="number" step="0.000001" value="${p.lat}"><input class="alo" type="number" step="0.000001" value="${p.lon}"></span></label>
+    <div class="ab"><button class="amv">📍 ${L('Klikni novo lego na karti','Click the new spot on the map')}</button></div>
+    <div class="ab"><button class="asv">💾 ${L('Shrani za vse','Save for everybody')}</button>${f._at ? `<button class="ad">↺ ${L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am"></div></details>`;
+  const q = c => box.querySelector(c), msg = t => { q('.am').textContent = t; };
+  q('.amv').onclick = () => { msg(L('Klikni na karto …','Click on the map …')); map.getCanvas().style.cursor = 'crosshair';
+    map.once('click', e => { map.getCanvas().style.cursor = ''; q('.ala').value = e.lngLat.lat.toFixed(6); q('.alo').value = e.lngLat.lng.toFixed(6); msg(L('Lega izbrana — shrani.','Spot picked — save.')); }); };
+  q('.asv').onclick = async () => { try{ await saveFix('peak', p.id, {name: q('.an').value.trim() || p.name, elev: +q('.ae').value, lat: +q('.ala').value, lon: +q('.alo').value}); toast(L('Vrh popravljen za vse.','Peak fixed for everybody.')); }catch(e){ msg(errText(e)); } };
+  const d = q('.ad'); if (d) d.onclick = async () => { try{ await saveFix('peak', p.id, null, true); toast(L('Popravek odstranjen.','Fix removed.')); }catch(e){ msg(errText(e)); } };
+  return box; };
+// route card: grade, via ferrata, name, note, hide
+window.adminRouteEdit = (p, r) => { const f = r.fix || {};
+  modal(`<h3>🛠 ${L('Uredi pot','Edit route')}</h3><div class="sub">${esc(p.name)} · ${L('iz','from')} ${esc(((r.start && r.start.name) || '').replace(/^pri /, ''))}</div>
+    <div class="admform"><label>${L('Najtežje (T)','Hardest (T)')}<select id="afT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${(f.t || r.stats.sac) == t ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+    <label><input type="checkbox" id="afF" ${(f.f != null ? f.f : r.stats.ferrata) ? 'checked' : ''}> ${L('ferata','via ferrata')}</label>
+    <label>${L('Ime poti','Route name')}<input id="afN" maxlength="120" value="${esc(f.name || '')}" placeholder="${L('pusti prazno = iz OSM','empty = from OSM')}"></label>
+    <label>${L('Opomba (ključna mesta, nevarnosti)','Note (key passages, hazards)')}<input id="afO" maxlength="300" value="${esc(f.note || '')}"></label>
+    <label><input type="checkbox" id="afH" ${f.hide ? 'checked' : ''}> ${L('skrij to pot (napačna)','hide this route (wrong)')}</label>
+    <div class="ab"><button class="sb pri" id="afS">💾 ${L('Shrani za vse','Save for everybody')}</button>${r.fix ? `<button class="sb" id="afD">↺ ${L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="afM"></div></div>`);
+  const done = async (del) => { try{ await saveFix('route', r.key, del ? null : {t: +$a('afT').value, f: $a('afF').checked, name: $a('afN').value.trim(), note: $a('afO').value.trim(), hide: $a('afH').checked}, del); closeModal(); toast(L('Pot popravljena za vse.','Route fixed for everybody.')); }
+    catch(e){ $a('afM').textContent = errText(e); } };
+  $a('afS').onclick = () => done(false); const d = $a('afD'); if (d) d.onclick = () => done(true); };
+// admin panel: list of fixes, close a path by clicking it
+window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.peak).map(([k, v]) => ['peak', k, (byId[k] ? byId[k].name : k) + ` · ${v.lat != null ? (+v.lat).toFixed(5) + ', ' + (+v.lon).toFixed(5) : ''}${v.elev ? ' · ' + v.elev + ' m' : ''}`, v._at]),
+    ...Object.entries(F.route).map(([k, v]) => ['route', k, `${k.split('|')[0]} · ${v.hide ? L('skrita','hidden') : 'T' + v.t}${v.f ? ' ferata' : ''}${v.name ? ' · ' + v.name : ''}${v.note ? ' · ' + v.note : ''}`, v._at]),
+    ...Object.entries(F.closed).map(([k, v]) => ['closed', k, `⛔ ${v.name || L('pot brez imena','unnamed path')} (#${k})`, v._at])].sort((a, b) => String(b[3]).localeCompare(String(a[3])));
+  modal(`<h3>🛠 Admin</h3><div class="sub">${L('Popravki veljajo takoj za vse uporabnike.','Fixes apply to everybody at once.')} ${rows.length} ${L('popravkov','fixes')}.</div>
+    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button></div>
+    <div class="admlist">${rows.map(([k, key, t, at]) => `<div class="it"><div><small>${k}</small> ${esc(t)}<br><small>${at ? new Date(at).toLocaleString() : ''}</small></div><button class="sb" data-k="${k}" data-key="${esc(key)}">↺</button></div>`).join('') || `<div class="sub">${L('Še ni popravkov.','No fixes yet.')}</div>`}</div>
+    <div class="sub">${L('Vrh popraviš v njegovem oknu (🛠 Uredi vrh), pot v kartici poti (🛠 Uredi pot).','Fix a peak in its window (🛠 Edit peak), a route in the route card (🛠 Edit route).')}</div>`);
+  card.querySelectorAll('.admlist [data-k]').forEach(b => b.onclick = async () => { try{ await saveFix(b.dataset.k, b.dataset.key, null, true); adminPanel(); }catch(e){ toastErr(errText(e)); } });
+  $a('adClose').onclick = () => { closeModal(); toast(L('Klikni na pot, ki je zaprta …','Click the closed path …')); map.getCanvas().style.cursor = 'crosshair';
+    map.once('click', async e => { map.getCanvas().style.cursor = ''; const w = window.adminWayAt && adminWayAt(e.lngLat.lat, e.lngLat.lng);
+      if (!w){ toastErr(L('Tu ni poti (približaj se in klikni na črto poti).','No path here (zoom in and click the line).')); return; }
+      if (!confirm(L(`Zapri pot »${w.name || 'brez imena'}« (#${w.id}) za vse?`, `Close path "${w.name || 'unnamed'}" (#${w.id}) for everybody?`))) return;
+      try{ await saveFix('closed', String(w.id), {name: w.name, lat: +w.lat.toFixed(6), lon: +w.lon.toFixed(6)}); toast(L('Pot zaprta — poti na vrh se preračunajo.','Path closed — routes are recomputed.')); }catch(err){ toastErr(errText(err)); } }); }; };
+{ const c = document.createElement('style'); c.textContent = `.admbox{margin-top:6px;font-size:.9em}.admbox summary{cursor:pointer;color:#8a5a00}.admbox label{display:block;margin:4px 0}.admbox input{width:100%;box-sizing:border-box;font:inherit;padding:3px 5px}
+.admbox .ll{display:flex;gap:4px}.admbox .ab{display:flex;gap:6px;margin:6px 0}.admbox button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:4px 8px;font:inherit;cursor:pointer}.admbox .am{color:#c62828}
+.admform label{display:block;margin:8px 0}.admform input[type=text],.admform input:not([type]),.admform select{width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #c9d0cc;border-radius:8px}.admform .am{color:#c62828}
+.admlist .it{display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #edf0ee;padding:6px 0}.admlist small{color:#5b6461}`; document.head.append(c); }
+
 // ---------- 🔔 notifications: friends, groups, weather ----------
 // Checked when the page / app opens, every 15 min while it is open or in the background, and when it comes back. A fully closed
 // app gets nothing (that needs a push server). The app shows them as phone notifications, the browser as system notifications
@@ -930,8 +1017,8 @@ async function nCheck(){ if (nBusy || document.visibilityState === 'hidden' && !
   try{
     if (S){
       if (o.fr || o.gi) try{ const b = await rpc('social_badge', {}, true) || {};
-        if (o.fr && (b.requests || 0) > (NS.req || 0)) out.push(['👥 ' + L('Nova prošnja za prijateljstvo', 'New friend request'), L('Odpri ☰ → Prijatelji.', 'Open ☰ → Friends.')]);
-        if (o.gi && (b.invites || 0) > (NS.inv || 0)) out.push(['⛰ ' + L('Novo povabilo v skupino', 'New group invitation'), L('Odpri ☰ → Skupine.', 'Open ☰ → Groups.')]);
+        if (o.fr && (b.requests || 0) > (NS.req || 0)) out.push(['👥 ' + L('Nova prošnja za prijateljstvo', 'New friend request'), L('Odpri meni (rdeči gumb) → Prijatelji.', 'Open the menu (red button) → Friends.')]);
+        if (o.gi && (b.invites || 0) > (NS.inv || 0)) out.push(['⛰ ' + L('Novo povabilo v skupino', 'New group invitation'), L('Odpri meni (rdeči gumb) → Skupine.', 'Open the menu (red button) → Groups.')]);
         NS.req = b.requests || 0; NS.inv = b.invites || 0; }catch(_){}
       if (o.frc) try{ const R = await rpc('circle_ascents', {}, true) || [], seen = NS.asc || {}, lim = new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10);
         for (const r of R){ if (!r.friend || !r.climbed_on || r.climbed_on < lim || !byId[r.peak_id]) continue; const k = r.username + '|' + r.peak_id + '|' + r.climbed_on;

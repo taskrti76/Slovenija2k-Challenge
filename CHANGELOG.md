@@ -2,6 +2,17 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.64 — 2026-11-07
+- Snow in the day rating now scales with the route's difficulty (T1–T6, via ferrata = T6) and winter experience: T1/T2 lose
+  little even at 50 cm, T6 without winter experience drops to ~0 above 15 cm. Uses the selected route's T grade if any.
+- One red button (centre bottom) replaces the phone tab bar: tap = options in symmetric arcs, swipe up = peak list.
+  Computer: same button in the centre, faint until hover; Vodič only on the phone (guide stays in ⚙ Settings).
+- Legends styled like the map buttons, top right next to them.
+- Admin role (supabase/08_admin.sql, table `fixes`): edit peak name/height/position from the peak window, route T grade /
+  ferrata / name / note / hide from the route card, close a trail segment by clicking the map; 🛠 Admin list to undo fixes.
+  Fixes apply for everybody immediately.
+- Guide updated for the red button.
+
 ## web-v0.63 — 2026-11-07
 - Height profile: "⤢ Povečaj" opens it across the screen (readable labels, finer hover, its numbers; Esc / × / click outside).
 - Planner: huts and bivouacs up to 1 km off the way can be the overnight (there and back counts against the day, shown as
