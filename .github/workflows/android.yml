@@ -63,6 +63,9 @@ jobs:
             convert -size ${W}x${H} xc:'#0e3a86' \( ../icon-512.png -resize ${S}x${S} \) -gravity center -composite $f; done
           sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">#0e3a86</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>\n        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>|' $A/src/main/res/values/styles.xml
           grep -n "Splash" $A/src/main/res/values/styles.xml
+          # the map also fills the strip next to the front camera (phone held sideways); the page keeps its buttons clear (safe-area insets)
+          sed -i 's|<resources>|<resources xmlns:tools="http://schemas.android.com/tools">|; s|<item name="windowNoTitle">true</item>|<item name="windowNoTitle">true</item>\n        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>|' $A/src/main/res/values/styles.xml
+          grep -n "Cutout" $A/src/main/res/values/styles.xml
       - name: Build + sign
         run: |
           cd app/android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon -q
