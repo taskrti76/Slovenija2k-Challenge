@@ -135,7 +135,7 @@ const capPlugin = (name, cbMethods = []) => { const C = window.Capacitor; if (!C
   if (C.registerPlugin) return C.registerPlugin(name);
   if (!C.nativePromise) return null;
   return new Proxy({}, {get: (_, m) => (opts, cb) => cbMethods.includes(m) ? Promise.resolve(C.nativeCallback(name, m, opts || {}, cb)) : C.nativePromise(name, m, opts || {})}); };
-const BGL = CAPN ? capPlugin('BackgroundGeolocation', ['addWatcher']) : null, LNO = BGL ? capPlugin('LocalNotifications') : null;
+const BGL = CAPN ? capPlugin('BackgroundGeolocation', ['addWatcher']) : null, LNO = CAPN ? capPlugin('LocalNotifications') : null;
 const hav = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(x)); };
 function gpsFix(l){ gAcc = l.accuracy; gpsUI(); if (!(l.accuracy <= 50)) return;
   let best = null, bd = 50; for (const p of PEAKS){ if (p.lat == null || p.coord_status !== 'ok' || Math.abs(p.lat - l.latitude) > .002) continue;
@@ -473,6 +473,7 @@ const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.a
 const fabItems = () => [['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
   ['👤', L('Moj profil','My profile'), () => meOpen()],
   ...(innerWidth > 700 ? [['✏️', window.DRAW_ON ? L('Končaj risanje','Stop drawing') : L('Riši pot','Draw route'), () => { const b = document.getElementById('drawBtn'); if (b) b.click(); }]] : []),
+  ['🗓', L('Načrtovalnik','Trip planner'), () => window.planOpen && planOpen()],
   ['🏆', L('Lestvica','Leaderboard'), () => leaderboard()],
   ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
   ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
@@ -910,6 +911,67 @@ async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC()
         : `<div class="nb">${L('Nisi še v nobeni skupini.','Not in any group yet.')}</div>`) + `<div class="nb" style="margin-top:6px"><a id="meGr">${L('Skupine in povabila →','Groups and invitations →')}</a></div>`);
   $a('meFr').onclick = () => soOpen('fr'); $a('meGr').onclick = () => soOpen('gr'); bind(); }
 window.showMe = meOpen;
+
+// ---------- 🔔 notifications: friends, groups, weather ----------
+// Checked when the page / app opens, every 15 min while it is open or in the background, and when it comes back. A fully closed
+// app gets nothing (that needs a push server). The app shows them as phone notifications, the browser as system notifications
+// (after "Dovoli"), otherwise as a note on the page. Settings live with the profile (synced with the account).
+const NDEF = {fr: true, frc: true, gi: true, gp: true, ww: true, wp: true}, NSK = 'dvat3d_ntf_seen';
+const nOpt = () => Object.assign({}, NDEF, (window.PREFS && PREFS.get().ntf) || {});
+let NS = get(NSK) || {}; const nSave = () => put(NSK, NS);
+const nPerm = () => IN_APP ? 'app' : 'Notification' in window ? Notification.permission : 'none';
+async function nShow(list){ if (!list.length) return;
+  if (LNO) try{ await LNO.schedule({notifications: list.map(([t, b], k) => ({id: (Math.floor(Date.now() / 1000) + k) % 2e9, title: t, body: b}))}); return; }catch(_){}
+  if (nPerm() === 'granted') try{ const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    for (const [t, b] of list){ if (reg) await reg.showNotification(t, {body: b, icon: 'icon-192.png', badge: 'icon-192.png', tag: t}); else new Notification(t, {body: b, icon: 'icon-192.png'}); } return; }catch(_){}
+  list.slice(0, 2).forEach(([t, b], k) => setTimeout(() => toast(`${t} — ${b}`), k * 4200)); }
+let nBusy = false;
+async function nCheck(){ if (nBusy || document.visibilityState === 'hidden' && !IN_APP) return; nBusy = true; const o = nOpt(), out = [], first = !NS.init, day0 = today();
+  try{
+    if (S){
+      if (o.fr || o.gi) try{ const b = await rpc('social_badge', {}, true) || {};
+        if (o.fr && (b.requests || 0) > (NS.req || 0)) out.push(['👥 ' + L('Nova prošnja za prijateljstvo', 'New friend request'), L('Odpri ☰ → Prijatelji.', 'Open ☰ → Friends.')]);
+        if (o.gi && (b.invites || 0) > (NS.inv || 0)) out.push(['⛰ ' + L('Novo povabilo v skupino', 'New group invitation'), L('Odpri ☰ → Skupine.', 'Open ☰ → Groups.')]);
+        NS.req = b.requests || 0; NS.inv = b.invites || 0; }catch(_){}
+      if (o.frc) try{ const R = await rpc('circle_ascents', {}, true) || [], seen = NS.asc || {}, lim = new Date(Date.now() - 3 * 864e5).toISOString().slice(0, 10);
+        for (const r of R){ if (!r.friend || !r.climbed_on || r.climbed_on < lim || !byId[r.peak_id]) continue; const k = r.username + '|' + r.peak_id + '|' + r.climbed_on;
+          if (seen[k]) continue; seen[k] = 1; if (!first) out.push(['🏔 ' + (r.display_name || r.username), L(`je osvojil(a) ${byId[r.peak_id].name} (${fmtD(r.climbed_on)})`, `climbed ${byId[r.peak_id].name} (${fmtD(r.climbed_on)})`)]); }
+        for (const k in seen) if (k.split('|')[2] < lim) delete seen[k]; NS.asc = seen; }catch(_){}
+      if (o.gp || o.wp) try{ const P = await rpc('my_plans', {}, true) || [], seen = NS.plans || {};
+        for (const x of P){ if (!seen[x.id]){ seen[x.id] = 1; if (!first && o.gp) out.push(['📅 ' + L('Nov načrt', 'New plan') + ` · ${x.group}`, `${x.title}${x.plan_on ? ' · ' + fmtD(x.plan_on) : ''}`]); }
+          if (o.wp && x.plan_on && window.wxDayScore && (x.peak_ids || []).length){ const dd = (Date.parse(x.plan_on) - Date.parse(day0)) / 864e5; if (dd < 0 || dd > 3) continue;
+            const k = 'w' + x.id + x.plan_on; if (seen[k]) continue; let worst = 101;
+            for (const id of x.peak_ids.slice(0, 4)){ const p = byId[id]; if (!p) continue; const r = await window.wxDayScore(p, x.plan_on); if (r) worst = Math.min(worst, r.score); }
+            if (worst < 45){ seen[k] = 1; out.push(['⛈ ' + L('Slaba napoved za načrt', 'Poor forecast for a plan'), `${x.title} · ${fmtD(x.plan_on)} · ${L('ocena', 'rating')} ${worst}`]); } } }
+        NS.plans = seen; }catch(_){} }
+    if (o.ww && window.wxBestDay){ const seen = NS.ww || {}; let n = 0;
+      for (const id of WISH().slice(0, 15)){ const p = byId[id]; if (!p || (window.TICKS && TICKS.get().has(id))) continue; const b = await window.wxBestDay(p);
+        if (!b || b.score < 80) continue; const dd = (Date.parse(b.day) - Date.parse(day0)) / 864e5; if (dd < 0 || dd > 2) continue;
+        const k = id + b.day; if (seen[k]) continue; seen[k] = 1;
+        const dn = new Date(b.day + 'T12:00').toLocaleDateString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday: 'long'});
+        out.push(['☀ ' + L(`Lep dan za ${p.name}`, `A good day for ${p.name}`), L(`${dn}: ocena ${b.score} / 100 (seznam želja)`, `${dn}: rating ${b.score} / 100 (wishlist)`)]); if (++n >= 2) break; }
+      for (const k in seen) if (k.slice(-10) < day0) delete seen[k]; NS.ww = seen; }
+    NS.init = 1; NS.t = Date.now(); nSave(); await nShow(out); }
+  finally { nBusy = false; } }
+setTimeout(nCheck, 8000); setInterval(nCheck, 15 * 6e4);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && Date.now() - (NS.t || 0) > 10 * 6e4) nCheck(); });
+// settings block (⚙ Nastavitve, under the account)
+function nBox(){ const B = document.getElementById('ntfBox'); if (!B) return; const o = nOpt(), pm = nPerm();
+  const row = (k, t) => `<label><input type="checkbox" data-n="${k}" ${o[k] ? 'checked' : ''}> ${t}</label>`;
+  B.innerHTML = `<div class="ntg"><b>👥 ${L('Prijatelji','Friends')}</b>${row('fr', L('prošnje za prijateljstvo','friend requests'))}${row('frc', L('vzponi prijateljev','climbs of friends'))}</div>
+    <div class="ntg"><b>⛰ ${L('Skupine','Groups')}</b>${row('gi', L('povabila v skupino','group invitations'))}${row('gp', L('novi načrti','new plans'))}</div>
+    <div class="ntg"><b>☀ ${L('Vreme','Weather')}</b>${row('ww', L('lep dan za vrh s seznama želja','a good day for a wishlist peak'))}${row('wp', L('slaba napoved na dan načrta skupine','poor forecast on a group plan day'))}</div>
+    <div class="hint">${pm === 'app' ? L('Obvestila pokaže telefon.','The phone shows the notifications.') : pm === 'granted' ? L('Obvestila so dovoljena v tem brskalniku.','Notifications are allowed in this browser.')
+      : pm === 'denied' ? L('Obvestila so v brskalniku zavrnjena — dovoli jih v nastavitvah strani.','Notifications are blocked in this browser — allow them in the site settings.') : `<button class="btn btn2" id="ntfAsk">🔔 ${L('Dovoli obvestila','Allow notifications')}</button>`}</div>
+    <div class="hint">${L('Preverja ob odprtju in vsakih 15 min, ko je stran / aplikacija odprta ali v ozadju. Ko je povsem zaprta, obvestil ni.','Checked when the site / app opens and every 15 min while it is open or in the background. Nothing arrives while it is fully closed.')}
+      ${S ? '' : ' ' + L('Prijatelji in skupine potrebujejo račun.','Friends and groups need an account.')}</div>`;
+  B.querySelectorAll('[data-n]').forEach(c => c.onchange = () => { const n = Object.assign(nOpt(), {[c.dataset.n]: c.checked}); if (window.PREFS){ PREFS.set(Object.assign(PREFS.get(), {ntf: n})); window.onPrefs && window.onPrefs(); } });
+  const a = document.getElementById('ntfAsk'); if (a) a.onclick = async () => { try{ await Notification.requestPermission(); }catch(_){} nBox(); };
+  if (pm === 'app' && LNO) LNO.requestPermissions().catch(() => {}); }
+{ const ab = document.getElementById('accBox'); if (ab){ ab.insertAdjacentHTML('afterend', `<h4>🔔 ${L('Obvestila','Notifications')}</h4><div id="ntfBox"></div>`); nBox();
+    const w = document.getElementById('setWin'); if (w) new MutationObserver(() => { if (w.classList.contains('on')) nBox(); }).observe(w, {attributes: true, attributeFilter: ['class']}); } }
+const nCss = document.createElement('style'); nCss.textContent = '#ntfBox .ntg{margin:6px 0}#ntfBox .ntg b{display:block;font-size:.9em;margin-bottom:2px}#ntfBox label{display:flex;gap:8px;align-items:center;margin:3px 0;font-weight:400}';
+document.head.append(nCss);
 
 // ---------- side column: my progress, the community, friends' climbs, upcoming plans ----------
 const lbTop = () => { const m = lb.querySelector('.lbm'); if (m) m.scrollTop = 0; };

@@ -2,6 +2,30 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.62 — 2026-11-07
+- 🗓 Multi-day planner (☰ → Načrtovalnik, or "＋ V načrt ture" in a peak window): stops = peaks, huts, trailheads or a click on
+  the map; best order (all orders up to 8 stops in between, first stop = start, last fixed unless "nazaj na začetek"); way along the
+  trail network; split into days by walking time per day (3–12 h) with overnights at huts (+ bivouacs, + open shelters / tent spot
+  with "imam šotor" - with a warning that wild camping is forbidden in Slovenia, strictly in TNP), or "brez spanja" (one go). No
+  overnight just before the end. Per day: from → to, km, ↑ / ↓, time, hardest T / ferrata, peaks on the way, the hut (and how far
+  off the way), small profile, GPX, show on the map; whole trip: totals, warnings, GPX, save to my routes. Days drawn in colours.
+- Height profile (routes, drawing, planner): area coloured by steepness (< 10 / 10–20 / 20–30 / 30–45 / > 45 %), strip under it with
+  the kind of way (road, track, marked path, unmarked path, via ferrata, no path), huts 🏠 and peaks ▲ on the way, numbers under it
+  (steepest bit, hardest T, km of each kind of way); hover / drag shows distance, height, slope, way + T-grade and walking time from
+  the start, with a dot on the map.
+- Walking times: new base 4.5 km/h, 400 m/h up, 600 m/h down (was DIN 4 / 300 / 500 - too slow even ×0.8), terrain-aware (roads /
+  tracks quicker, unmarked, via ferratas and T5–T6 slower) and summed along the real profile; fitness now 5 steps (zelo počasi …
+  zelo hitro: ×1.35 / 1.15 / 1 / 0.85 / 0.72); old settings move over (počasnejši → počasi, povprečna → povprečno, hiter → hitro).
+- 🔔 Notifications (⚙ Nastavitve → Obvestila): friend requests, friends' climbs, group invitations, new group plans, a good day
+  (≥ 80) for a wishlist peak in the next 2 days, a poor forecast (< 45) on a group plan's day. Checked on opening, every 15 min while
+  open / in the background, and on coming back; app = phone notifications, browser = system notifications after "Dovoli",
+  otherwise a note on the page. Settings sync with the account. (Nothing while fully closed - that needs a push server.)
+- Legends (snow, height) also stay out from under the side tabs / open panels on both sides.
+
+## web-v0.61 — 2026-11-07 (shipped with v0.62)
+- Legends (height, snow) are anchored by their right edge: expanding a shrunk legend grows to the left; a position saved on a bigger
+  window is pulled back on screen whenever the legend appears (a snow legend dragged earlier could stay off-screen on PC).
+
 ## web-v0.60 — 2026-11-07 (+ app-v1.0.4)
 - Website down (404 / 5xx) now counts like no signal: the service worker shows the saved copy instead of the error page (app and site).
 - Loading screen with the logo: blue screen, icon, name and a small bar until the map is drawn (max 12 s). In the app the native splash

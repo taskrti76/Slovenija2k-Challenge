@@ -195,6 +195,11 @@
   #hleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:calc(15px * var(--ui,1));line-height:1;padding:2px 4px;cursor:pointer}
   #hleg,#snowleg{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}#hleg.dragging,#snowleg.dragging{cursor:grabbing}
   #hleg.min{width:auto;min-width:0;padding:5px 8px}#hleg.min .lb,#hleg.min .u,#hleg.min .lt{display:none}#hleg.dragging{opacity:.85}
+  .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
+  .pst{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:calc(11px * var(--ui,1));color:var(--mute);margin-top:3px;line-height:1.35}.pst b{color:var(--ink,inherit)}
+  .pst i{display:inline-block;width:10px;height:7px;border-radius:2px;margin-right:3px;vertical-align:0}.pslc{opacity:.85}
+  .profdot{width:12px;height:12px;border-radius:50%;background:#263238;border:2px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5);pointer-events:none}
+  svg.pfx text{paint-order:stroke;stroke:var(--panel,#fff);stroke-width:2px}svg.pfx .pfh text{stroke:none}
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
   body.in360 #hleg{display:none!important}
@@ -623,7 +628,7 @@ new MutationObserver(updH).observe(document.getElementById('snowleg'),{attribute
 { const x=document.getElementById('hlegx'), setMin=v=>{ hleg.classList.toggle('min',v); x.textContent=v?'▸':'–'; try{ localStorage.setItem('dvat3d_hlegmin',v?'1':'0'); }catch(_){} };
   try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; }
 // legends (snow, height) stay clear of the peak list and its red tab on the right (unless you dragged them somewhere yourself)
-function placeLegends(){ for(const L of [document.getElementById('snowleg'),hleg]){ if(!L||L.style.left) continue;
+function placeLegends(){ for(const L of [document.getElementById('snowleg'),hleg]){ if(!L||L.dataset.moved) continue;
     let right=innerWidth>700?12:8;
     if(innerWidth>700){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
       if(dr&&dr.classList.contains('open')) right=Math.max(right,innerWidth-dr.getBoundingClientRect().left+12);
@@ -1296,7 +1301,8 @@ function openPeak(id,fly){
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
   const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
-  row.append(rb,vb); box.append(row); if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
+  row.append(rb,vb); box.append(row);
+  if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   // focusAfterOpen off: the browser used to scroll the whole page (and the map inside it) to a popup still off-screen,

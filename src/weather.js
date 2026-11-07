@@ -183,6 +183,10 @@ function big(p, s, D, DD, sel){
 window.wxBestDay = async p => { const s = await seriesFor(p); if (!s) return null; const d0 = Math.max(0, s.days.indexOf(today())); let b = null;
   s.days.forEach((dd, i) => { if (i < d0) return; const o = day(s, i, topH(p), window.peakClass(p) || 2); if (o && (!b || o.score > b.score)) b = {day:dd, score:o.score, r:o.r}; }); return b; };
 
+// rating of one day (YYYY-MM-DD) for one peak (notifications: weather on a group plan's day)
+window.wxDayScore = async (p, dd) => { const s = await seriesFor(p); if (!s) return null; const i = s.days.indexOf(dd); if (i < 0) return null;
+  const o = day(s, i, topH(p), window.peakClass(p) || 2); return o ? {score:o.score, r:o.r} : null; };
+
 // --- avalanche danger: ARSO's avalanche bulletin (tools/avalanche_fetch.py -> avalanche.json, in the season ~December–May)
 // Bulletin regions are matched to our mountain ranges by name; a level can differ above / below an elevation.
 let AVA = null;

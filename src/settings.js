@@ -4,16 +4,19 @@
 const L = (sl, en) => window.LANG === 'en' ? en : sl;
 const $s = id => document.getElementById(id);
 // --- profile (stored in this browser). Defaults are neutral: nothing changes until you set it.
-const DEF = {winter:1, fit:1, maxT:6, ferrata:true};
+const DEF = {winter:1, fit5:2, maxT:6, ferrata:true};
 let P = DEF; try{ P = Object.assign({}, DEF, JSON.parse(localStorage.getItem('dvat3d_profile') || '{}')); }catch(_){}
-const FIT_K = [1.25, 1, 0.8];
-const apply = () => { window.PROFILE = Object.assign({}, P, {fitK:FIT_K[P.fit] ?? 1}); };
+// fitness: 5 steps since v0.62 (fit5 0–4); the old 3 steps (fit 0–2) map to 1–3
+const fit5Of = p => p._f5 ? (p.fit5 ?? DEF.fit5) : p.fit != null ? Math.min(4, Math.max(0, p.fit + 1)) : (p.fit5 ?? DEF.fit5);
+P.fit5 = fit5Of(P); P._f5 = 1;
+const FIT_K = [1.35, 1.15, 1, 0.85, 0.72];   // × the base time (see walkTime in trails.js: 4.5 km/h, 400 m/h up, 600 m/h down)
+const apply = () => { window.PROFILE = Object.assign({}, P, {fitK:FIT_K[P.fit5] ?? 1}); };
 apply();
 const store = () => { try{ localStorage.setItem('dvat3d_profile', JSON.stringify(P)); }catch(_){} apply();
   window.rerenderRoutes && window.rerenderRoutes(); window.wxRepaint && window.wxRepaint(); };
 const save = () => { store(); window.onPrefs && window.onPrefs(P); };   // account.js keeps it in the account too
 // for account.js: settings that came from the account (another device)
-window.PREFS = {get: () => Object.assign({}, P), set: p => { P = Object.assign({}, DEF, p || {}); store(); paintChips(); }};
+window.PREFS = {get: () => Object.assign({}, P), set: p => { P = Object.assign({}, DEF, p || {}); P.fit5 = fit5Of(P); P._f5 = 1; store(); paintChips(); }};
 
 const css = document.createElement('style'); css.textContent = `
 #setWin{position:fixed;inset:0;z-index:58;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:clamp(16px,8vh,80px) 12px}
@@ -40,8 +43,8 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="chips" data-k="winter">${[L('brez','none'), L('lažje zimske ture (dereze, cepin)','easy winter tours (crampons, axe)'), L('zimska alpinistika','winter alpinism')].map((t, i) => `<button data-v="${i}">${t}</button>`).join('')}</div>
   <div class="hint">${L('Sneg na vrhu šteje ×1,5 / ×1 / ×0,5 pri oceni dneva.','Snow on the summit counts ×1.5 / ×1 / ×0.5 in the day rating.')}</div>
   <div class="q">${L('Kondicija','Fitness')}</div>
-  <div class="chips" data-k="fit">${[L('počasnejši','slower'), L('povprečna','average'), L('hiter','fast')].map((t, i) => `<button data-v="${i}">${t}</button>`).join('')}</div>
-  <div class="hint">${L('Časi hoje ×1,25 / ×1 / ×0,8 (osnova DIN 33466).','Walking times ×1.25 / ×1 / ×0.8 (DIN 33466 base).')}</div>
+  <div class="chips" data-k="fit5">${[L('zelo počasi','very slow'), L('počasi','slow'), L('povprečno','average'), L('hitro','fast'), L('zelo hitro','very fast')].map((t, i) => `<button data-v="${i}">${t}</button>`).join('')}</div>
+  <div class="hint">${L('Povprečno: 4,5 km/h po ravnem, 400 m/h navzgor, 600 m/h navzdol (×1,35 / ×1,15 / ×1 / ×0,85 / ×0,72). Ferate, brezpotje in T5–T6 so počasnejši, ceste hitrejše.','Average: 4.5 km/h on the flat, 400 m/h up, 600 m/h down (×1.35 / ×1.15 / ×1 / ×0.85 / ×0.72). Via ferratas, pathless ground and T5–T6 are slower, roads faster.')}</div>
   <div class="q">${L('Najtežje, kar mi je še prijetno','Hardest I am comfortable with')}</div>
   <div class="chips" data-k="maxT">${[2,3,4,5,6].map(v => `<button data-v="${v}">T${v}</button>`).join('')}</div>
   <div class="chips" data-k="ferrata" style="margin-top:6px"><button data-v="1">${L('ferate: da','via ferratas: yes')}</button><button data-v="0">${L('ferate: ne','via ferratas: no')}</button></div>
