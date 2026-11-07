@@ -9,6 +9,7 @@
   },
   "android": {
     "useLegacyBridge": true,
-    "backgroundColor": "#0e3a86"
+    "backgroundColor": "#0e3a86",
+    "appendUserAgent": " Dvat2000App"
   }
 }

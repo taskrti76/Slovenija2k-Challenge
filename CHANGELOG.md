@@ -2,6 +2,33 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.57 — 2026-11-07 (+ app-v1.0.3)
+- Offline map manager: storage bar (saved areas / viewed tiles + app / free, from the browser's storage estimate).
+- App updates: the page in the app is always the newest website (as before); the APK now tells its version in the user agent
+  (" Dvat2000App/1.0.<build>", set by the build) and once a day compares it with the latest GitHub release - if newer, a bar
+  "📱 Nova različica aplikacije → Posodobi" downloads it (Android asks once to install over the old one; sideloaded apps cannot
+  update silently).
+- Guide: 15 steps - ☰ menu step rewritten (Moj profil, Nastavitve, Lestvica, Riši, GPS vrhovi, Vodič), new steps "👤 Moj profil" and
+  "🗺 Brez signala in aplikacija".
+
+## web-v0.56 — 2026-11-07 (+ app-v1.0.2)
+- 📍 GPS vrhovi now really works in the app: the app loads the page from the web, so only Capacitor's native bridge is there (no
+  registerPlugin) - plugins are now called through the bridge (nativePromise / nativeCallback). The app also marks itself in the user
+  agent (" Dvat2000App", new APK), so the menu item shows even if the bridge is missing (then it says to update the app).
+- 🗺 Offline map manager (⚙ Nastavitve → Aplikacija in brez signala → Zemljevidi brez signala): list of saved areas (name, date, size,
+  detail), 👁 show on the map (outline), ⟳ update, ✎ rename, 🗑 delete; ＋ save the current view (~25 × 25 km, z8–14) or a whole range
+  (Julijske Alpe, Kamniško-Savinjske Alpe, Karavanke, Pohorje, Snežnik; z8–13) with a size estimate first, progress + stop, storage
+  used. An area now holds everything the map needs there: terrain (relief, hillshade, 3D, contours, snow model) + OpenFreeMap vector
+  tiles (rivers, lakes, place names) + their index; trails, huts, peaks, data files and the app are kept by the service worker. Each area
+  is its own cache (dvat-reg-<id>); the browser is asked to keep the storage (persist). Old saved terrain stays usable and can be deleted.
+  Satellite / OpenTopoMap: still only what you looked at (their terms forbid bulk downloads). Offline ticks and GPS confirmations are
+  sent when the connection is back (as before).
+- 👤 Moj profil (☰ → Moj profil, also the first tab of the leaderboard page) replaces "Račun" (which opened the same window as
+  Nastavitve): numbers, GPS ✓ count, ⭐ wishlist, my climbs, my routes (show / GPX), friends, groups, badges + progress; works without
+  an account. Account settings stay in ⚙ Nastavitve.
+- ⭐ Wishlist: ☆ in the peak window; kept with the profile settings, so it syncs with the account.
+- PC: ✏️ Riši pot in the round ☰ menu.
+
 ## web-v0.55 — 2026-11-05 (+ app-v1.0)
 - 📱 Android app (APK, not from Google Play): `app/` (Capacitor shell that loads the website, so site updates reach the app at once)
   + `.github/workflows/android.yml` builds, signs and attaches `dvatisocaki.apk` to a GitHub release. Signing key made on the first

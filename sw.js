@@ -1,12 +1,12 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
-// - map tiles cached as you view them (LRU-trimmed), terrain areas downloaded on request live in "dvat-region"
-const VER = '7bcda5e5f8';
+// - map tiles cached as you view them (LRU-trimmed); saved offline areas live in their own caches "dvat-reg-<id>" (extras.js)
+const VER = '2475d9aeb1';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
   'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/0-255.pbf', 'https://tiles.openfreemap.org/fonts/Noto%20Sans%20Bold/256-511.pbf',
-  'https://tiles.mapterhorn.com/tilejson.json'];
+  'https://tiles.mapterhorn.com/tilejson.json', 'https://tiles.openfreemap.org/planet'];
 const MAX_TILES = 8000;   // ~150–250 MB on disk: a few 360 panoramas + browsing; oldest dropped first
 
 self.addEventListener('install', e => {
@@ -34,13 +34,13 @@ self.addEventListener('fetch', e => {
   if (isTile(u) && r.cache !== 'no-store'){                                  // tiles: cache first (viewed tiles, then downloaded area)
     e.respondWith((async () => {
       const k = keyOf(u), c = await tilesC();
-      const hit = (await c.match(k, {ignoreVary:true})) || (await caches.match(k, {ignoreVary:true, cacheName:REGION})); if (hit) return hit;
+      const hit = (await c.match(k, {ignoreVary:true})) || (await caches.match(k, {ignoreVary:true})); if (hit) return hit;   // viewed tiles, then any saved area (dvat-reg-*, old dvat-region)
       try{ const res = await fetch(r); if (res.ok || res.type === 'opaque'){ c.put(k, res.clone()).catch(() => {}); trimLater(); } return res; }
       catch(err){ return new Response('', {status:504}); }
     })()); return;
   }
   const same = new URL(u).origin === self.location.origin;
-  if (same || /cdn\.jsdelivr\.net|tilejson\.json/.test(u)){                  // app files: cache, update in background (snow.json / weather.json: network first)
+  if (same || /cdn\.jsdelivr\.net|tilejson\.json|tiles\.openfreemap\.org\/planet$/.test(u)){                  // app files: cache, update in background (snow.json / weather.json: network first)
     e.respondWith((async () => {
       const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /(snow|weather)\.json/.test(u) ? false : true});
       // page + data files: always ask GitHub whether they changed (cheap 304 if not) instead of trusting the browser's 10-min HTTP cache

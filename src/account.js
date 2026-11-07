@@ -128,8 +128,14 @@ window.visitBox = (p, cb) => {
 // ---------- 📍 GPS summit check (only in the Android app: the phone's location, also with the screen off) ----------
 // Within 50 m of a summit (GPS accuracy 50 m or better, height roughly right) the peak is ticked and marked ✓ "confirmed by GPS".
 // With an account the fix goes to the server (verify_ascent, 07_verify.sql), which checks it again; without signal it waits.
-const CAPN = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
-const BGL = CAPN && Capacitor.registerPlugin ? Capacitor.registerPlugin('BackgroundGeolocation') : null, LNO = BGL ? Capacitor.registerPlugin('LocalNotifications') : null;
+// The app loads this page from the web, so only Capacitor's native bridge is there (no @capacitor/core): no registerPlugin ->
+// plugins are called through the bridge's nativePromise / nativeCallback (what registerPlugin does inside).
+const CAPN = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()), IN_APP = CAPN || / Dvat2000App/.test(navigator.userAgent);
+const capPlugin = (name, cbMethods = []) => { const C = window.Capacitor; if (!C) return null;
+  if (C.registerPlugin) return C.registerPlugin(name);
+  if (!C.nativePromise) return null;
+  return new Proxy({}, {get: (_, m) => (opts, cb) => cbMethods.includes(m) ? Promise.resolve(C.nativeCallback(name, m, opts || {}, cb)) : C.nativePromise(name, m, opts || {})}); };
+const BGL = CAPN ? capPlugin('BackgroundGeolocation', ['addWatcher']) : null, LNO = BGL ? capPlugin('LocalNotifications') : null;
 const hav = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(x)); };
 function gpsFix(l){ gAcc = l.accuracy; gpsUI(); if (!(l.accuracy <= 50)) return;
   let best = null, bd = 50; for (const p of PEAKS){ if (p.lat == null || p.coord_status !== 'ok' || Math.abs(p.lat - l.latitude) > .002) continue;
@@ -147,7 +153,8 @@ async function flushVQ(){ if (!VQ.length) return; const keep = [];
     catch(e){ const m = String(e.message || ''); if (/too far|inaccurate|unknown peak|bad time/.test(m)){ delete VER[q.pid]; continue; }   // the server says no
       keep.push(q); if (e.status === 401) throw e; } }
   VQ = keep; put(VQK, VQ); put(VERK, VER); }
-async function gpsStart(){ if (!BGL || gWatch) return;
+async function gpsStart(){ if (gWatch) return;
+  if (!BGL){ toastErr(L('GPS vtičnik aplikacije ni dosegljiv — namesti najnovejšo različico aplikacije (Nastavitve → 📱 Android aplikacija).', 'The app\'s GPS plugin is not reachable — install the latest app version (Settings → 📱 Android app).')); return; }
   try{ await LNO.requestPermissions(); }catch(_){}   // Android 13+: needed for the notification while tracking
   try{ gWatch = await BGL.addWatcher({backgroundTitle: L('Spremljam vrhove', 'Watching for summits'), backgroundMessage: L('Ko prideš na vrh, ga potrdim z GPS.', 'When you reach a summit it is confirmed by GPS.'),
       requestPermissions: true, stale: false, distanceFilter: 10}, (loc, err) => {
@@ -162,6 +169,19 @@ gPill.onclick = () => { if (gWatch && confirmTwice(gPill)) gpsStop(); };
 function gpsUI(){ document.body.classList.toggle('gpson', !!gWatch);
   gPill.innerHTML = gWatch ? `📍 ${L('Spremljam vrhove','Watching summits')}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}` : ''; }
 if (BGL && get(GTK)) setTimeout(gpsStart, 1500);
+// app updates: the page inside the app is always the newest website; the app shell itself (APK) is checked once a day against the
+// latest GitHub release and, if newer, a bar offers the download (Android then asks once to install it over the old one - an app
+// from outside Google Play cannot replace itself silently). The APK tells its version in the user agent (" Dvat2000App/1.0.N").
+if (IN_APP) setTimeout(async () => { const mine = (navigator.userAgent.match(/ Dvat2000App\/([\d.]+)/) || [])[1] || '0', K = 'dvat3d_appchk';
+  const c = get(K); let latest = c && Date.now() - c.t < 864e5 ? c.v : null;
+  if (!latest) try{ const j = await (await fetch('https://api.github.com/repos/taskrti76/Slovenija2k-Challenge/releases/latest')).json(); latest = String(j.tag_name || '').replace(/^app-v/, ''); put(K, {t: Date.now(), v: latest}); }catch(_){ return; }
+  const n = v => v.split('.').map(Number), newer = (a, b) => { const x = n(a), y = n(b); for (let i = 0; i < 3; i++){ if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+  if (!latest || !newer(latest, mine) || get('dvat3d_appskip') === latest) return;
+  const bar = document.createElement('div'); bar.id = 'appUpd';
+  bar.innerHTML = `📱 ${L(`Nova različica aplikacije (${esc(latest)})`, `New app version (${esc(latest)})`)} <a href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">${L('Posodobi','Update')}</a><button aria-label="${L('Zapri','Close')}">×</button>`;
+  bar.querySelector('button').onclick = () => { put('dvat3d_appskip', latest); bar.remove(); };
+  bar.querySelector('a').onclick = () => setTimeout(() => { bar.innerHTML = L('Prenašam … ko se prenese, tapni obvestilo in »Namesti«.', 'Downloading … when done, tap the notification and "Install".'); setTimeout(() => bar.remove(), 9000); }, 100);
+  document.body.append(bar); }, 4000);
 
 // ---------- sync ----------
 let syncing = false, again = false, syncT = 0, state = '';
@@ -315,6 +335,8 @@ body.in360 #fab,body.drawing #fab{display:none}
 #gpsPill{display:none;position:fixed;z-index:25;top:calc(8px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);border:0;border-radius:999px;background:#1976d2;color:#fff;font:600 13px system-ui,sans-serif;padding:6px 12px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 body.gpson #gpsPill{display:block}
 #gpsPill.sure{background:#c62828}
+#appUpd{position:fixed;z-index:26;left:50%;transform:translateX(-50%);bottom:calc(var(--tab,0px) + 14px + env(safe-area-inset-bottom));background:#1d2321;color:#fff;border-radius:12px;padding:9px 10px 9px 14px;font:600 14px system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.3);display:flex;gap:10px;align-items:center;max-width:calc(100% - 24px)}
+#appUpd a{background:#43a047;color:#fff;border-radius:8px;padding:5px 10px;text-decoration:none}#appUpd button{border:0;background:none;color:#fff;font-size:20px;cursor:pointer;opacity:.7}
 .vbox{font-size:.88em;margin:2px 0 0 22px;color:#3d4643}.vbox .vlnk{color:#1565c0}
 .vform label{display:block;font-size:.85em;margin:5px 0 0;color:#5b6461}.vform input{display:block;width:100%;box-sizing:border-box;font:inherit;padding:4px 6px;border:1px solid #b9c1bd;border-radius:6px;margin-top:1px}
 .vform .vb{display:flex;gap:6px;margin-top:6px}
@@ -447,10 +469,11 @@ fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expand
 document.body.append(fab);
 const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.append(fabBg);
 const fabItems = () => [['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
-  ['👤', S ? L('Račun','Account') : L('Prijava','Sign in'), () => openAccount(S ? undefined : 'in')],
+  ['👤', L('Moj profil','My profile'), () => meOpen()],
+  ...(innerWidth > 700 ? [['✏️', window.DRAW_ON ? L('Končaj risanje','Stop drawing') : L('Riši pot','Draw route'), () => { const b = document.getElementById('drawBtn'); if (b) b.click(); }]] : []),
   ['🏆', L('Lestvica','Leaderboard'), () => leaderboard()],
   ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
-  ...(BGL ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
+  ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
   ['❓', L('Vodič','Guide'), () => window.startTour && startTour()]];
 function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
 // positions on a quarter circle up / right of the button (0° = right, -90° = up); more than 4 options -> two rings
@@ -553,6 +576,10 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #lbPage .back{border:0;background:none;font:600 .95em system-ui,sans-serif;color:#1565c0;cursor:pointer;padding:6px 0}
 #lbPage .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}#lbPage .grid div{background:#f6f8f7;border-radius:10px;padding:8px;text-align:center}
 #lbPage .grid b{display:block;font-size:1.25em;font-variant-numeric:tabular-nums}#lbPage .grid small{color:#5b6461;font-size:.78em}
+#lbPage .nb{color:#5b6461;font-size:.86em}#lbPage .mehero{display:flex;align-items:center;gap:12px;margin:14px 0 4px;flex-wrap:wrap}#lbPage .mehero .who{flex:1;min-width:140px}#lbPage .mehero .who b{display:block;font-size:1.3em}#lbPage .mehero .who small{color:#5b6461}
+#lbPage .mehero .mebtn{display:flex;gap:6px;flex-wrap:wrap}#lbPage .lbb .ac2{margin-bottom:12px}#lbPage .lbb .ac2 a{color:#1565c0;cursor:pointer}#lbPage .ac2 .rmw{color:#9aa3a0!important;margin-left:6px}
+#lbPage .ac2 .it .lav{vertical-align:middle;margin-right:4px}
+.wish{float:right;border:0;background:none;font-size:1.35em;line-height:1;cursor:pointer;color:#9aa3a0;padding:2px 2px 0;margin-top:2px}.wish.on{color:#f2b400}
 #lbPage .pk{display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-bottom:1px solid #eef1ef;cursor:pointer}#lbPage .pk span{color:#5b6461;font-size:.86em;text-align:right}
 #lbPage .lbnav{flex:1;display:flex;gap:4px;flex-wrap:wrap;min-width:0}
 #lbPage .lbnav button{border:0;background:transparent;color:#1d2321;font:700 1.08em system-ui,sans-serif;padding:6px 10px;border-radius:10px;cursor:pointer;white-space:nowrap;position:relative}
@@ -663,7 +690,7 @@ const plSl = (n, f) => window.LANG === 'en' ? (n === 1 ? f[4] : f[5]) : f[n % 10
 const nMem = n => n + ' ' + plSl(n, ['član', 'člana', 'člani', 'članov', 'member', 'members']);
 const nPlan = n => n + ' ' + plSl(n, ['načrt', 'načrta', 'načrti', 'načrtov', 'plan', 'plans']);
 const badgeN = () => (SO.badge.requests || 0) + (SO.badge.invites || 0);
-const PAGES = [['lb', '🏆', L('Lestvica','Leaderboard')], ['fr', '👥', L('Prijatelji','Friends')], ['gr', '⛰', L('Skupine','Groups')]];
+const PAGES = [['me', '👤', L('Moj profil','My profile')], ['lb', '🏆', L('Lestvica','Leaderboard')], ['fr', '👥', L('Prijatelji','Friends')], ['gr', '⛰', L('Skupine','Groups')]];
 function head(p){ lb.dataset.p = p;
   return `<div class="lbt"><button class="lbx bk" aria-label="${L('Nazaj na karto','Back to the map')}">‹ ${L('Karta','Map')}</button><div class="lbnav">${PAGES.map(([k, i, t]) => { const n = k === 'fr' ? SO.badge.requests : k === 'gr' ? SO.badge.invites : 0;
     return `<button data-p="${k}" class="${k === p ? 'on' : ''}">${i} ${t}${n ? `<i class="bdg">${n}</i>` : ''}</button>`; }).join('')}</div></div>`; }
@@ -671,7 +698,7 @@ const chips = () => `<div class="lbtabs">${BOARDS.map(([k, t, m]) => `<button da
 function bindHead(onBoard){
   lb.querySelector('.lbx').onclick = lbClose;
   lb.querySelector('.lbnav').onclick = e => { const b = e.target.closest('button'); if (!b || b.classList.contains('on')) return;
-    if (b.dataset.p === 'lb'){ lbShell(); lbLoad(true); } else soOpen(b.dataset.p); };
+    if (b.dataset.p === 'lb'){ lbShell(); lbLoad(true); asideLB(); potw(); } else if (b.dataset.p === 'me') meOpen(); else soOpen(b.dataset.p); };
   const t = lb.querySelector('.lbtabs'); if (t) t.onclick = e => { const b = e.target.closest('button'); if (!b || b.dataset.b === LB.board) return; LB.board = b.dataset.b;
     lb.querySelectorAll('.lbtabs button').forEach(x => x.classList.toggle('on', x === b)); onBoard(); }; }
 const isP2 = p => p.tier !== '1500' && p.rank != null, isA2 = p => p.tier !== '1500', isP15 = p => p.tier === '1500' && p.is_sub === 'no';
@@ -824,6 +851,60 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
   const ren = $a('grRen'); if (ren) ren.onclick = () => { const n = prompt(L('Novo ime skupine', 'New group name'), G.name); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
   const del = $a('grDel'); if (del) del.onclick = () => { if (confirmTwice(del)) busy(del, () => rpc('group_delete', {gid}, true), grList); };
   $a('grLeave').onclick = () => { if (confirmTwice($a('grLeave'))) busy($a('grLeave'), () => rpc('group_leave', {gid}, true), async () => { SO.circle = null; await grList(); }); }; }
+// ---------- 👤 my page: numbers, GPS ✓, wishlist, latest climbs, my routes, friends, groups (works without an account too) ----------
+// wishlist = peaks I want to climb; kept in the profile settings, so it syncs with the account like the other settings
+const WISH = () => ((window.PREFS && PREFS.get().wish) || []).filter(id => byId[id]);
+function wishSet(list){ if (!window.PREFS) return; PREFS.set(Object.assign(PREFS.get(), {wish: [...new Set(list)].slice(0, 300)})); window.onPrefs && window.onPrefs(); }
+window.wishBtn = p => { const b = document.createElement('button'); b.className = 'wish';
+  const paint = () => { const on = WISH().includes(p.id); b.textContent = on ? '★' : '☆'; b.classList.toggle('on', on);
+    b.title = on ? L('Odstrani s seznama želja','Remove from wishlist') : L('Dodaj na seznam želja','Add to wishlist'); };
+  b.onclick = e => { e.preventDefault(); e.stopPropagation(); const W = WISH(), on = W.includes(p.id);
+    wishSet(on ? W.filter(x => x !== p.id) : W.concat(p.id)); paint(); toast(on ? L('Odstranjeno s seznama želja.','Removed from the wishlist.') : L('⭐ Na seznamu želja (👤 Moj profil).','⭐ On your wishlist (👤 My profile).')); };
+  paint(); return b; };
+function meOpen(){ lbShow();
+  lb.innerHTML = `<div class="lbc"><div class="lbh">${head('me')}<div class="lbs">${S ? L('Vse tvoje na enem mestu. Nastavitve računa so v ⚙ Nastavitvah.','Everything of yours in one place. Account settings are in ⚙ Settings.')
+      : L('Brez računa — vse je shranjeno samo v tej napravi.','No account — everything is stored on this device only.')}</div></div>
+    <div class="lbm"><div class="lbb" id="lbBody"></div><aside class="lba" id="lbAside"></aside></div><div class="lbf" id="lbFoot" style="display:none"></div></div>`;
+  bindHead(() => {}); SO.re = meOpen; meBody(); meAside(); }
+function meAside(){ SO.aside = meAside; const A = $a('lbAside'); if (!A) return; A.innerHTML = badgeCard() + progressCard(); asideBind(); }
+const pkRow = (id, right, extra = '') => { const p = byId[id]; if (!p) return ''; const tr = window.T || (x => x);
+  return `<div class="it"><div>${pkA(id)}${VER[id] ? ' <span class="vgps" title="GPS">✓</span>' : ''} <small class="nb">${Math.round(p.elev)} m · ${esc(tr(p.range || ''))}</small></div><span>${right || ''}${extra}</span></div>`; };
+async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC(), T0 = window.TICKS ? TICKS.get() : new Set(), nV = Object.keys(VER).filter(id => T0.has(id)).length;
+  const W = WISH(), MY = window.MYR ? MYR.get() : [];
+  const climbs = [...T0].filter(id => byId[id]).map(id => [id, (VI[id] && VI[id].d) || '']).sort((a, b) => b[1].localeCompare(a[1]) || byId[b[0]].elev - byId[a[0]].elev);
+  B.innerHTML = `<div class="mehero">${av(S ? S.username : '?', S ? S.display_name : '?', 54)}<div class="who"><b>${esc(S ? (S.display_name || S.username) : L('Gost','Guest'))}</b><small>${S ? '@' + esc(S.username) : L('brez računa','no account')}</small></div>
+      <div class="mebtn">${S ? '' : `<button class="sb pri" id="meIn">${L('Prijava / nov račun','Sign in / new account')}</button>`}<button class="sb" id="meSet">⚙ ${L('Nastavitve','Settings')}</button>
+      ${IN_APP ? `<button class="sb${gWatch ? ' pri' : ''}" id="meGps">📍 ${gWatch ? L('GPS vrhovi: vklopljeno','GPS summits: on') : L('GPS vrhovi','GPS summits')}</button>` : ''}</div></div>
+    ${countGrid(c)}
+    <div class="nb" style="margin:-4px 0 12px">${[nV ? `<span class="vgps">✓</span> ${L('Potrjeno z GPS','Confirmed by GPS')}: <b>${nV}</b>` : '', c.last_climb ? L('Zadnji vzpon','Last climb') + ': <b>' + esc(fmtD(c.last_climb)) + '</b>' : '',
+      !IN_APP ? L('Vrhove s GPS potrdi Android aplikacija.','Summits are GPS-confirmed by the Android app.') : ''].filter(Boolean).join(' · ')}</div>
+    ${ac(`⭐ ${L('Seznam želja','Wishlist')} (${W.length})`, W.length ? W.map(id => pkRow(id, T0.has(id) ? '✓ ' + L('osvojen','climbed') : '', ` <a class="rmw" data-w="${esc(id)}" title="${L('Odstrani','Remove')}">✕</a>`)).join('')
+        : `<div class="nb">${L('V oknu vrha klikni ☆ in vrh se znajde tu.','Click ☆ in a peak window and the peak lands here.')}</div>`)}
+    ${ac(`📅 ${L('Moji vzponi','My climbs')} (${climbs.length})`, climbs.length ? climbs.slice(0, 25).map(([id, d]) => pkRow(id, d ? esc(fmtD(d)) : '')).join('') + (climbs.length > 25 ? `<div class="nb">… ${L('in še','and')} ${climbs.length - 25} ${L('(vsi so na seznamu vrhov)','more (all are in the peak list)')}</div>` : '')
+        : `<div class="nb">${L('Še nobenega — odkljukaj vrh v seznamu ali v oknu vrha.','None yet — tick a peak in the list or in its window.')}</div>`)}
+    ${ac(`🗺 ${L('Moje poti','My routes')} (${MY.length})`, MY.length ? MY.slice().reverse().slice(0, 30).map((r, j) => { const i = MY.length - 1 - j, km = r.coords && r.coords.length > 1 ? lineKm(r.coords) : 0;
+        return `<div class="it"><div><a data-rt="${i}">${esc(r.name || L('Pot','Route'))}</a> <small class="nb">${km.toFixed(1)} km${r.vis && r.vis !== 'private' ? ' · ' + (r.vis === 'public' ? L('javna','public') : L('s povezavo','link')) : ''}</small></div><span><a data-gpx="${i}">GPX</a></span></div>`; }).join('')
+        : `<div class="nb">${L('Nariši pot z ✏️ Riši pot in jo shrani.','Draw a route with ✏️ Draw route and save it.')}</div>`)}
+    <div id="meSoc">${S ? `<div class="nb">…</div>` : ac(`👥 ${L('Prijatelji in skupine','Friends & groups')}`, `<div class="nb">${L('Za prijatelje, skupine in lestvico potrebuješ račun.','Friends, groups and the leaderboard need an account.')}</div>`)}</div>`;
+  const bind = () => { B.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
+    B.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, meOpen));
+    B.querySelectorAll('[data-g]').forEach(a => a.onclick = () => { soShell('gr'); grView(a.dataset.g); }); };
+  B.querySelectorAll('.rmw').forEach(a => a.onclick = () => { wishSet(WISH().filter(x => x !== a.dataset.w)); meBody(); });
+  B.querySelectorAll('[data-rt]').forEach(a => a.onclick = () => { const r = MY[+a.dataset.rt]; lbClose(); setTimeout(() => showLine({name: r.name, coords: r.coords, km: lineKm(r.coords), sub: L('moja pot','my route')}), 60); });
+  B.querySelectorAll('[data-gpx]').forEach(a => a.onclick = () => { const r = MY[+a.dataset.gpx]; window.coordsGPX && coordsGPX(r.name || 'pot', r.coords); });
+  const si = $a('meIn'); if (si) si.onclick = () => { lbClose(); openAccount('in'); };
+  $a('meSet').onclick = () => { lbClose(); (window.openSettings || (() => {}))(); };
+  const g = $a('meGps'); if (g) g.onclick = async () => { await (gWatch ? gpsStop() : gpsStart()); meBody(); };
+  bind(); if (!S) return;
+  let F = [], G = null; try{ [F, G] = await Promise.all([loadFriends().catch(() => []), rpc('my_groups', {}, true).catch(() => null)]); }catch(_){}
+  const box = $a('meSoc'); if (!box || lb.dataset.p !== 'me') return; const fr = (F || []).filter(f => f.state === 'friend'), gr = (G && G.groups) || [];
+  box.innerHTML = ac(`👥 ${L('Prijatelji','Friends')} (${fr.length})`, (fr.length ? fr.slice(0, 20).map(f => `<div class="it"><div>${av(f.username, f.display_name, 22)} <a data-u="${esc(f.username)}">${esc(f.display_name || f.username)}</a></div><span>${boardN(f.counts || {})} ${L('vrhov','peaks')}</span></div>`).join('')
+        : `<div class="nb">${L('Še nimaš prijateljev.','No friends yet.')}</div>`) + `<div class="nb" style="margin-top:6px"><a id="meFr">${L('Vsi prijatelji in prošnje →','All friends and requests →')}</a></div>`)
+    + ac(`⛰ ${L('Moje skupine','My groups')} (${gr.length})`, (gr.length ? gr.map(x => `<div class="it"><div>⛰ <a data-g="${esc(x.id)}">${esc(x.name)}</a></div><span>${nMem(x.members)}${x.plans ? ' · 📅 ' + x.plans : ''}</span></div>`).join('')
+        : `<div class="nb">${L('Nisi še v nobeni skupini.','Not in any group yet.')}</div>`) + `<div class="nb" style="margin-top:6px"><a id="meGr">${L('Skupine in povabila →','Groups and invitations →')}</a></div>`);
+  $a('meFr').onclick = () => soOpen('fr'); $a('meGr').onclick = () => soOpen('gr'); bind(); }
+window.showMe = meOpen;
+
 // ---------- side column: my progress, the community, friends' climbs, upcoming plans ----------
 const lbTop = () => { const m = lb.querySelector('.lbm'); if (m) m.scrollTop = 0; };
 const pkA = id => byId[id] ? `<a data-pk="${esc(id)}">${esc(byId[id].name)}</a>` : esc(id);

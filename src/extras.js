@@ -91,7 +91,7 @@ function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.relo
 // ---------- 2) first-use guide ----------
 const PHONE = () => innerWidth <= 700;
 const STEPS = [
-  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 13 korakih — lahko ga kadarkoli preskočiš.', lang:true},
+  {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.', lang:true},
   {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.', sel:()=>'#drawer', open:'peaks'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
   {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
@@ -100,14 +100,16 @@ const STEPS = [
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn', open:()=>PHONE()?'map':'layers'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.', sel:()=>'.panel .grp', open:'layers'},
-  {t:'⚙ Nastavitve in moj profil', d:'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Odpreš jih z okroglim gumbom ☰ spodaj levo na karti — tam so tudi račun, lestvica, prijatelji, skupine in ta vodič. V nastavitvah so še napredne možnosti: hitri teren, namestitev aplikacije, območja brez signala.', sel:()=>'#fab .fb', open:'map'},
-  {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
+  {t:'☰ Meni in nastavitve', d:'Okrogli gumb ☰ spodaj levo odpre meni: 👤 Moj profil, ⚙ Nastavitve, 🏆 Lestvica, prijatelji in skupine, ✏️ Riši pot (računalnik), 📍 GPS vrhovi (aplikacija) in ❓ ta vodič. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, zemljevidi brez signala in aplikacija.', sel:()=>'#fab .fb', open:'map'},
+  {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fb', open:'map'},
+  {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija s ☰ → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>'#fab .fb', open:'map'},
+  {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov in v meniju ☰.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
   {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš z gumbom ☰ → ❓ Vodič.'},
   {t:'Račun (neobvezno)', d:'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo, se pridružiš lestvici ter dodaš prijatelje in skupine (skupni načrti tur). Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.', acc:true}
 ];
 Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
-  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 13 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 13-step guide — skip it any time.',
+  '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 15-step guide — skip it any time.',
   'Seznam vrhov':'Peak list',
   '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani.':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters.',
   'Klikni vrh na karti':'Click a peak on the map',
@@ -124,11 +126,15 @@ Object.assign(EN, {
   'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX.':'Click points — the line follows trails and roads by itself. Move or delete points; export to GPX.',
   'Podlage in sloji':'Base maps and layers',
   'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, parkings, via ferratas, snow and weather; text size. On a computer the panel hides with the blue tab on the left edge.',
-  '⚙ Nastavitve in moj profil':'⚙ Settings and my profile',
-  'Izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh. Odpreš jih z okroglim gumbom ☰ spodaj levo na karti — tam so tudi račun, lestvica, prijatelji, skupine in ta vodič. V nastavitvah so še napredne možnosti: hitri teren, namestitev aplikacije, območja brez signala.':'Winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings. Open them with the round ☰ button at the bottom left of the map — account, leaderboard, friends, groups and this guide are there too. Settings also hold the advanced options: fast terrain, installing the app, offline areas.',
+  '☰ Meni in nastavitve':'☰ Menu and settings',
+  'Okrogli gumb ☰ spodaj levo odpre meni: 👤 Moj profil, ⚙ Nastavitve, 🏆 Lestvica, prijatelji in skupine, ✏️ Riši pot (računalnik), 📍 GPS vrhovi (aplikacija) in ❓ ta vodič. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, zemljevidi brez signala in aplikacija.':'The round ☰ button at the bottom left opens the menu: 👤 My profile, ⚙ Settings, 🏆 Leaderboard, friends and groups, ✏️ Draw route (computer), 📍 GPS summits (app) and ❓ this guide. Settings hold winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings — plus the account, offline maps and the app.',
+  '👤 Moj profil':'👤 My profile',
+  'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.':'Everything of yours in one place: counts, ⭐ wishlist (☆ in a peak window), your climbs with dates, drawn routes (on the map or GPX), friends, groups and badges. Works without an account too.',
+  '🗺 Brez signala in aplikacija':'🗺 Offline and the app',
+  '⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija s ☰ → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).':'⚙ Settings → Offline maps: save the current view or a whole range (terrain, 3D, contours, water, place names — trails, huts, peaks and the last forecast are kept anyway). The list shows the size; update or delete areas. 📱 The Android app with ☰ → 📍 GPS summits confirms a summit by itself when you stand on it (✓).',
   'Srečno na poti!':'Have a good hike!',
   'Namigi':'Tips',
-  '• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.':'• <b>Legends</b> (height, snow): on a computer drag them by the title, double-click the title to put them back; – shrinks them to a small button.<br>• <b>Tilt and north</b>: right mouse button or two fingers tilt the map, the compass turns it back to north, 2D/3D switches the view.<br>• <b>My peaks</b>: click a name in the list to fly there; under "Obiskal sem" add the date (☐ today), route and a note; "✓ Šel sem po tej poti" in a route card ticks the peak with that route.<br>• <b>Sharing</b>: ✎ Draw → My routes → ⤴ (link or public). 🏆 Leaderboard sits next to your progress in the peak list.<br>• Route and profile windows on a computer also move by their title.',
+  '• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov in v meniju ☰.<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.':'• <b>Legends</b> (height, snow): on a computer drag them by the title, double-click the title to put them back; – shrinks them to a small button.<br>• <b>Tilt and north</b>: right mouse button or two fingers tilt the map, the compass turns it back to north, 2D/3D switches the view.<br>• <b>My peaks</b>: click a name in the list to fly there; under "Obiskal sem" add the date (☐ today), route and a note; "✓ Šel sem po tej poti" in a route card ticks the peak with that route.<br>• <b>Sharing</b>: ✎ Draw → My routes → ⤴ (link or public). 🏆 Leaderboard sits next to your progress in the peak list and in the ☰ menu.<br>• Route and profile windows on a computer also move by their title.',
   'Račun (neobvezno)':'Account (optional)',
   'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo, se pridružiš lestvici ter dodaš prijatelje in skupine (skupni načrti tur). Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.':'With an account (username + password) your climbed peaks, dates and routes, your drawn routes and settings are on your phone and computer, you can share routes by link, join the leaderboard and add friends and groups (shared tour plans). Without one everything works and is saved in this browser. Manage it in ⚙ Settings.',
   'Ne zdaj':'Not now',
@@ -197,8 +203,7 @@ const grp = document.createElement('div'); grp.id = 'appgrp';
 grp.innerHTML = `<b style="display:block;margin:10px 0 4px;font-size:.86em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)">Aplikacija in brez signala</b>
   <a class="btn" id="apkBtn" style="display:none;text-align:center;text-decoration:none" href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">📱 Android aplikacija (APK)</a><div id="apkHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0">Z GPS samodejno potrdi vrhove, ko si na vrhu (✓). Ni iz Google Play: ob namestitvi dovoli »nameščanje iz neznanih virov«.</div>
   <button class="btn" id="instBtn" style="display:none">Namesti aplikacijo</button><div id="instHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0"></div>
-  <button class="btn btn2" id="offBtn">Prenesi to območje za brez signala</button><div id="offInfo" style="font-size:.82em;color:var(--mute);margin:4px 0"></div>
-  <button class="btn btn2" id="offDel">Izbriši shranjena območja</button>
+  <div id="offMgr"></div>
   <button class="btn btn2" id="tourBtn" style="margin-top:8px">Vodič</button>`;
 const adv = document.querySelector('details.adv'); if (adv) adv.insertBefore(grp, adv.querySelector('#tstatus'));
 $x('tourBtn').onclick = () => { if (adv) adv.open = false; tour(0); };
@@ -249,31 +254,104 @@ if ('serviceWorker' in navigator && window.isSecureContext && location.protocol.
 Object.assign(EN, {'Na voljo je nova različica — osveži stran.':'A new version is available — reload the page.', 'Stran je posodobljena na novo različico.':'Updated to the new version.'});
 RX.push([/^360 se je prejšnjič sesul — kakovost znižana na (.+)\.$/, '360 crashed last time — quality lowered to $1.'],
   [/^Grafični pomnilnik je poln — 360 zaprt, kakovost znižana na (.+)\.$/, 'Graphics memory is full — 360 closed, quality lowered to $1.']);
-// offline area: terrain tiles (relief, hillshade, 3D all come from the DEM) for the visible area, zoom 8–14, max ~25 × 25 km.
-// Trails, huts, peaks and the app itself are cached automatically. Satellite / OpenTopoMap are only cached as you view them
-// (their terms do not allow bulk downloading).
-const TZ = [8,9,10,11,12,13,14];
+// ---------- 🗺 offline maps: saved areas (manager in ⚙ Nastavitve → Aplikacija in brez signala) ----------
+// One area = everything the map needs there without signal: terrain (relief, hillshade, 3D, contours, snow model) z8–14
+// (whole ranges z8–13), OpenFreeMap vector tiles (rivers, lakes, place names) z8–14 + their index. Trails, huts, peaks, routes,
+// weather / snow / avalanche data and the app itself are kept by the service worker anyway. Not included: satellite and
+// OpenTopoMap (their terms forbid bulk downloads; tiles you looked at stay cached) and live weather for a clicked spot.
+// Each area is its own cache "dvat-reg-<id>" (the service worker looks in all caches), its list in localStorage.
+const LL = (sl, en) => LANG === 'en' ? en : sl;
+const RK = 'dvat3d_regions', OFM = 'https://tiles.openfreemap.org/planet';
 const tX = (lo,z) => Math.floor((lo+180)/360*2**z), tY = (la,z) => { const r = la*Math.PI/180; return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**z); };
-function areaTiles(){ const b = map.getBounds(); let s = b.getSouth(), n = b.getNorth(), w = b.getWest(), e = b.getEast();
-  const c = map.getCenter(), mxLa = 0.115, mxLo = 0.165; // ~25 km box at most
-  s = Math.max(s, c.lat-mxLa); n = Math.min(n, c.lat+mxLa); w = Math.max(w, c.lng-mxLo); e = Math.min(e, c.lng+mxLo);
-  const L = []; for (const z of TZ) for (let x = tX(w,z); x <= tX(e,z); x++) for (let y = tY(n,z); y <= tY(s,z); y++) L.push(`https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`);
+let REG = []; try{ REG = JSON.parse(localStorage.getItem(RK) || '[]') || []; }catch(_){}
+const saveReg = () => { try{ localStorage.setItem(RK, JSON.stringify(REG)); }catch(_){} };
+let ofmTpl = null;
+async function ofmTiles(){ if (ofmTpl) return ofmTpl; const r = await fetch(OFM); const j = await r.json(); ofmTpl = j.tiles[0]; return ofmTpl; }
+function regUrls(b, zMax, tpl){ const [w, s, e, n] = b, L = [];
+  for (let z = 8; z <= 14; z++) for (let x = tX(w,z); x <= tX(e,z); x++) for (let y = tY(n,z); y <= tY(s,z); y++){
+    if (z <= zMax) L.push(`https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`);
+    if (tpl) L.push(tpl.replace('{z}', z).replace('{x}', x).replace('{y}', y)); }
   return L; }
-async function showUsage(){ try{ const k = await caches.open('dvat-region'), n = (await k.keys()).length; let u = '';
-  if (navigator.storage && navigator.storage.estimate){ const est = await navigator.storage.estimate(); u = ` · ${(est.usage/1e6).toFixed(0)} MB`; }
-  $x('offInfo').textContent = n ? `${T('Shranjeno')}: ${n} ${T('ploščic terena')}${u}` : ''; }catch(_){} }
-Object.assign(EN, {'Shranjeno':'Saved', 'ploščic terena':'terrain tiles', 'Prenašam':'Downloading', 'Območje shranjeno. Brez signala delujejo teren, relief, senčenje, poti, koče in vrhovi.':'Area saved. Offline you have terrain, relief, hillshade, trails, huts and peaks.',
-  'Prenos ni uspel — preveri povezavo.':'Download failed — check your connection.', 'Prenos območij ni podprt v tem brskalniku.':'Area download is not supported in this browser.'});
-$x('offBtn').onclick = async () => {
-  if (!('caches' in window)){ $x('offInfo').textContent = T('Prenos območij ni podprt v tem brskalniku.'); return; }
-  const L = areaTiles(), k = await caches.open('dvat-region'), info = $x('offInfo'); let done = 0, fail = 0; const q = [...L];
-  for (const u of ['tilejson.json']) q.unshift('https://tiles.mapterhorn.com/' + u);
-  await Promise.all(Array.from({length:6}, async () => { while (q.length){ const u = q.shift();
-    try{ if (!(await k.match(u))){ const r = await fetch(u, {mode:'cors'}); if (r.ok) await k.put(u, r); else fail++; } }catch(_){ fail++; }
-    done++; if (done % 10 === 0) info.textContent = `${T('Prenašam')} … ${done} / ${L.length+1}`; } }));
-  info.textContent = fail > L.length/3 ? T('Prenos ni uspel — preveri povezavo.') : T('Območje shranjeno. Brez signala delujejo teren, relief, senčenje, poti, koče in vrhovi.');
-  setTimeout(showUsage, 4000); };
-$x('offDel').onclick = async () => { try{ await caches.delete('dvat-region'); }catch(_){} showUsage(); };
-if ('caches' in window) showUsage();
+const nearName = (lat, lon) => { let best = null, bd = 1e9; for (const p of PEAKS){ if (p.lat == null) continue; const d = (p.lat - lat) ** 2 + ((p.lon - lon) * .69) ** 2; if (d < bd){ bd = d; best = p; } } return best ? best.name.split(' (')[0] : ''; };
+const PRESET = ['Julijske Alpe', 'Kamniško-Savinjske Alpe', 'Karavanke', 'Pohorje', 'Snežnik'];
+const rangeBox = r => { const P = PEAKS.filter(p => p.range === r && p.lat != null); if (!P.length) return null; const m = .03;
+  return [Math.min(...P.map(p => p.lon)) - m, Math.min(...P.map(p => p.lat)) - m, Math.max(...P.map(p => p.lon)) + m, Math.max(...P.map(p => p.lat)) + m]; };
+const viewBox = () => { const b = map.getBounds(), c = map.getCenter(), mxLa = .115, mxLo = .165;   // ~25 × 25 km at most
+  return [Math.max(b.getWest(), c.lng - mxLo), Math.max(b.getSouth(), c.lat - mxLa), Math.min(b.getEast(), c.lng + mxLo), Math.min(b.getNorth(), c.lat + mxLa)]; };
+const mb = x => x >= 1e9 ? (x / 1e9).toFixed(1) + ' GB' : Math.max(1, Math.round(x / 1e6)) + ' MB';
+const est = urls => urls.reduce((a, u) => a + (u.includes('mapterhorn') ? 110e3 : 25e3), 0);
+let job = null;   // running download {id, done, n, stop}
+async function regDownload(r, fresh){
+  if (job) return; if (!('caches' in window)){ offMsg(LL('Prenos območij ni podprt v tem brskalniku.', 'Area downloads are not supported in this browser.')); return; }
+  try{ if (navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch(_){}   // ask the browser not to clear it when space runs low
+  let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
+  const urls = regUrls(r.b, r.z, tpl).concat(tpl ? [OFM] : []), k = await caches.open('dvat-reg-' + r.id);
+  if (!REG.includes(r)){ r.at = Date.now(); REG.push(r); saveReg(); }
+  job = {id: r.id, done: 0, n: urls.length, fail: 0, bytes: 0, stop: false}; offRender();
+  const q = [...urls];
+  await Promise.all(Array.from({length: 6}, async () => { while (q.length && !job.stop){ const u = q.shift();
+    try{ let hit = fresh ? null : await k.match(u);
+      if (!hit){ const res = await fetch(u, {mode: 'cors', cache: fresh ? 'no-cache' : 'default'}); if (res.ok){ await k.put(u, res.clone()); hit = res; } else job.fail++; }
+      if (hit) job.bytes += +hit.headers.get('content-length') || (await hit.clone().blob()).size; }
+    catch(_){ job.fail++; }
+    job.done++; if (job.done % 8 === 0) offProg(); } }));
+  const ok = !job.stop && job.fail < urls.length * .1;
+  Object.assign(r, {n: urls.length - job.fail, bytes: job.bytes, at: Date.now(), ok}); saveReg();
+  const msg = job.stop ? LL('Prenos ustavljen — kar je prenešeno, ostane.', 'Download stopped — what was downloaded stays.')
+    : ok ? LL(`Shranjeno: ${r.name}. Brez signala delujejo teren, 3D, plastnice, vode, imena krajev, poti, koče, vrhovi in zadnja vremenska napoved.`, `Saved: ${r.name}. Offline you have terrain, 3D, contours, water, place names, trails, huts, peaks and the last forecast.`)
+    : LL('Del prenosa ni uspel — preveri povezavo in klikni ⟳ Posodobi.', 'Part of the download failed — check the connection and press ⟳ Update.');
+  job = null; offRender(); offMsg(msg); }
+async function regDelete(r){ try{ await caches.delete('dvat-reg-' + r.id); }catch(_){} REG = REG.filter(x => x !== r); saveReg(); offRender(); }
+function regShow(r){ closeSettingsWin(); const [w, s, e, n] = r.b, ring = [[w, s], [e, s], [e, n], [w, n], [w, s]];
+  try{ const d = {type: 'Feature', properties: {}, geometry: {type: 'Polygon', coordinates: [ring]}};
+    if (map.getSource('offreg')) map.getSource('offreg').setData(d);
+    else { map.addSource('offreg', {type: 'geojson', data: d}); map.addLayer({id: 'offreg', type: 'line', source: 'offreg', paint: {'line-color': '#1976d2', 'line-width': 3, 'line-dasharray': [2, 1.5]}}); }
+    clearTimeout(regShow.t); regShow.t = setTimeout(() => { try{ map.removeLayer('offreg'); map.removeSource('offreg'); }catch(_){} }, 8000); }catch(_){}
+  map.fitBounds([[w, s], [e, n]], {padding: 40, duration: 900}); }
+const closeSettingsWin = () => { const w = document.getElementById('setWin'); if (w) w.classList.remove('on'); };
+const offMsg = t => { const i = $x('offInfo'); if (i) i.textContent = t || ''; };
+const offProg = () => { const i = $x('offInfo'); if (i && job) i.innerHTML = `${LL('Prenašam','Downloading')} … ${job.done} / ${job.n} · ${mb(job.bytes)} <a id="offStop">${LL('ustavi','stop')}</a>`;
+  const st = $x('offStop'); if (st) st.onclick = () => { if (job) job.stop = true; }; };
+async function offRender(){ const M = $x('offMgr'); if (!M) return;
+  let legacy = 0; try{ if ('caches' in window && await caches.has('dvat-region')) legacy = (await (await caches.open('dvat-region')).keys()).length; }catch(_){}
+  let use = '', bar = ''; try{ if (navigator.storage && navigator.storage.estimate){ const e = await navigator.storage.estimate(), q = e.quota || 0, reg = REG.reduce((a, r) => a + (r.bytes || 0), 0), oth = Math.max(0, (e.usage || 0) - reg);
+      use = `${LL('Zasedeno v napravi','Used on this device')}: ${mb(e.usage)}${q ? ' / ' + mb(q) : ''}`;
+      if (q) bar = `<div class="offbar" title="${use}"><i class="a" style="width:${Math.min(100, reg / q * 100).toFixed(2)}%"></i><i class="o" style="width:${Math.min(100, oth / q * 100).toFixed(2)}%"></i></div>
+        <div class="offleg"><span><i class="a"></i>${LL('shranjena območja','saved areas')} ${mb(reg)}</span><span><i class="o"></i>${LL('ogledano + aplikacija','viewed + app')} ${mb(oth)}</span><span><i></i>${LL('prosto','free')} ${mb(Math.max(0, q - (e.usage || 0)))}</span></div>`; } }catch(_){}
+  const tr = window.T || (x => x), have = new Set(REG.filter(r => r.range).map(r => r.range));
+  M.innerHTML = `<div class="offh">🗺 ${LL('Zemljevidi brez signala','Offline maps')}</div>
+    ${REG.length || legacy ? '' : `<div class="hint">${LL('Še nič shranjenega. Shrani pogled ali celo pogorje — potem karta tam deluje tudi brez signala.','Nothing saved yet. Save the view or a whole range — the map then works there without signal.')}</div>`}
+    ${REG.map((r, i) => `<div class="offr${job && job.id === r.id ? ' busy' : ''}"><div class="on"><b>${r.range ? '⛰ ' : '📍 '}${esc2(r.name)}</b><small>${new Date(r.at || Date.now()).toLocaleDateString(LANG === 'en' ? 'en-GB' : 'sl-SI')} · ${mb(r.bytes || 0)} · ${LL('podrobnost','detail')} z${r.z}${r.ok === false ? ' · ⚠ ' + LL('nepopolno','incomplete') : ''}</small></div>
+      <button data-a="show" data-i="${i}" title="${LL('Pokaži na karti','Show on the map')}">👁</button><button data-a="upd" data-i="${i}" title="${LL('Posodobi','Update')}">⟳</button><button data-a="ren" data-i="${i}" title="${LL('Preimenuj','Rename')}">✎</button><button data-a="del" data-i="${i}" title="${LL('Izbriši','Delete')}">🗑</button></div>`).join('')}
+    ${legacy ? `<div class="offr"><div class="on"><b>${LL('Starejša shranjena območja','Older saved areas')}</b><small>${legacy} ${LL('ploščic terena','terrain tiles')}</small></div><button data-a="legacy" title="${LL('Izbriši','Delete')}">🗑</button></div>` : ''}
+    <button class="btn" id="offBtn">＋ ${LL('Shrani trenutni pogled','Save the current view')}</button>
+    <div class="hint">${LL('ali celo pogorje:','or a whole range:')}</div><div class="chips offpre">${PRESET.map(r => `<button data-r="${r}"${have.has(r) ? ' class="on"' : ''}>${esc2(tr(r))}</button>`).join('')}</div>
+    <div id="offInfo" class="hint"></div>${bar}<div class="hint">${use}${use ? ' · ' : ''}${LL('Satelit in OpenTopoMap se shranita samo, kar si pogledal (pogoji uporabe).','Satellite and OpenTopoMap keep only what you looked at (terms of use).')}</div>`;
+  M.querySelectorAll('.offr button').forEach(bt => bt.onclick = () => { const r = REG[+bt.dataset.i], a = bt.dataset.a;
+    if (a === 'legacy'){ caches.delete('dvat-region').then(offRender); return; }
+    if (a === 'show') regShow(r); else if (a === 'upd') regDownload(r, true);
+    else if (a === 'ren'){ const n = prompt(LL('Ime območja','Area name'), r.name); if (n && n.trim()){ r.name = n.trim().slice(0, 40); saveReg(); offRender(); } }
+    else if (a === 'del'){ if (bt.dataset.sure){ regDelete(r); } else { bt.dataset.sure = 1; bt.textContent = LL('Res?','Sure?'); setTimeout(() => { if (bt.isConnected){ delete bt.dataset.sure; bt.textContent = '🗑'; } }, 3000); } } });
+  const ask = (r, urls) => { const i = $x('offInfo'); i.innerHTML = `${esc2(r.name)}: ~${mb(est(urls))} (${urls.length} ${LL('ploščic','tiles')}). <a id="offGo">${LL('Prenesi','Download')}</a> · <a id="offNo">${LL('prekliči','cancel')}</a>`;
+    $x('offGo').onclick = () => regDownload(r); $x('offNo').onclick = () => offMsg(''); };
+  $x('offBtn').onclick = async () => { if (job) return; const b = viewBox(), c = map.getCenter(); let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
+    const r = {id: Date.now().toString(36), name: LL('Okolica: ', 'Around ') + nearName(c.lat, c.lng), b, z: 14}; ask(r, regUrls(b, 14, tpl)); };
+  M.querySelectorAll('.offpre button').forEach(bt => bt.onclick = async () => { if (job) return; const rg = bt.dataset.r, b = rangeBox(rg); if (!b) return;
+    const old = REG.find(x => x.range === rg); if (old){ regShow(old); return; }
+    let tpl = null; try{ tpl = await ofmTiles(); }catch(_){}
+    const r = {id: Date.now().toString(36), name: tr(rg), range: rg, b, z: 13}; ask(r, regUrls(b, 13, tpl)); });
+  if (job) offProg(); }
+const esc2 = t => String(t).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+window.offRender = offRender; offRender();
+// fresh list (sizes, storage) every time the settings window opens
+addEventListener('load', () => { const w = document.getElementById('setWin'); if (w) new MutationObserver(() => { if (w.classList.contains('on')) offRender(); }).observe(w, {attributes: true, attributeFilter: ['class']}); });
+const offCss = document.createElement('style'); offCss.textContent = `#offMgr .offh{font-weight:700;margin:10px 0 4px}
+#offMgr .offr{display:flex;align-items:center;gap:4px;border:1px solid #dfe4e1;border-radius:10px;padding:6px 6px 6px 10px;margin:5px 0}#offMgr .offr.busy{border-color:#1976d2;background:#f2f7fd}
+#offMgr .offr .on{flex:1;min-width:0}#offMgr .offr .on b{display:block;font-size:.95em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#offMgr .offr .on small{color:#5b6461;font-size:.8em}
+#offMgr .offr button{border:0;background:#eef2f0;border-radius:8px;min-width:32px;height:30px;cursor:pointer;font-size:.9em;padding:0 6px}#offMgr .offr button:hover{background:#dde4e0}
+#offMgr .offbar{display:flex;height:10px;border-radius:5px;background:#e3e8e5;overflow:hidden;margin:8px 0 4px}#offMgr .offbar i{display:block;height:100%}#offMgr .offbar .a,#offMgr .offleg .a{background:#1976d2}#offMgr .offbar .o,#offMgr .offleg .o{background:#90a4ae}
+#offMgr .offleg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.8em;color:#4a524f}#offMgr .offleg i{display:inline-block;width:9px;height:9px;border-radius:2px;background:#e3e8e5;margin-right:4px;vertical-align:-1px}
+#offMgr .offpre{margin:4px 0}#offMgr .offpre button.on{background:#e8f1fb;color:#1d2321;border-color:#1976d2}#offMgr a{color:#1565c0;cursor:pointer;text-decoration:underline}`;
+document.head.append(offCss);
 // MapLibre's own button tooltips in Slovene
 })();

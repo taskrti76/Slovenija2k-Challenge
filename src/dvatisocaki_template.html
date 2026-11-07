@@ -1281,7 +1281,7 @@ function openPeak(id,fly){
   const lab=document.createElement('label'); lab.style.marginTop='6px';
   const cb=document.createElement('input'); cb.type='checkbox'; cb.checked=visited.has(id);
   cb.onchange=()=>toggleV(id,cb.checked); lab.append(cb,' Obiskal sem');
-  box.append(lab); if(window.visitBox) box.append(visitBox(p,cb));   // date / route / note of the climb (account.js)
+  if(window.wishBtn) box.append(wishBtn(p)); box.append(lab); if(window.visitBox) box.append(visitBox(p,cb));   // date / route / note of the climb (account.js)
   if(window.wxBox) box.append(wxBox(p));
   const row=document.createElement('div'); row.className='pbtns';
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
