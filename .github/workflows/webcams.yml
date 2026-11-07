@@ -1,0 +1,29 @@
+name: Webcams list
+on:
+  schedule:
+    - cron: '23 3 * * 1'   # every Monday ~04:23 Slovenian time
+  workflow_dispatch: {}     # "Run workflow" button in the Actions tab
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  cams:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node tools/webcams_fetch.mjs
+        env:
+          WINDY_KEY: ${{ secrets.WINDY_KEY }}
+      - name: Commit data/webcams.json
+        run: |
+          git config user.name  "webcams-bot"
+          git config user.email "webcams-bot@users.noreply.github.com"
+          git add data/webcams.json
+          git diff --cached --quiet && exit 0
+          git commit -m "webcams: $(date -u +%F)"
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
