@@ -57,6 +57,12 @@ jobs:
             convert ../icon-512.png -resize ${s}x${s} $o/ic_launcher.png
             convert ../icon-maskable-512.png -resize ${s}x${s} \( -size ${s}x${s} xc:none -fill white -draw "circle $((s/2)),$((s/2)) $((s/2)),0" \) -compose DstIn -composite $o/ic_launcher_round.png
             rm -f $o/ic_launcher_foreground.png; done
+          # loading screen: blue with the logo (old Androids: splash.png; Android 12+: background colour + round icon),
+          # the page hides it as soon as the map is there (SplashScreen.hide, account / template), at the latest after 12 s
+          for f in $(find $A/src/main/res -name splash.png); do W=$(identify -format %w $f); H=$(identify -format %h $f); S=$(( (W<H?W:H)*35/100 ))
+            convert -size ${W}x${H} xc:'#0e3a86' \( ../icon-512.png -resize ${S}x${S} \) -gravity center -composite $f; done
+          sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">#0e3a86</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>\n        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>|' $A/src/main/res/values/styles.xml
+          grep -n "Splash" $A/src/main/res/values/styles.xml
       - name: Build + sign
         run: |
           cd app/android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon -q
