@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.63 — 2026-11-07
+- Height profile: "⤢ Povečaj" opens it across the screen (readable labels, finer hover, its numbers; Esc / × / click outside).
+- Planner: huts and bivouacs up to 1 km off the way can be the overnight (there and back counts against the day, shown as
+  "+N min tja in nazaj"); tent: the flattest point in the last ~1.5 h before the day's limit (slope over ±60 m), near a spring if
+  possible, with its slope shown; "⇄ Obrni smer" reverses the trip (recomputes if it was already planned); every day profile has
+  its numbers and ⤢.
+- The "Riši pot" button under the map & layers panel is gone (drawing: ☰ → ✏️ on a computer, tab "Riši" on a phone); guide points there.
+
 ## web-v0.62 — 2026-11-07
 - 🗓 Multi-day planner (☰ → Načrtovalnik, or "＋ V načrt ture" in a peak window): stops = peaks, huts, trailheads or a click on
   the map; best order (all orders up to 8 stops in between, first stop = start, last fixed unless "nazaj na začetek"); way along the

@@ -195,6 +195,7 @@
   #hleg .lh button{margin-left:auto;border:0;background:transparent;color:var(--mute);font:inherit;font-size:calc(15px * var(--ui,1));line-height:1;padding:2px 4px;cursor:pointer}
   #hleg,#snowleg{cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none}#hleg.dragging,#snowleg.dragging{cursor:grabbing}
   #hleg.min{width:auto;min-width:0;padding:5px 8px}#hleg.min .lb,#hleg.min .u,#hleg.min .lt{display:none}#hleg.dragging{opacity:.85}
+  #drawBtn{display:none!important}   /* drawing is in the round ☰ menu (PC) and the tab bar (phone) */
   .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
   .pst{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:calc(11px * var(--ui,1));color:var(--mute);margin-top:3px;line-height:1.35}.pst b{color:var(--ink,inherit)}
   .pst i{display:inline-block;width:10px;height:7px;border-radius:2px;margin-right:3px;vertical-align:0}.pslc{opacity:.85}
@@ -1940,10 +1941,10 @@ function profileSVG(P, w=300, h=96){
     <text x="${w-2}" y="${H-4}" font-size="10" text-anchor="end" fill="currentColor">${P.km.toFixed(1)} km</text>
     <g class="pfh" style="display:none"><line y1="0" y2="${h-9}" stroke="#263238" stroke-width="1"/><circle r="3" fill="#263238"/><rect rx="4" height="15" fill="rgba(38,50,56,.88)"/><text font-size="10" fill="#fff" y="0"></text></g></svg>`; }
 // numbers under the chart: steepest bit, how much of the way is road / track / path / ferrata, highest T
-function profStats(P){ if(!P||!P.sl) return ''; const len={}; let smax=0, tmax=0;
+function profStats(P){ if(!P||!P.sl) return ''; const len={}; let smax=0, tmax=0; let pid=''; for(const [k,v] of PROFS) if(v===P) pid=k;
   for(let i=1;i<P.dist.length;i++){ const d=P.dist[i]-P.dist[i-1], k=P.tk[i]||'x'; len[k]=(len[k]||0)+d; if(Math.abs(P.sl[i])>smax) smax=Math.abs(P.sl[i]); if(P.sac[i]>tmax) tmax=P.sac[i]; }
   const parts=['m','p','t','r','f','x'].filter(k=>len[k]>=0.05).map(k=>`<span><i style="background:${TKC[k]||'#cfd8dc'}"></i>${k==='x'?'brez poti':TKN[k]} ${len[k].toFixed(1)} km</span>`).join('');
-  return `<div class="pst"><span>⟋ najbolj strmo <b>${Math.round(smax)} %</b></span>${tmax?`<span>najtežje <b>${SACT[tmax]}</b></span>`:''}${parts}</div>
+  return `<div class="pst">${pid?`<button class="pbig" data-pid="${pid}" title="Povečaj profil">⤢ Povečaj</button>`:''}<span>⟋ najbolj strmo <b>${Math.round(smax)} %</b></span>${tmax?`<span>najtežje <b>${SACT[tmax]}</b></span>`:''}${parts}</div>
     <div class="pst pslc">${SLC.map(([m,c],i)=>`<span><i style="background:${c};opacity:.7"></i>${i===0?'< 10':i===SLC.length-1?'> 45':SLC[i-1][0]+'–'+m} %</span>`).join('')}</div>`; }
 // hover / drag on a profile: cross-hair with distance, height, slope, way, time from the start; a dot on the map at that spot
 let profDot=null;
@@ -1960,6 +1961,21 @@ document.addEventListener('pointermove',e=>{ const svg=e.target.closest&&e.targe
   const p=P.pts[i]; if(!profDot){ const d=document.createElement('div'); d.className='profdot'; profDot=new maplibregl.Marker({element:d}).setLngLat(p).addTo(map); } else profDot.setLngLat(p); });
 document.addEventListener('pointerleave',profHide);
 const profT=P=>P&&P.t?P.t[P.t.length-1]:P?walkTime(P.km,P.up,P.down):0;   // base hours (× fitK)
+// big profile: the same chart across the screen (readable labels, finer hover), with its numbers; Esc / × / click outside closes
+function profBig(P,title){ let o=el('pbig'); if(o) o.remove(); if(!P) return; o=document.createElement('div'); o.id='pbig';
+  const W=Math.min(1100,innerWidth-48), H=Math.max(200,Math.min(380,Math.round(innerHeight*0.42)));
+  const fk=(window.PROFILE&&window.PROFILE.fitK)||1;
+  o.innerHTML=`<div class="pbc"><div class="pbh"><b>${esc(title||'Višinski profil')}</b><span>${P.km.toFixed(1)} km · ↑ ${Math.round(P.up)} m · ↓ ${Math.round(P.down)} m · ⏱ ${fmtT(profT(P)*fk)}</span><button class="x" aria-label="Zapri">×</button></div>
+    <div class="prof">${profileSVG(P,W,H)}</div>${profStats(P).replace(/<button class="pbig"[^>]*>[^<]*<\/button>/,'')}</div>`;
+  document.body.append(o); const close=()=>{ o.remove(); removeEventListener('keydown',key); profHide(); }, key=e=>{ if(e.key==='Escape') close(); };
+  o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); }; addEventListener('keydown',key); }
+window.profBig=profBig;
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('.pbig'); if(!b) return; e.preventDefault(); e.stopPropagation(); profBig(PROFS.get(b.dataset.pid)); },true);
+{ const c=document.createElement('style'); c.textContent=`#pbig{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+#pbig .pbc{background:#fff;color:#1d2321;border-radius:14px;padding:12px 16px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35);max-width:100%;font-size:calc(14px*var(--ui,1))}
+#pbig .pbh{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}#pbig .pbh span{color:var(--mute)}#pbig .x{margin-left:auto;border:0;background:none;font-size:1.7em;line-height:1;cursor:pointer;color:inherit}
+#pbig svg.pfx text{font-size:12px}#pbig .pst{font-size:calc(12.5px*var(--ui,1))}
+.pbig{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:0 6px;font:inherit;font-size:1em;cursor:pointer}`; document.head.append(c); }
 window.__prof={profile,profileSVG,profStats,profT,terrainAt};
 const fmtT=hh=>{ const m=Math.round(hh*60); return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} h`; };
 const SACT=['','T1','T2','T3','T4','T5','T6'];
@@ -2022,7 +2038,7 @@ async function ensureGraph(la,lo,margin=0.1){
   return GBUILD;
 }
 window.ensureGraph=ensureGraph;
-let G=null, STARTS=[], HUTS=[], PLACES=[], REL=new Map(), loading=false;
+let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=false;
 const EMPTY={type:'FeatureCollection',features:[]};
 const status=t=>{ const s=el('tstatus'); if(s) s.textContent=t; };
 
@@ -2179,7 +2195,7 @@ async function build(poi,tr,src){
       ff.push({type:'Feature',properties:{t:[o.name||'Ferata', grade].filter(Boolean).join('\n'),len:Math.round(o.len)},geometry:{type:'Point',coordinates:[q.lon,q.lat]}}); }
     if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); }
   // POIs
-  const pf=[]; STARTS=[]; HUTS=[]; PLACES=[];
+  const pf=[]; STARTS=[]; HUTS=[]; PLACES=[]; SPRINGS=[];
   for(const e of poi.elements){ if(e.type==='relation') continue; const t=e.tags||{}, la=e.lat??e.center?.lat, lo=e.lon??e.center?.lon; if(la==null) continue;
     let k=null;
     if(t.place){ PLACES.push({name:t.name,lat:la,lon:lo}); continue; }
@@ -2187,6 +2203,7 @@ async function build(poi,tr,src){
     else if(t.amenity==='parking') k='park'; else if(t.highway==='trailhead') k='th'; else if(t.natural==='spring') k='spring';
     if(!k) continue;
     if(k==='park'||k==='th'){ if(t.access==='private') continue; STARTS.push({node:-1,name:t.name||'',lat:la,lon:lo,kind:k}); }
+    if(k==='spring') SPRINGS.push({lat:la,lon:lo});
     if(k==='hut'||k==='biv') HUTS.push({name:t.name||TNAME[k],lat:la,lon:lo,k:k==='biv'&&/^(lean_to|rock_shelter)$/.test(t.shelter_type||'')?'sh':k});
     pf.push({type:'Feature',properties:{t:k,name:t.name||'',ele:t.ele||'',web:t.website||t['contact:website']||''},geometry:{type:'Point',coordinates:[lo,la]}});
   }
@@ -2598,6 +2615,7 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
       ${O.tent?`<div class="warn">⚠ ${LP('Kampiranje v naravi je v Sloveniji prepovedano, v Triglavskem narodnem parku strogo. Šotor le na dovoljenih mestih ali v sili.','Wild camping is forbidden in Slovenia, strictly in Triglav National Park. Tent only where allowed or in an emergency.')}</div>`:''}
       <div class="plo"><label>${LP('Hoje na dan','Walking per day')} <input type="range" id="plH" min="3" max="12" step="0.5" value="${O.hours}"> <b id="plHv">${O.hours} h</b></label></div>`:''}
     <div class="plo"><label><input type="checkbox" id="plBest" ${O.best?'checked':''}> ${LP('najboljši vrstni red','best order')}</label><label><input type="checkbox" id="plRet" ${O.ret?'checked':''}> ${LP('nazaj na začetek','back to the start')}</label></div>
+    <div class="plb"><button id="plRev" ${S.length<2?'disabled':''} title="${LP('Obrni vrstni red (konec postane začetek)','Reverse the order (the end becomes the start)')}">⇄ ${LP('Obrni smer','Reverse')}</button></div>
     <button class="go" id="plGo" ${S.length<2?'disabled':''}>${LP('Izračunaj turo','Plan the trip')}</button><div id="plOut">${PLR?plOut():''}</div>`;
   plCard.querySelector('.x').onclick=plClose;
   const dl=plCard.querySelector('#plL'), idx=PLI||(PLI=plIndex()); dl.innerHTML=idx.slice(0,3000).map(([l])=>`<option value="${esc(l)}">`).join('');
@@ -2610,6 +2628,7 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
   ck('#plBiv','biv'); ck('#plTent','tent'); ck('#plBest','best'); ck('#plRet','ret');
   const h=plCard.querySelector('#plH'); if(h){ h.oninput=()=>{ plCard.querySelector('#plHv').textContent=h.value+' h'; }; h.onchange=()=>{ O.hours=+h.value; PLR=null; plSave(); }; }
   plCard.querySelector('#plGo').onclick=planCompute;
+  plCard.querySelector('#plRev').onclick=()=>{ const had=!!PLR; S.reverse(); PLR=null; plSave(); plDraw(); plRender(); if(had) planCompute(); };
   plOutBind(); }
 // ---------- computing ----------
 const PSTEP=200;   // m between candidate overnight checks
@@ -2639,13 +2658,22 @@ async function planCompute(){ const S=PL.stops, O=PL.opt, go=plCard.querySelecto
     const sIdx=[]; { let from=0; for(const ci of stopAt){ const [x,y]=coords[ci]; let bi=from, bd=Infinity; for(let i=from;i<n;i++){ const d=hav(y,x,P.pts[i][1],P.pts[i][0]); if(d<bd){ bd=d; bi=i; } if(d<5) break; } sIdx.push(bi); from=bi; } }
     // overnight places along the way
     const kinds=new Set(['hut', ...(O.biv?['biv']:[]), ...(O.tent?['biv','sh']:[])]), cand=[];
-    if(O.sleep!=='none') for(const h of HUTS){ if(!kinds.has(h.k)) continue; let bi=-1, bd=250; for(let i=0;i<n;i+=3){ const d=hav(h.lat,h.lon,P.pts[i][1],P.pts[i][0]); if(d<bd){ bd=d; bi=i; } } if(bi>=0) cand.push({i:bi,name:h.name,k:h.k,off:bd}); }
+    // huts / bivouacs up to 1 km off the way: there and back (≈ 3 km/h with the climb) counts against the day
+    if(O.sleep!=='none') for(const h of HUTS){ if(!kinds.has(h.k)) continue; let bi=-1, bd=1000; for(let i=0;i<n;i+=2){ const d=hav(h.lat,h.lon,P.pts[i][1],P.pts[i][0]); if(d<bd){ bd=d; bi=i; } }
+      if(bi>=0) cand.push({i:bi,name:h.name,k:h.k,off:bd,det:bd>80?2*bd/1000/3*fk:0}); }
     cand.sort((a,b)=>a.i-b.i);
     const days=[], warn=[]; let a=0;
+    // tent: the flattest point in the last ~1.5 h before the day's limit (slope over ±60 m), near a spring if there is one
+    const tentSpot=(a,lim)=>{ let best=null, bs=1e9; for(let i=a+1;i<n-1;i++){ if(T(i)>lim) break; if(T(i)<lim-1.5) continue;
+        let m=0; for(let k=Math.max(0,i-3);k<=Math.min(n-1,i+3);k++) m=Math.max(m,Math.abs(P.sl[k]));
+        const wet=SPRINGS.some(w=>hav(w.lat,w.lon,P.pts[i][1],P.pts[i][0])<300), sc=m-(wet?4:0)-(T(i)-lim+1.5)*2;
+        if(sc<bs){ bs=sc; best={i,slope:m,wet}; } } return best; };
     while(T(n-1)-T(a)>H*1.08){ const lim=T(a)+H, rest=c=>T(n-1)-T(c.i)>=0.3*H; let pick=null;   // no overnight just before the end (a 15-min last day)
-      for(const c of cand) if(c.i>a&&T(c.i)<=lim&&T(c.i)-T(a)>=0.35*H&&rest(c)) pick=c;
+      for(const c of cand) if(c.i>a&&T(c.i)+c.det/2<=lim&&T(c.i)-T(a)>=0.35*H&&rest(c)&&(!pick||c.i>pick.i||c.i===pick.i&&c.off<pick.off)) pick=c;
       if(!pick&&T(n-1)-T(a)<=H*1.35) break;   // a bit longer, but done
-      if(!pick&&O.tent){ let i=a; while(i<n-1&&T(i)<lim) i++; pick={i,name:LP('⛺ prostor za šotor (poišči dovoljeno mesto)','⛺ tent spot (find an allowed place)'),k:'tent'}; warn.push(LP(`Dan ${days.length+1}: ni koče v dosegu — šotor.`,`Day ${days.length+1}: no hut in reach — tent.`)); }
+      if(!pick&&O.tent){ const sp=tentSpot(a,lim)||{i:Math.min(n-2,a+1),slope:99};
+        pick={i:sp.i,name:LP(`⛺ šotor — ${sp.slope<12?'položno':'strmo'} (${Math.round(sp.slope)} %)${sp.wet?', izvir blizu':''}`,`⛺ tent — ${sp.slope<12?'flat-ish':'steep'} (${Math.round(sp.slope)} %)${sp.wet?', spring nearby':''}`),k:'tent',off:0,det:0};
+        warn.push(LP(`Dan ${days.length+1}: ni koče v dosegu — šotor (poišči dovoljeno mesto).`,`Day ${days.length+1}: no hut in reach — tent (find an allowed place).`)); }
       if(!pick){ pick=cand.find(c=>c.i>a&&T(c.i)-T(a)>=0.35*H&&rest(c))||null; if(pick) warn.push(LP(`Dan ${days.length+1} je daljši od ${H} h (prva koča je dlje).`,`Day ${days.length+1} is longer than ${H} h (the next hut is further).`)); }
       if(!pick||pick.i>=n-1){ if(!pick) warn.push(LP('Na poti ni primernega prenočišča — dolg dan.','No suitable overnight place on the way — a long day.')); break; }
       days.push({a,b:pick.i,sleep:pick}); a=pick.i; if(days.length>14) break; }
@@ -2666,8 +2694,8 @@ function plOut(){ const R=PLR, D=R.days, km=D.reduce((s,d)=>s+d.km,0), up=D.redu
     ${R.warn.map(w=>`<div class="warn">⚠ ${esc(w)}</div>`).join('')}
     ${D.map((d,i)=>`<div class="pday" style="border-color:${DAYC[i%DAYC.length]}"><b>${LP('Dan','Day')} ${i+1}: ${esc(d.from)} → ${esc(d.sleep?d.sleep.name:(PL.opt.ret?PL.stops[0].name:PL.stops[R.ord[R.ord.length-1]].name))}</b>
       <div class="st">${d.km.toFixed(1)} km · ↑ ${Math.round(d.up)} m · ↓ ${Math.round(d.down)} m · ⏱ ${fmtT(d.t)}${d.sac?` · ${SACT[d.sac]}`:''}${d.fer?' · '+LP('ferata','via ferrata'):''}</div>
-      ${d.stops.length?`<div class="sl">▲ ${d.stops.map(esc).join(' · ')}</div>`:''}${d.sleep?`<div class="sl">🛏 ${esc(d.sleep.name)}${d.sleep.off>60?` (${Math.round(d.sleep.off)} m ${LP('od poti','off the way')})`:''}</div>`:''}
-      <div class="prof">${profileSVG(sliceP(R.P,d.a,d.b),DESK()?300:280,74)}</div><div class="plb"><button data-gpx="${i}">⬇ GPX</button><button data-show="${i}">${LP('Pokaži','Show')}</button></div></div>`).join('')}
+      ${d.stops.length?`<div class="sl">▲ ${d.stops.map(esc).join(' · ')}</div>`:''}${d.sleep?`<div class="sl">🛏 ${esc(d.sleep.name)}${d.sleep.off>80?` (${Math.round(d.sleep.off)} m ${LP('od poti','off the way')}, +${Math.round(d.sleep.det*60)} min ${LP('tja in nazaj','there and back')})`:''}</div>`:''}
+      <div class="prof">${(()=>{ const sp=sliceP(R.P,d.a,d.b); const h=profileSVG(sp,DESK()?300:280,74); return h+profStats(sp); })()}</div><div class="plb"><button data-gpx="${i}">⬇ GPX</button><button data-show="${i}">${LP('Pokaži','Show')}</button></div></div>`).join('')}
     <div class="plb"><button id="plGpx">⬇ GPX ${LP('vse','all')}</button><button id="plSave">💾 ${LP('Shrani med moje poti','Save to my routes')}</button><button id="plClr">✕ ${LP('Počisti','Clear')}</button></div>
     <div class="hint">${LP('Časi so po tvoji kondiciji (⚙ Nastavitve), brez postankov. Pred turo preveri odprtost koč in razmere.','Times follow your fitness (⚙ Settings), without breaks. Check hut opening and conditions before you go.')}</div>`; }
 function plOutBind(){ if(!PLR) return; const R=PLR, nm=i=>`${LP('Tura','Trip')} ${PL.stops.map(x=>x.name).slice(0,3).join(' – ')}${i!=null?` · ${LP('dan','day')} ${i+1}`:''}`;
@@ -3182,7 +3210,7 @@ const STEPS = [
   {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
   {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>'#wxChk', open:'layers'},
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
-  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri ☰ → 🗓 Načrtovalnik.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#drawBtn', open:()=>PHONE()?'map':'layers'},
+  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri ☰ → 🗓 Načrtovalnik.', sel:()=>PHONE()?'#tabbar [data-t="draw"]':'#fab .fb', open:'map'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu.', sel:()=>'.panel .grp', open:'layers'},
   {t:'☰ Meni in nastavitve', d:'Okrogli gumb ☰ spodaj levo odpre meni: 👤 Moj profil, ⚙ Nastavitve, 🗓 Načrtovalnik ture, 🏆 Lestvica, prijatelji in skupine, ✏️ Riši pot (računalnik), 📍 GPS vrhovi (aplikacija) in ❓ ta vodič. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, zemljevidi brez signala in aplikacija.', sel:()=>'#fab .fb', open:'map'},
   {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fb', open:'map'},
