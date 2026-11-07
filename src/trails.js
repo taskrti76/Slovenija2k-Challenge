@@ -513,20 +513,27 @@ function profBig(P,title){ let o=el('pbig'); if(o) o.remove(); if(!P) return; o=
     <div class="prof">${profileSVG(P,W,H)}</div>${profStats(P).replace(/<button class="pbig"[^>]*>[^<]*<\/button>/,'')}<i class="pgrip" title="Povleci za velikost"></i></div>`;
   document.body.append(o); const close=()=>{ o.remove(); removeEventListener('keydown',key); profHide(); }, key=e=>{ if(e.key==='Escape') close(); };
   o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); }; addEventListener('keydown',key);
-  // resize: drag the bottom-right corner; the chart is drawn again for the new width and height
+  // resize: drag the bottom-right corner. The window has a fixed size, the chart area takes what is left between the title and the
+  // numbers, and the chart is drawn again for exactly that area (so it can never be pushed out or hidden)
   const pbc=o.querySelector('.pbc'), pr=o.querySelector('.prof'), grip=o.querySelector('.pgrip');
-  requestAnimationFrame(()=>{ const r=pbc.getBoundingClientRect(); pbc.style.width=r.width+'px'; pbc.style.height=r.height+'px'; pbc._h0=0; });
-  grip.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); grip.setPointerCapture(e.pointerId); const r0=pbc.getBoundingClientRect(), x0=e.clientX, y0=e.clientY;
-    const mv=ev=>{ const w=Math.max(300,Math.min(innerWidth-16,r0.width+2*(ev.clientX-x0))), h=Math.max(220,Math.min(innerHeight-16,r0.height+2*(ev.clientY-y0)));
-      const ph=pr.offsetHeight, dh=h-pbc.clientHeight; pbc.style.width=w+'px'; pbc.style.height=h+'px';
-      pr.innerHTML=profileSVG(P,Math.max(260,pr.clientWidth),Math.max(120,ph+dh)); };
-    const up=()=>{ grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up); };
-    grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up); }; }
+  const fit=(w,h)=>{ pbc.style.width=Math.max(320,Math.min(innerWidth-16,w))+'px';
+    const rest=pr.classList.contains('fx')?pbc.offsetHeight-pr.offsetHeight:0;   // title + numbers (they wrap more when narrow)
+    pbc.style.height=Math.min(innerHeight-16,Math.max(260,rest+150,h))+'px'; };
+  let last=''; const draw=()=>{ const w=Math.round(pr.clientWidth), h=Math.max(60,Math.round(pr.clientHeight)-20); if(w<50) return; const k=w+'x'+h; if(k===last) return; last=k;
+    pr.innerHTML=profileSVG(P,w,h); };
+  fit(pbc.offsetWidth, pbc.offsetHeight+20); pr.classList.add('fx');
+  const ro=new ResizeObserver(()=>requestAnimationFrame(draw)); ro.observe(pr); draw();
+  grip.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); try{ grip.setPointerCapture(e.pointerId); }catch(_){}
+    const r0=pbc.getBoundingClientRect(), x0=e.clientX, y0=e.clientY;
+    const mv=ev=>fit(r0.width+2*(ev.clientX-x0), r0.height+2*(ev.clientY-y0));   // centred window: grows to both sides
+    const up=()=>{ grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up); grip.removeEventListener('pointercancel',up); };
+    grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up); grip.addEventListener('pointercancel',up); };
+}
 window.profBig=profBig;
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('.pbig'); if(!b) return; e.preventDefault(); e.stopPropagation(); profBig(PROFS.get(b.dataset.pid)); },true);
 { const c=document.createElement('style'); c.textContent=`#pbig{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
 #pbig .pbc{position:relative;box-sizing:border-box;background:var(--solid,#fff);color:var(--ink,#1d2321);border:1px solid var(--line);border-radius:14px;padding:12px 16px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35);max-width:100%;max-height:100%;overflow:hidden;display:flex;flex-direction:column;font-size:calc(14px*var(--ui,1))}
-#pbig .pbc .prof{flex:0 0 auto}#pbig .pgrip{position:absolute;right:3px;bottom:3px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,var(--mute) 50%,var(--mute) 58%,transparent 58%,transparent 70%,var(--mute) 70%,var(--mute) 78%,transparent 78%);opacity:.7}
+#pbig .pbc .prof{flex:0 0 auto}#pbig .pbc .prof.fx{flex:1 1 0;min-height:0;overflow:hidden;padding-top:20px}#pbig .pgrip{position:absolute;right:3px;bottom:3px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,var(--mute) 50%,var(--mute) 58%,transparent 58%,transparent 70%,var(--mute) 70%,var(--mute) 78%,transparent 78%);opacity:.7}
 #pbig .pbh{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}#pbig .pbh span{color:var(--mute)}#pbig .x{margin-left:auto;border:0;background:none;font-size:1.7em;line-height:1;cursor:pointer;color:inherit}
 #pbig .pst{font-size:calc(12.5px*var(--ui,1))}
 .pbig{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:0 6px;font:inherit;font-size:1em;cursor:pointer}`; document.head.append(c); }
@@ -552,6 +559,8 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
   else if(kind==='ferr'){ rr(5,5,38,38,9); c.fillStyle='#e65100'; c.fill(); c.stroke(); // via ferrata: cable + rungs
     c.strokeStyle='#fff'; c.lineWidth=3.2; c.beginPath(); c.moveTo(14,36); c.lineTo(34,12); c.stroke(); c.lineWidth=2.6;
     for(const f of [.25,.5,.75]){ const x=14+20*f, y=36-24*f; c.beginPath(); c.moveTo(x-5,y-4); c.lineTo(x+5,y+4); c.stroke(); } }
+  else if(kind==='cam'){ rr(5,9,38,30,8); c.fillStyle='#37474f'; c.fill(); c.stroke(); c.fillStyle='#fff'; rr(11,17,20,15,3); c.fill();
+    c.beginPath(); c.moveTo(31,22); c.lineTo(39,17); c.lineTo(39,32); c.lineTo(31,27); c.closePath(); c.fill(); c.fillStyle='#ff5252'; c.beginPath(); c.arc(15,13.5,2.5,0,7); c.fill(); }
   return c.getImageData(0,0,S,S); }
 
 // ---------- drawing colour (selectable, remembered) ----------
@@ -597,7 +606,7 @@ let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=fa
 // via ferratas - renamed, moved, hidden, or new ones; OSM data is kept in BASE, the fixes are laid over it
 const BASE={pf:null,HUTS:null,STARTS:null,SPRINGS:null,ff:null};
 const POIT={hut:'hut',biv:'biv',sh:'biv',park:'park',th:'th',spring:'spring'};
-function poiApply(){ const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+function poiApply(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
   const mv=(o,x)=>x&&x.lat!=null&&x.lon!=null?{lat:+x.lat,lon:+x.lon}:{};
   const news=Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.lat!=null&&!hid(x));
   if(BASE.pf){
@@ -608,18 +617,57 @@ function poiApply(){ const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.AD
     SPRINGS=BASE.SPRINGS.filter(o=>!hid(F[o.id])).map(o=>({...o,...mv(o,F[o.id])})).concat(news.filter(([,x])=>x.t==='spring').map(([k,x])=>({lat:+x.lat,lon:+x.lon,id:k})));
     const pf=BASE.pf.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x);
       return {type:'Feature',properties:{...f.properties,name:x.name||f.properties.name,t:x.t?POIT[x.t]||f.properties.t:f.properties.t,hid:x.hide?1:0},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
-      .concat(news.filter(([,x])=>x.t!=='ferr').map(([k,x])=>({type:'Feature',properties:{t:POIT[x.t]||'hut',name:x.name||'',ele:x.ele||'',web:'',key:k,hid:x.hide?1:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
+      .concat(news.filter(([,x])=>x.t!=='ferr'&&x.t!=='cam').map(([k,x])=>({type:'Feature',properties:{t:POIT[x.t]||'hut',name:x.name||'',ele:x.ele||'',web:'',key:k,hid:x.hide?1:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
     if(map.getSource('poi')) map.getSource('poi').setData({type:'FeatureCollection',features:pf}); }
   if(BASE.ff){ const ff=BASE.ff.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x), nm=x.name||f.properties.name, gr=x.grade!=null&&x.grade!==''?x.grade:f.properties.grade;
       return {type:'Feature',properties:{...f.properties,name:nm,grade:gr,t:[nm||'Ferata',gr].filter(Boolean).join('\n')},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
       .concat(news.filter(([,x])=>x.t==='ferr').map(([k,x])=>({type:'Feature',properties:{name:x.name||'',grade:x.grade||'',key:k,t:[x.name||'Ferata',x.grade||''].filter(Boolean).join('\n'),len:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
     if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); } }
-window.poiFixesChanged=()=>{ poiApply(); G=null; if(RT) window.peakRoutesUI(RT.peak.id); };
+// ---------- 📷 webcams: Windy (list refreshed weekly by a GitHub Action into data/webcams.json; the picture itself is asked for on
+// tap - free-tier image links expire after ~10 min) + cameras an admin adds (fixes kind "poi", t "cam": picture URL + link).
+// Windy's key is meant to live in the page (it only works from this site's domain).
+const WINDY_KEY='VEnkEnRvHPr9DEogeHFm8ofbW81dYsX6';
+const camOn=()=>{ try{ return localStorage.getItem('dvat3d_cams')!=='0'; }catch(_){ return true; } };
+let CAMS=null, camLoading=false;
+async function camsLoad(){ if(CAMS||camLoading||!location.protocol.startsWith('http')) return; camLoading=true;
+  try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''})); } }catch(_){}
+  camLoading=false; camApply(); }
+function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN;
+  const L=(CAMS||[]).filter(c=>!(F[c.key]&&F[c.key].hide&&!A)).map(c=>{ const x=F[c.key]; return x?{...c,name:x.name||c.name,lat:x.lat!=null?+x.lat:c.lat,lon:x.lon!=null?+x.lon:c.lon,hid:x.hide?1:0}:c; })
+    .concat(Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.t==='cam'&&x.lat!=null&&!(x.hide&&!A)).map(([k,x])=>({key:k,name:x.name||'Kamera',lat:+x.lat,lon:+x.lon,img:x.img||'',link:x.link||'',hid:x.hide?1:0})));
+  window.CAMLIST=L;
+  map.getSource('cams').setData({type:'FeatureCollection',features:L.map(c=>({type:'Feature',properties:{key:c.key,name:c.name,hid:c.hid||0},geometry:{type:'Point',coordinates:[c.lon,c.lat]}}))}); }
+// cameras near a peak (peak window: "📷 Kamere v bližini")
+window.camsNear=(la,lo,km=15)=>(window.CAMLIST||[]).map(c=>({c,d:hav(la,lo,c.lat,c.lon)})).filter(x=>x.d<km*1000).sort((a,b)=>a.d-b.d);
+window.camOpen=async key=>{ const c=(window.CAMLIST||[]).find(x=>x.key===key); if(!c) return; let o=el('camWin'); if(o) o.remove();
+  o=document.createElement('div'); o.id='camWin'; o.className='dlg on';
+  o.innerHTML=`<div class="camc"><div class="camh"><b>📷 ${esc(c.name)}</b><button class="x" aria-label="Zapri">×</button></div><div class="camb">Nalagam sliko …</div></div>`;
+  document.body.append(o); const close=()=>o.remove(); o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); };
+  const B=o.querySelector('.camb'), adm=window.ADMIN?`<button class="camadm">🛠 Uredi kamero</button>`:'';
+  const bindAdm=()=>{ const b=o.querySelector('.camadm'); if(b) b.onclick=()=>{ close(); window.adminPoiEdit&&adminPoiEdit({key:c.key,t:'cam',name:c.name,lat:c.lat,lon:c.lon,img:c.img,link:c.link,windy:!!c.id}); }; };
+  if(!c.id){ const img=c.img?`${c.img}${c.img.includes('?')?'&':'?'}t=${Math.floor(Date.now()/60000)}`:'';
+    B.innerHTML=(img?`<a href="${esc(c.link||c.img)}" target="_blank" rel="noopener"><img src="${esc(img)}" alt=""></a>`:'<div>Ni slike.</div>')+`<div class="camf">${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">Odpri vir ↗</a>`:''}${adm}</div>`; bindAdm(); return; }
+  try{ const r=await fetch(`https://api.windy.com/webcams/api/v3/webcams/${c.id}?include=images,player,urls,location&lang=sl`,{headers:{'X-WINDY-API-KEY':WINDY_KEY}});
+    if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json(), im=j.images||{}, cur=im.current||{}, day=im.daylight||{};
+    const src=cur.preview||cur.thumbnail||cur.icon||day.preview||'', link=(j.urls&&j.urls.detail)||`https://www.windy.com/webcams/${c.id}`, pl=j.player||{};
+    const when=j.lastUpdatedOn?new Date(j.lastUpdatedOn).toLocaleString('sl-SI',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    B.innerHTML=`${src?`<a href="${esc(link)}" target="_blank" rel="noopener" title="Odpri na windy.com"><img src="${esc(src)}" alt=""></a>`:'<div>Slika trenutno ni na voljo.</div>'}
+      <div class="camf"><span>${esc([j.location&&j.location.city,when].filter(Boolean).join(' · '))}${j.status&&j.status!=='active'?' · neaktivna':''}</span>
+      ${pl.day?`<button class="camtl">▶ Časovni potek</button>`:''}<a href="${esc(link)}" target="_blank" rel="noopener">Windy.com ↗</a>${adm}</div><div class="camp"></div>`;
+    const tl=o.querySelector('.camtl'); if(tl) tl.onclick=()=>{ o.querySelector('.camp').innerHTML=`<iframe src="${esc(pl.day)}" allowfullscreen loading="lazy"></iframe>`; tl.remove(); };
+    bindAdm(); }
+  catch(e){ B.innerHTML=`<div>Kamere ni bilo mogoče naložiti (${esc(e.message)}).</div><div class="camf"><a href="https://www.windy.com/webcams/${c.id}" target="_blank" rel="noopener">Odpri na windy.com ↗</a>${adm}</div>`; bindAdm(); } };
+{ const c=document.createElement('style'); c.textContent=`#camWin{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px}
+#camWin .camc{background:var(--solid,#fff);color:var(--ink,#1d2321);border:1px solid var(--line);border-radius:14px;padding:10px 12px 12px;width:min(640px,100%);max-height:100%;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#camWin .camh{display:flex;align-items:center;gap:8px;margin-bottom:8px}#camWin .camh .x{margin-left:auto;border:0;background:none;color:inherit;font-size:1.6em;line-height:1;cursor:pointer}
+#camWin img{display:block;width:100%;border-radius:8px;background:#0003}#camWin .camf{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-top:8px;font-size:.9em}#camWin .camf span{color:var(--mute);flex:1}
+#camWin .camf button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:8px;padding:4px 9px;font:inherit;cursor:pointer}#camWin iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;margin-top:8px}`; document.head.append(c); }
+window.poiFixesChanged=()=>{ camApply(); poiApply(); G=null; if(RT) window.peakRoutesUI(RT.peak.id); };
 const EMPTY={type:'FeatureCollection',features:[]};
 const status=t=>{ const s=el('tstatus'); if(s) s.textContent=t; };
 
 function addLayers(){
-  for(const k of ['hut','biv','park','th','spring','ferr']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
+  for(const k of ['hut','biv','park','th','spring','ferr','cam']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
   if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:window.IS_PHONE?0.7:0.5,maxzoom:window.IS_PHONE?14:16,buffer:window.IS_PHONE?48:96,   /* phones: trail tiles cut only to z14 (then enlarged) - far less work + memory */attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
@@ -672,6 +720,13 @@ function addLayers(){
   add({id:'ferr-sign',type:'symbol',source:'ferr',minzoom:10.5,layout:{'icon-image':'i-ferr','icon-size':['interpolate',['linear'],['zoom'],11,.5,14,.75],'icon-allow-overlap':true,
       'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
     paint:{'text-color':'#bf360c','text-halo-color':'rgba(255,255,255,.92)','text-halo-width':1.6}});
+  if(!map.getSource('cams')) map.addSource('cams',{type:'geojson',data:EMPTY,attribution:'Kamere: <a href="https://www.windy.com/webcams" target="_blank">Windy.com</a>'});
+  add({id:'cam',type:'symbol',source:'cams',minzoom:8.5,layout:{'icon-image':'i-cam','icon-size':['interpolate',['linear'],['zoom'],9,.45,14,.7],'icon-allow-overlap':['step',['zoom'],false,12,true],
+      visibility:camOn()?'visible':'none','text-field':['step',['zoom'],'',12.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':10.5*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
+    paint:{'text-color':'#263238','text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.4,'icon-opacity':['case',['==',['get','hid'],1],.4,1]}});
+  map.on('click','cam',e=>{ if(window.DRAW_ON) return; e.preventDefault(); camOpen(e.features[0].properties.key); });
+  map.on('mouseenter','cam',()=>map.getCanvas().style.cursor='pointer'); map.on('mouseleave','cam',()=>map.getCanvas().style.cursor='');
+  camsLoad();
   map.on('click','ferr-sign',e=>{ if(window.DRAW_ON||!window.ADMIN) return; e.preventDefault(); const f=e.features[0], p=f.properties, c=f.geometry.coordinates;
     window.adminPoiEdit&&adminPoiEdit({key:p.key,t:'ferr',name:p.name,grade:p.grade,lat:c[1],lon:c[0]}); });
   for(const id of ['poi-hut','poi-park','poi-spring']){
@@ -1193,6 +1248,7 @@ el('trv').onchange=e=>['tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','t
 el('huts').onchange=e=>['poi-hut','poi-spring'].forEach(id=>vis(id,e.target.checked));
 el('parks').onchange=e=>vis('poi-park',e.target.checked);
 el('ferrs').onchange=e=>vis('ferr-sign',e.target.checked);
+if(el('cams')){ el('cams').checked=camOn(); el('cams').onchange=e=>{ try{ localStorage.setItem('dvat3d_cams',e.target.checked?'1':'0'); }catch(_){} vis('cam',e.target.checked); if(e.target.checked) camsLoad(); }; }
 el('drawBtn').onclick=()=>window.DRAW_ON?stopDraw():startDraw();
 el('reload').onclick=()=>loadData(true);
 el('exportPack').onclick=async()=>{ const r=window.__osmRaw; if(!r){ toastErr('Podatki se še nalagajo.'); return; }
@@ -1230,6 +1286,7 @@ function plIndex(){ const L=[], seen=new Set(), add=(label,o)=>{ if(seen.has(lab
   for(const p of (typeof PEAKS!=='undefined'?PEAKS:[])) if(p.lat!=null) add(`${p.name} (${LP('vrh','peak')} ${Math.round(p.elev)} m)`,{name:p.name.split(' (')[0],lat:p.lat,lon:p.lon,k:'peak'});
   for(const h of HUTS) if(h.name) add(`${h.name} (${h.k==='hut'?LP('koča','hut'):LP('bivak','bivouac')})`,{name:h.name,lat:h.lat,lon:h.lon,k:h.k});
   for(const x of STARTS_ALL) if(x.name&&!/^parkirišče$/.test(x.name)) add(`${x.name.replace(/^pri /,'')} (${LP('izhodišče','trailhead')})`,{name:x.name.replace(/^pri /,''),lat:x.lat,lon:x.lon,k:'start'});
+  for(const x of PLACES) if(x.name) add(`${x.name} (${LP('kraj','town / village')})`,{name:x.name,lat:x.lat,lon:x.lon,k:'place'});   // towns, villages, hamlets
   return L; }
 let PLI=null;
 const nearNamed=(la,lo)=>{ let b=null,bd=400; for(const [,o] of (PLI||(PLI=plIndex()))){ const d=hav(la,lo,o.lat,o.lon); if(d<bd){ bd=d; b=o; } } return b; };
@@ -1240,9 +1297,9 @@ const plClose=()=>{ plCard.classList.remove('on'); plPick=false; map.getCanvas()
 map.on('click',e=>{ if(!plPick) return; plPick=false; map.getCanvas().style.cursor='';
   const o=nearNamed(e.lngLat.lat,e.lngLat.lng)||{name:LP('Točka','Point')+` ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`,lat:e.lngLat.lat,lon:e.lngLat.lng,k:'pt'};
   if(popup) setTimeout(()=>popup&&popup.remove(),0); planAdd(o); });
-function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt, S=PL.stops, KI={peak:'▲',hut:'🏠',biv:'⛺',sh:'⛺',start:'P',pt:'•'};
+function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt, S=PL.stops, KI={peak:'▲',hut:'🏠',biv:'⛺',sh:'⛺',start:'P',place:'⌂',pt:'•'};
   plCard.innerHTML=`<div class="rh"><b>🗓 ${LP('Načrtovalnik ture','Trip planner')}</b><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
-    <div class="hint">${LP('Dodaj kraje v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče — ali klikni na karto.','Add places in order: the first is the start. Peak, hut, trailhead — or click on the map.')}</div>
+    <div class="hint">${LP('Dodaj točke v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče, mesto ali vas — ali klikni katerokoli točko na karti.','Add stops in order: the first is the start. Peak, hut, trailhead, town or village — or click any spot on the map.')}</div>
     <div class="pls">${S.map((x,i)=>`<div class="plr"><i class="n">${i+1}</i><span title="${esc(x.name)}">${KI[x.k]||'•'} ${esc(x.name)}</span><button data-a="up" data-i="${i}" ${i?'':'disabled'}>↑</button><button data-a="dn" data-i="${i}" ${i<S.length-1?'':'disabled'}>↓</button><button data-a="rm" data-i="${i}">✕</button></div>`).join('')||`<div class="hint">${LP('Še ni krajev.','No places yet.')}</div>`}</div>
     <div class="pla"><input id="plQ" list="plL" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><datalist id="plL"></datalist><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
     <div class="q">${LP('Prenočevanje','Overnight')}</div>

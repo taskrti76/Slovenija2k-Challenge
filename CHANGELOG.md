@@ -2,6 +2,17 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.67 — 2026-11-08
+- 📷 Webcams: Windy cameras in Slovenia + ~20 km over the border (layer "Spletne kamere", camera icons; list refreshed every
+  Monday by the "Webcams list" Action into data/webcams.json). Tap = current picture (asked from Windy then, links to windy.com),
+  "▶ Časovni potek" = Windy's timelapse player. Peak window: the 3 nearest cameras within 15 km. Admin: hide / rename / move a
+  Windy camera, or add own cameras (picture URL + link) as points.
+- Friends: typing a name shows matching people (name or username, public profiles); tap one to send the request.
+- Planner: towns, villages and hamlets can be stops (and any clicked spot, as before).
+- Snow legend: top of the scale = deepest snow of the day rounded up to 5 · 10 · 25 · 50 · 75 · 100 · 150 · 200 cm (multi-colour kept).
+- Big height profile: resizing never hides the chart (the chart fills exactly the space between title and numbers, minimum height).
+- App: checks for a new version every 6 h (not once a day) and gives one phone notification per new version.
+
 ## web-v0.66 — 2026-11-07
 - Guide: the lit spot follows its target while the map flies or a window slides in (360° step); the red button is fully
   visible while the guide points at it.

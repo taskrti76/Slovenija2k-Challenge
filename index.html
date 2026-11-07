@@ -39,6 +39,7 @@
   #langsw button.on{background:var(--ink);color:var(--panel)}
   .admd{background:#fff4e5;color:#3b2a00;border:1px solid #f0c48a;border-radius:9px;padding:7px 9px;margin:6px 0;font-size:.88em;line-height:1.35}.admd b{color:#3b2a00}.admd .rb{margin-top:6px;display:flex;gap:6px}.admd .rb button{background:#fff;color:#3b2a00;border:1px solid #d9b87a;border-radius:8px;padding:5px 10px;font:inherit;cursor:pointer}.admd .rb .pri{background:#c62828;color:#fff;border-color:#c62828}.admd .aerr{color:#b3261e;margin-top:4px}
   .maplibregl-ctrl-top-right,.maplibregl-ctrl-bottom-right{right:env(safe-area-inset-right,0px)}.maplibregl-ctrl-top-left,.maplibregl-ctrl-bottom-left{left:env(safe-area-inset-left,0px)}
+  .pcams{margin-top:6px;font-size:.9em;line-height:1.5}.pcams a{color:#1565c0;cursor:pointer;text-decoration:underline}.pcams small{color:var(--mute)}
   #tour{position:fixed;inset:0;z-index:50}
   #tour .tacc{display:flex;gap:8px;margin:0 0 12px}#tour .tacc button{flex:1;border:0;border-radius:9px;background:#1565c0;color:#fff;font:600 1em system-ui,sans-serif;padding:9px;cursor:pointer}#tour .tacc button+button{background:transparent;color:var(--ink);border:1px solid var(--line)}
   #tour .th{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,14,13,.62);transition:all .25s;pointer-events:none;outline:2px solid #ffb300}
@@ -397,6 +398,7 @@ setTimeout(window.bootOut,12000);</script>
   <div class="grp"><b>Poti in koče (OSM)</b>
     <label><input type="checkbox" id="trv" checked> Poti (markirane + neoznačene)</label>
     <label><input type="checkbox" id="huts" checked> Koče, bivaki, izviri</label>
+    <label><input type="checkbox" id="cams" checked> Spletne kamere</label>
     <label><input type="checkbox" id="parks" checked> Parkirišča / izhodišča</label>
     <label><input type="checkbox" id="ferrs" checked> Ferate (oznake + težavnost)</label>
     <button class="btn dsk" id="drawBtn">Riši pot</button>
@@ -700,14 +702,19 @@ map.on('click',e=>{
     for(let la=LA0; la<LA1-1e-9; la+=D0LA) for(let lo=LO0; lo<LO1-1e-9; lo+=D0LO) if(near(la+D0LA/2,lo+D0LO/2)) visit(la,lo,D0LA,D0LO,0);
     cells=out; return cells;
   }
-  // multi-colour scale with fixed depths (cm): pale blue -> blue -> violet -> magenta -> wine, the same colour means the same depth
-  // every day (no greens / browns, so it never blends into the relief)
-  const STOPS=[[1,'#e2f3ff'],[5,'#a5d8ff'],[15,'#56a8f5'],[30,'#2d63d8'],[60,'#6b3ccf'],[100,'#b2309c'],[200,'#6e0b35']];
+  // multi-colour scale (pale blue -> blue -> violet -> magenta -> wine; no greens / browns, so it never blends into the relief).
+  // Top of the scale = deepest snow of the shown day (model, flat ground) rounded up to 5 · 10 · 25 · 50 · 75 · 100 · 150 · 200 cm;
+  // the 7 colours sit at equal ratios from 1 cm to the top, so a few cm and a lot both show contrast
+  const STOPS=[[1,'#e2f3ff'],[2,'#a5d8ff'],[4,'#56a8f5'],[8,'#2d63d8'],[16,'#6b3ccf'],[32,'#b2309c'],[64,'#6e0b35']];
   $id('snowlegbar').style.background='linear-gradient(90deg,'+STOPS.map(([v,c],i)=>`${c} ${(i/(STOPS.length-1)*100).toFixed(0)}%`).join(',')+')';
   const RGB=STOPS.map(([v,c])=>[v,parseInt(c.slice(1,3),16),parseInt(c.slice(3,5),16),parseInt(c.slice(5,7),16)]);
-  let LMAX=200;
-  $id('snowlegsl').innerHTML=STOPS.map(([v],i)=>`<span>${v}${i===STOPS.length-1?'+ cm':''}</span>`).join('')+'';
-  function setScale(){}
+  let LMAX=0; const NICE=[5,10,25,50,75,100,150,200];
+  function setScale(day){ let mx=0; if(SP&&spDay(day)){ const C=SP.cm[SP.days.indexOf(day)]; for(const c of C) for(const v of (Array.isArray(c)?c:[c])) if(v>mx) mx=v; }
+    else if(DATA&&DATA.depth){ for(let i=0;i<cells.length;i++){ const v=depthAt(i,day); if(v!=null&&v*100>mx) mx=v*100; } }
+    const L=NICE.find(n=>n>=mx)||Math.ceil(mx/100)*100; if(L===LMAX) return; LMAX=L;
+    const N=STOPS.length-1; STOPS.forEach((st,i)=>{ st[0]=Math.round(Math.pow(L,i/N)*100)/100; RGB[i][0]=st[0]; });
+    const lab=v=>v<3?(Math.round(v*2)/2).toString():v<20?Math.round(v).toString():(Math.round(v/5)*5).toString();
+    $id('snowlegsl').innerHTML=[0,.25,.5,.75].map(f=>`<span>${lab(Math.pow(L,f))}</span>`).join('')+`<span>${L} cm</span>`; }
   let DATA=null; // {times:[...], depth:[cellIdx][hour] in m, elev:[cellIdx] model grid-cell height}
   const CK='dvat_snow_v4', SNOWJSON=location.protocol.startsWith('http')?'snow.json':''; // snow.json: refreshed daily by GitHub Action
   async function load(){
@@ -749,7 +756,7 @@ map.on('click',e=>{
     cells.forEach(([la,lo,dla,dlo],ci)=>{ const d=depthAt(ci,day); if(d==null||d<0.01) return; const cm=Math.round(d*100);
       f.push({type:'Feature',properties:{cm},geometry:{type:'Polygon',coordinates:[[[lo-dlo/2,la-dla/2],[lo+dlo/2,la-dla/2],[lo+dlo/2,la+dla/2],[lo-dlo/2,la+dla/2],[lo-dlo/2,la-dla/2]]]}}); });
     const fc={type:'FeatureCollection',features:f};
-    if(map.getSource('snowd')) map.getSource('snowd').setData(fc);
+    setScale(day); if(map.getSource('snowd')){ map.getSource('snowd').setData(fc); if(map.getLayer('snowd')) map.setPaintProperty('snowd','fill-color',['interpolate',['linear'],['get','cm'],...STOPS.flatMap(([v,c])=>[v,c])]); }
     else { map.addSource('snowd',{type:'geojson',data:fc,attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0)'});
       map.addLayer({id:'snowd',type:'fill',source:'snowd',paint:{'fill-antialias':false,'fill-opacity':0.6,
         'fill-color':['interpolate',['linear'],['get','cm'],...STOPS.flatMap(([v,c])=>[v,c])]}}, map.getLayer('hs')?'hs':undefined); }
@@ -1310,6 +1317,10 @@ function openPeak(id,fly){
   const rb=document.createElement('button'); rb.textContent='Poti na vrh'; rb.onclick=()=>window.peakRoutesUI&&window.peakRoutesUI(id);
   const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
+  // webcams within 15 km (trails.js): the three nearest, tap = picture
+  if(window.camsNear&&$id('cams')&&$id('cams').checked){ const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
+    d.innerHTML='📷 '+cn.map((x,i)=>`<a data-k="${i}">${x.c.name.replace(/[<>&"]/g,'')}</a> <small>${(x.d/1000).toFixed(0)} km</small>`).join(' · ');
+    d.querySelectorAll('a').forEach(a=>a.onclick=()=>window.camOpen(cn[+a.dataset.k].c.key)); box.append(d); } }
   if(window.adminPeakBox&&window.ADMIN) box.append(adminPeakBox(p));   // admin: correct position / height / name
   if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
@@ -1991,20 +2002,27 @@ function profBig(P,title){ let o=el('pbig'); if(o) o.remove(); if(!P) return; o=
     <div class="prof">${profileSVG(P,W,H)}</div>${profStats(P).replace(/<button class="pbig"[^>]*>[^<]*<\/button>/,'')}<i class="pgrip" title="Povleci za velikost"></i></div>`;
   document.body.append(o); const close=()=>{ o.remove(); removeEventListener('keydown',key); profHide(); }, key=e=>{ if(e.key==='Escape') close(); };
   o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); }; addEventListener('keydown',key);
-  // resize: drag the bottom-right corner; the chart is drawn again for the new width and height
+  // resize: drag the bottom-right corner. The window has a fixed size, the chart area takes what is left between the title and the
+  // numbers, and the chart is drawn again for exactly that area (so it can never be pushed out or hidden)
   const pbc=o.querySelector('.pbc'), pr=o.querySelector('.prof'), grip=o.querySelector('.pgrip');
-  requestAnimationFrame(()=>{ const r=pbc.getBoundingClientRect(); pbc.style.width=r.width+'px'; pbc.style.height=r.height+'px'; pbc._h0=0; });
-  grip.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); grip.setPointerCapture(e.pointerId); const r0=pbc.getBoundingClientRect(), x0=e.clientX, y0=e.clientY;
-    const mv=ev=>{ const w=Math.max(300,Math.min(innerWidth-16,r0.width+2*(ev.clientX-x0))), h=Math.max(220,Math.min(innerHeight-16,r0.height+2*(ev.clientY-y0)));
-      const ph=pr.offsetHeight, dh=h-pbc.clientHeight; pbc.style.width=w+'px'; pbc.style.height=h+'px';
-      pr.innerHTML=profileSVG(P,Math.max(260,pr.clientWidth),Math.max(120,ph+dh)); };
-    const up=()=>{ grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up); };
-    grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up); }; }
+  const fit=(w,h)=>{ pbc.style.width=Math.max(320,Math.min(innerWidth-16,w))+'px';
+    const rest=pr.classList.contains('fx')?pbc.offsetHeight-pr.offsetHeight:0;   // title + numbers (they wrap more when narrow)
+    pbc.style.height=Math.min(innerHeight-16,Math.max(260,rest+150,h))+'px'; };
+  let last=''; const draw=()=>{ const w=Math.round(pr.clientWidth), h=Math.max(60,Math.round(pr.clientHeight)-20); if(w<50) return; const k=w+'x'+h; if(k===last) return; last=k;
+    pr.innerHTML=profileSVG(P,w,h); };
+  fit(pbc.offsetWidth, pbc.offsetHeight+20); pr.classList.add('fx');
+  const ro=new ResizeObserver(()=>requestAnimationFrame(draw)); ro.observe(pr); draw();
+  grip.onpointerdown=e=>{ e.preventDefault(); e.stopPropagation(); try{ grip.setPointerCapture(e.pointerId); }catch(_){}
+    const r0=pbc.getBoundingClientRect(), x0=e.clientX, y0=e.clientY;
+    const mv=ev=>fit(r0.width+2*(ev.clientX-x0), r0.height+2*(ev.clientY-y0));   // centred window: grows to both sides
+    const up=()=>{ grip.removeEventListener('pointermove',mv); grip.removeEventListener('pointerup',up); grip.removeEventListener('pointercancel',up); };
+    grip.addEventListener('pointermove',mv); grip.addEventListener('pointerup',up); grip.addEventListener('pointercancel',up); };
+}
 window.profBig=profBig;
 document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('.pbig'); if(!b) return; e.preventDefault(); e.stopPropagation(); profBig(PROFS.get(b.dataset.pid)); },true);
 { const c=document.createElement('style'); c.textContent=`#pbig{position:fixed;inset:0;z-index:72;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
 #pbig .pbc{position:relative;box-sizing:border-box;background:var(--solid,#fff);color:var(--ink,#1d2321);border:1px solid var(--line);border-radius:14px;padding:12px 16px 14px;box-shadow:0 10px 40px rgba(0,0,0,.35);max-width:100%;max-height:100%;overflow:hidden;display:flex;flex-direction:column;font-size:calc(14px*var(--ui,1))}
-#pbig .pbc .prof{flex:0 0 auto}#pbig .pgrip{position:absolute;right:3px;bottom:3px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,var(--mute) 50%,var(--mute) 58%,transparent 58%,transparent 70%,var(--mute) 70%,var(--mute) 78%,transparent 78%);opacity:.7}
+#pbig .pbc .prof{flex:0 0 auto}#pbig .pbc .prof.fx{flex:1 1 0;min-height:0;overflow:hidden;padding-top:20px}#pbig .pgrip{position:absolute;right:3px;bottom:3px;width:18px;height:18px;cursor:nwse-resize;touch-action:none;background:linear-gradient(135deg,transparent 50%,var(--mute) 50%,var(--mute) 58%,transparent 58%,transparent 70%,var(--mute) 70%,var(--mute) 78%,transparent 78%);opacity:.7}
 #pbig .pbh{display:flex;align-items:center;gap:12px;margin-bottom:22px;flex-wrap:wrap}#pbig .pbh span{color:var(--mute)}#pbig .x{margin-left:auto;border:0;background:none;font-size:1.7em;line-height:1;cursor:pointer;color:inherit}
 #pbig .pst{font-size:calc(12.5px*var(--ui,1))}
 .pbig{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:0 6px;font:inherit;font-size:1em;cursor:pointer}`; document.head.append(c); }
@@ -2030,6 +2048,8 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
   else if(kind==='ferr'){ rr(5,5,38,38,9); c.fillStyle='#e65100'; c.fill(); c.stroke(); // via ferrata: cable + rungs
     c.strokeStyle='#fff'; c.lineWidth=3.2; c.beginPath(); c.moveTo(14,36); c.lineTo(34,12); c.stroke(); c.lineWidth=2.6;
     for(const f of [.25,.5,.75]){ const x=14+20*f, y=36-24*f; c.beginPath(); c.moveTo(x-5,y-4); c.lineTo(x+5,y+4); c.stroke(); } }
+  else if(kind==='cam'){ rr(5,9,38,30,8); c.fillStyle='#37474f'; c.fill(); c.stroke(); c.fillStyle='#fff'; rr(11,17,20,15,3); c.fill();
+    c.beginPath(); c.moveTo(31,22); c.lineTo(39,17); c.lineTo(39,32); c.lineTo(31,27); c.closePath(); c.fill(); c.fillStyle='#ff5252'; c.beginPath(); c.arc(15,13.5,2.5,0,7); c.fill(); }
   return c.getImageData(0,0,S,S); }
 
 // ---------- drawing colour (selectable, remembered) ----------
@@ -2075,7 +2095,7 @@ let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=fa
 // via ferratas - renamed, moved, hidden, or new ones; OSM data is kept in BASE, the fixes are laid over it
 const BASE={pf:null,HUTS:null,STARTS:null,SPRINGS:null,ff:null};
 const POIT={hut:'hut',biv:'biv',sh:'biv',park:'park',th:'th',spring:'spring'};
-function poiApply(){ const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+function poiApply(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
   const mv=(o,x)=>x&&x.lat!=null&&x.lon!=null?{lat:+x.lat,lon:+x.lon}:{};
   const news=Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.lat!=null&&!hid(x));
   if(BASE.pf){
@@ -2086,18 +2106,57 @@ function poiApply(){ const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.AD
     SPRINGS=BASE.SPRINGS.filter(o=>!hid(F[o.id])).map(o=>({...o,...mv(o,F[o.id])})).concat(news.filter(([,x])=>x.t==='spring').map(([k,x])=>({lat:+x.lat,lon:+x.lon,id:k})));
     const pf=BASE.pf.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x);
       return {type:'Feature',properties:{...f.properties,name:x.name||f.properties.name,t:x.t?POIT[x.t]||f.properties.t:f.properties.t,hid:x.hide?1:0},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
-      .concat(news.filter(([,x])=>x.t!=='ferr').map(([k,x])=>({type:'Feature',properties:{t:POIT[x.t]||'hut',name:x.name||'',ele:x.ele||'',web:'',key:k,hid:x.hide?1:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
+      .concat(news.filter(([,x])=>x.t!=='ferr'&&x.t!=='cam').map(([k,x])=>({type:'Feature',properties:{t:POIT[x.t]||'hut',name:x.name||'',ele:x.ele||'',web:'',key:k,hid:x.hide?1:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
     if(map.getSource('poi')) map.getSource('poi').setData({type:'FeatureCollection',features:pf}); }
   if(BASE.ff){ const ff=BASE.ff.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x), nm=x.name||f.properties.name, gr=x.grade!=null&&x.grade!==''?x.grade:f.properties.grade;
       return {type:'Feature',properties:{...f.properties,name:nm,grade:gr,t:[nm||'Ferata',gr].filter(Boolean).join('\n')},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
       .concat(news.filter(([,x])=>x.t==='ferr').map(([k,x])=>({type:'Feature',properties:{name:x.name||'',grade:x.grade||'',key:k,t:[x.name||'Ferata',x.grade||''].filter(Boolean).join('\n'),len:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
     if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); } }
-window.poiFixesChanged=()=>{ poiApply(); G=null; if(RT) window.peakRoutesUI(RT.peak.id); };
+// ---------- 📷 webcams: Windy (list refreshed weekly by a GitHub Action into data/webcams.json; the picture itself is asked for on
+// tap - free-tier image links expire after ~10 min) + cameras an admin adds (fixes kind "poi", t "cam": picture URL + link).
+// Windy's key is meant to live in the page (it only works from this site's domain).
+const WINDY_KEY='VEnkEnRvHPr9DEogeHFm8ofbW81dYsX6';
+const camOn=()=>{ try{ return localStorage.getItem('dvat3d_cams')!=='0'; }catch(_){ return true; } };
+let CAMS=null, camLoading=false;
+async function camsLoad(){ if(CAMS||camLoading||!location.protocol.startsWith('http')) return; camLoading=true;
+  try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''})); } }catch(_){}
+  camLoading=false; camApply(); }
+function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN;
+  const L=(CAMS||[]).filter(c=>!(F[c.key]&&F[c.key].hide&&!A)).map(c=>{ const x=F[c.key]; return x?{...c,name:x.name||c.name,lat:x.lat!=null?+x.lat:c.lat,lon:x.lon!=null?+x.lon:c.lon,hid:x.hide?1:0}:c; })
+    .concat(Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.t==='cam'&&x.lat!=null&&!(x.hide&&!A)).map(([k,x])=>({key:k,name:x.name||'Kamera',lat:+x.lat,lon:+x.lon,img:x.img||'',link:x.link||'',hid:x.hide?1:0})));
+  window.CAMLIST=L;
+  map.getSource('cams').setData({type:'FeatureCollection',features:L.map(c=>({type:'Feature',properties:{key:c.key,name:c.name,hid:c.hid||0},geometry:{type:'Point',coordinates:[c.lon,c.lat]}}))}); }
+// cameras near a peak (peak window: "📷 Kamere v bližini")
+window.camsNear=(la,lo,km=15)=>(window.CAMLIST||[]).map(c=>({c,d:hav(la,lo,c.lat,c.lon)})).filter(x=>x.d<km*1000).sort((a,b)=>a.d-b.d);
+window.camOpen=async key=>{ const c=(window.CAMLIST||[]).find(x=>x.key===key); if(!c) return; let o=el('camWin'); if(o) o.remove();
+  o=document.createElement('div'); o.id='camWin'; o.className='dlg on';
+  o.innerHTML=`<div class="camc"><div class="camh"><b>📷 ${esc(c.name)}</b><button class="x" aria-label="Zapri">×</button></div><div class="camb">Nalagam sliko …</div></div>`;
+  document.body.append(o); const close=()=>o.remove(); o.querySelector('.x').onclick=close; o.onclick=e=>{ if(e.target===o) close(); };
+  const B=o.querySelector('.camb'), adm=window.ADMIN?`<button class="camadm">🛠 Uredi kamero</button>`:'';
+  const bindAdm=()=>{ const b=o.querySelector('.camadm'); if(b) b.onclick=()=>{ close(); window.adminPoiEdit&&adminPoiEdit({key:c.key,t:'cam',name:c.name,lat:c.lat,lon:c.lon,img:c.img,link:c.link,windy:!!c.id}); }; };
+  if(!c.id){ const img=c.img?`${c.img}${c.img.includes('?')?'&':'?'}t=${Math.floor(Date.now()/60000)}`:'';
+    B.innerHTML=(img?`<a href="${esc(c.link||c.img)}" target="_blank" rel="noopener"><img src="${esc(img)}" alt=""></a>`:'<div>Ni slike.</div>')+`<div class="camf">${c.link?`<a href="${esc(c.link)}" target="_blank" rel="noopener">Odpri vir ↗</a>`:''}${adm}</div>`; bindAdm(); return; }
+  try{ const r=await fetch(`https://api.windy.com/webcams/api/v3/webcams/${c.id}?include=images,player,urls,location&lang=sl`,{headers:{'X-WINDY-API-KEY':WINDY_KEY}});
+    if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json(), im=j.images||{}, cur=im.current||{}, day=im.daylight||{};
+    const src=cur.preview||cur.thumbnail||cur.icon||day.preview||'', link=(j.urls&&j.urls.detail)||`https://www.windy.com/webcams/${c.id}`, pl=j.player||{};
+    const when=j.lastUpdatedOn?new Date(j.lastUpdatedOn).toLocaleString('sl-SI',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    B.innerHTML=`${src?`<a href="${esc(link)}" target="_blank" rel="noopener" title="Odpri na windy.com"><img src="${esc(src)}" alt=""></a>`:'<div>Slika trenutno ni na voljo.</div>'}
+      <div class="camf"><span>${esc([j.location&&j.location.city,when].filter(Boolean).join(' · '))}${j.status&&j.status!=='active'?' · neaktivna':''}</span>
+      ${pl.day?`<button class="camtl">▶ Časovni potek</button>`:''}<a href="${esc(link)}" target="_blank" rel="noopener">Windy.com ↗</a>${adm}</div><div class="camp"></div>`;
+    const tl=o.querySelector('.camtl'); if(tl) tl.onclick=()=>{ o.querySelector('.camp').innerHTML=`<iframe src="${esc(pl.day)}" allowfullscreen loading="lazy"></iframe>`; tl.remove(); };
+    bindAdm(); }
+  catch(e){ B.innerHTML=`<div>Kamere ni bilo mogoče naložiti (${esc(e.message)}).</div><div class="camf"><a href="https://www.windy.com/webcams/${c.id}" target="_blank" rel="noopener">Odpri na windy.com ↗</a>${adm}</div>`; bindAdm(); } };
+{ const c=document.createElement('style'); c.textContent=`#camWin{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px}
+#camWin .camc{background:var(--solid,#fff);color:var(--ink,#1d2321);border:1px solid var(--line);border-radius:14px;padding:10px 12px 12px;width:min(640px,100%);max-height:100%;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#camWin .camh{display:flex;align-items:center;gap:8px;margin-bottom:8px}#camWin .camh .x{margin-left:auto;border:0;background:none;color:inherit;font-size:1.6em;line-height:1;cursor:pointer}
+#camWin img{display:block;width:100%;border-radius:8px;background:#0003}#camWin .camf{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;margin-top:8px;font-size:.9em}#camWin .camf span{color:var(--mute);flex:1}
+#camWin .camf button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:8px;padding:4px 9px;font:inherit;cursor:pointer}#camWin iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:8px;margin-top:8px}`; document.head.append(c); }
+window.poiFixesChanged=()=>{ camApply(); poiApply(); G=null; if(RT) window.peakRoutesUI(RT.peak.id); };
 const EMPTY={type:'FeatureCollection',features:[]};
 const status=t=>{ const s=el('tstatus'); if(s) s.textContent=t; };
 
 function addLayers(){
-  for(const k of ['hut','biv','park','th','spring','ferr']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
+  for(const k of ['hut','biv','park','th','spring','ferr','cam']) try{ if(!map.hasImage('i-'+k)) map.addImage('i-'+k, icon(k), {pixelRatio:2}); }catch(e){ console.error('icon',k,e); toastErr&&toastErr('ikona '+k+': '+e.message); }
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
   if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:window.IS_PHONE?0.7:0.5,maxzoom:window.IS_PHONE?14:16,buffer:window.IS_PHONE?48:96,   /* phones: trail tiles cut only to z14 (then enlarged) - far less work + memory */attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
@@ -2150,6 +2209,13 @@ function addLayers(){
   add({id:'ferr-sign',type:'symbol',source:'ferr',minzoom:10.5,layout:{'icon-image':'i-ferr','icon-size':['interpolate',['linear'],['zoom'],11,.5,14,.75],'icon-allow-overlap':true,
       'text-field':['step',['zoom'],'',12,['get','t']],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1.1],'text-optional':true,'text-max-width':12},
     paint:{'text-color':'#bf360c','text-halo-color':'rgba(255,255,255,.92)','text-halo-width':1.6}});
+  if(!map.getSource('cams')) map.addSource('cams',{type:'geojson',data:EMPTY,attribution:'Kamere: <a href="https://www.windy.com/webcams" target="_blank">Windy.com</a>'});
+  add({id:'cam',type:'symbol',source:'cams',minzoom:8.5,layout:{'icon-image':'i-cam','icon-size':['interpolate',['linear'],['zoom'],9,.45,14,.7],'icon-allow-overlap':['step',['zoom'],false,12,true],
+      visibility:camOn()?'visible':'none','text-field':['step',['zoom'],'',12.5,['get','name']],'text-font':['Noto Sans Bold'],'text-size':10.5*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,1],'text-optional':true,'text-max-width':10},
+    paint:{'text-color':'#263238','text-halo-color':'rgba(255,255,255,.9)','text-halo-width':1.4,'icon-opacity':['case',['==',['get','hid'],1],.4,1]}});
+  map.on('click','cam',e=>{ if(window.DRAW_ON) return; e.preventDefault(); camOpen(e.features[0].properties.key); });
+  map.on('mouseenter','cam',()=>map.getCanvas().style.cursor='pointer'); map.on('mouseleave','cam',()=>map.getCanvas().style.cursor='');
+  camsLoad();
   map.on('click','ferr-sign',e=>{ if(window.DRAW_ON||!window.ADMIN) return; e.preventDefault(); const f=e.features[0], p=f.properties, c=f.geometry.coordinates;
     window.adminPoiEdit&&adminPoiEdit({key:p.key,t:'ferr',name:p.name,grade:p.grade,lat:c[1],lon:c[0]}); });
   for(const id of ['poi-hut','poi-park','poi-spring']){
@@ -2671,6 +2737,7 @@ el('trv').onchange=e=>['tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','t
 el('huts').onchange=e=>['poi-hut','poi-spring'].forEach(id=>vis(id,e.target.checked));
 el('parks').onchange=e=>vis('poi-park',e.target.checked);
 el('ferrs').onchange=e=>vis('ferr-sign',e.target.checked);
+if(el('cams')){ el('cams').checked=camOn(); el('cams').onchange=e=>{ try{ localStorage.setItem('dvat3d_cams',e.target.checked?'1':'0'); }catch(_){} vis('cam',e.target.checked); if(e.target.checked) camsLoad(); }; }
 el('drawBtn').onclick=()=>window.DRAW_ON?stopDraw():startDraw();
 el('reload').onclick=()=>loadData(true);
 el('exportPack').onclick=async()=>{ const r=window.__osmRaw; if(!r){ toastErr('Podatki se še nalagajo.'); return; }
@@ -2708,6 +2775,7 @@ function plIndex(){ const L=[], seen=new Set(), add=(label,o)=>{ if(seen.has(lab
   for(const p of (typeof PEAKS!=='undefined'?PEAKS:[])) if(p.lat!=null) add(`${p.name} (${LP('vrh','peak')} ${Math.round(p.elev)} m)`,{name:p.name.split(' (')[0],lat:p.lat,lon:p.lon,k:'peak'});
   for(const h of HUTS) if(h.name) add(`${h.name} (${h.k==='hut'?LP('koča','hut'):LP('bivak','bivouac')})`,{name:h.name,lat:h.lat,lon:h.lon,k:h.k});
   for(const x of STARTS_ALL) if(x.name&&!/^parkirišče$/.test(x.name)) add(`${x.name.replace(/^pri /,'')} (${LP('izhodišče','trailhead')})`,{name:x.name.replace(/^pri /,''),lat:x.lat,lon:x.lon,k:'start'});
+  for(const x of PLACES) if(x.name) add(`${x.name} (${LP('kraj','town / village')})`,{name:x.name,lat:x.lat,lon:x.lon,k:'place'});   // towns, villages, hamlets
   return L; }
 let PLI=null;
 const nearNamed=(la,lo)=>{ let b=null,bd=400; for(const [,o] of (PLI||(PLI=plIndex()))){ const d=hav(la,lo,o.lat,o.lon); if(d<bd){ bd=d; b=o; } } return b; };
@@ -2718,9 +2786,9 @@ const plClose=()=>{ plCard.classList.remove('on'); plPick=false; map.getCanvas()
 map.on('click',e=>{ if(!plPick) return; plPick=false; map.getCanvas().style.cursor='';
   const o=nearNamed(e.lngLat.lat,e.lngLat.lng)||{name:LP('Točka','Point')+` ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`,lat:e.lngLat.lat,lon:e.lngLat.lng,k:'pt'};
   if(popup) setTimeout(()=>popup&&popup.remove(),0); planAdd(o); });
-function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt, S=PL.stops, KI={peak:'▲',hut:'🏠',biv:'⛺',sh:'⛺',start:'P',pt:'•'};
+function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt, S=PL.stops, KI={peak:'▲',hut:'🏠',biv:'⛺',sh:'⛺',start:'P',place:'⌂',pt:'•'};
   plCard.innerHTML=`<div class="rh"><b>🗓 ${LP('Načrtovalnik ture','Trip planner')}</b><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
-    <div class="hint">${LP('Dodaj kraje v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče — ali klikni na karto.','Add places in order: the first is the start. Peak, hut, trailhead — or click on the map.')}</div>
+    <div class="hint">${LP('Dodaj točke v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče, mesto ali vas — ali klikni katerokoli točko na karti.','Add stops in order: the first is the start. Peak, hut, trailhead, town or village — or click any spot on the map.')}</div>
     <div class="pls">${S.map((x,i)=>`<div class="plr"><i class="n">${i+1}</i><span title="${esc(x.name)}">${KI[x.k]||'•'} ${esc(x.name)}</span><button data-a="up" data-i="${i}" ${i?'':'disabled'}>↑</button><button data-a="dn" data-i="${i}" ${i<S.length-1?'':'disabled'}>↓</button><button data-a="rm" data-i="${i}">✕</button></div>`).join('')||`<div class="hint">${LP('Še ni krajev.','No places yet.')}</div>`}</div>
     <div class="pla"><input id="plQ" list="plL" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><datalist id="plL"></datalist><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
     <div class="q">${LP('Prenočevanje','Overnight')}</div>
@@ -3237,7 +3305,7 @@ const EN = Object.assign({}, RANGE_EN, {
   'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
   'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'pred sneženjem – velja model':'before the last snowfall - model used', 'od takrat':'since then', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', '🏆 Lestvica':'🏆 Leaderboard', 'Lestvica':'Leaderboard', 'Nadmorska višina':'Elevation', 'Višina snega':'Snow depth', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
-  'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
+  'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Spletne kamere':'Webcams', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',
   'Pretiravanje višin':'Height exaggeration', '1.0 = realno':'1.0 = real', 'Klik na teren':'Click on terrain', 'Klikni kamorkoli za višino DEM.':'Click anywhere for the terrain height.',
   'Napredno':'Advanced', 'Osveži podatke OSM':'Refresh OSM data', 'Naloži ceste':'Load roads', 'Razširi na 20 km (PC)':'Extend to 20 km (PC)', 'Izvozi paket podatkov':'Export data pack',
   'Varčni način (starejše naprave)':'Saving mode (older devices)', 'Izklopi senčenje, Waymarked sloj, ostrino 360° (samo Nizka), oddaljene ploščice in meglo; poti šele ob približanju.':'Turns off hillshade, the Waymarked layer, sharp 360° (Low only), distant tiles and fog; trails only when zoomed in.',
@@ -4218,16 +4286,19 @@ if (BGL && get(GTK)) setTimeout(gpsStart, 1500);
 // app updates: the page inside the app is always the newest website; the app shell itself (APK) is checked once a day against the
 // latest GitHub release and, if newer, a bar offers the download (Android then asks once to install it over the old one - an app
 // from outside Google Play cannot replace itself silently). The APK tells its version in the user agent (" Dvat2000App/1.0.N").
-if (IN_APP) setTimeout(async () => { const mine = (navigator.userAgent.match(/ Dvat2000App\/([\d.]+)/) || [])[1] || '0', K = 'dvat3d_appchk';
-  const c = get(K); let latest = c && Date.now() - c.t < 864e5 ? c.v : null;
+// checked when the app opens and every 6 h while it runs; a new version also gives one phone notification
+const appUpdCheck = async () => { if (document.getElementById('appUpd')) return; const mine = (navigator.userAgent.match(/ Dvat2000App\/([\d.]+)/) || [])[1] || '0', K = 'dvat3d_appchk';
+  const c = get(K); let latest = c && Date.now() - c.t < 6 * 3600e3 ? c.v : null;
   if (!latest) try{ const j = await (await fetch('https://api.github.com/repos/taskrti76/Slovenija2k-Challenge/releases/latest')).json(); latest = String(j.tag_name || '').replace(/^app-v/, ''); put(K, {t: Date.now(), v: latest}); }catch(_){ return; }
   const n = v => v.split('.').map(Number), newer = (a, b) => { const x = n(a), y = n(b); for (let i = 0; i < 3; i++){ if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
   if (!latest || !newer(latest, mine) || get('dvat3d_appskip') === latest) return;
+  if (get('dvat3d_appntf') !== latest){ put('dvat3d_appntf', latest); try{ nShow([['📱 ' + L('Nova različica aplikacije', 'New app version') + ' ' + latest, L('Odpri aplikacijo in tapni »Posodobi«.', 'Open the app and tap »Update«.')]]); }catch(_){} }
   const bar = document.createElement('div'); bar.id = 'appUpd';
   bar.innerHTML = `📱 ${L(`Nova različica aplikacije (${esc(latest)})`, `New app version (${esc(latest)})`)} <a href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">${L('Posodobi','Update')}</a><button aria-label="${L('Zapri','Close')}">×</button>`;
   bar.querySelector('button').onclick = () => { put('dvat3d_appskip', latest); bar.remove(); };
   bar.querySelector('a').onclick = () => setTimeout(() => { bar.innerHTML = L('Prenašam … ko se prenese, tapni obvestilo in »Namesti«.', 'Downloading … when done, tap the notification and "Install".'); setTimeout(() => bar.remove(), 9000); }, 100);
-  document.body.append(bar); }, 4000);
+  document.body.append(bar); };
+if (IN_APP){ setTimeout(appUpdCheck, 4000); setInterval(appUpdCheck, 6 * 3600e3); }
 
 // ---------- sync ----------
 let syncing = false, again = false, syncT = 0, state = '';
@@ -4855,7 +4926,7 @@ async function frList(){ SO.re = frList; const B = $a('lbBody');
   if (lb.dataset.p !== 'fr') return;
   const inc = F.filter(f => f.state === 'incoming'), out = F.filter(f => f.state === 'outgoing'), fr = F.filter(f => f.state === 'friend');
   const R = ranked([{u: S.username, nm: S.display_name, c: myC()}].concat(fr.map(f => ({u: f.username, nm: f.display_name, c: f.counts || {}}))));
-  B.innerHTML = `<div class="addf"><input id="frU" type="text" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="${L('uporabniško ime prijatelja','friend\'s username')}"><button class="sb pri" id="frGo">➕ ${L('Dodaj','Add')}</button></div>
+  B.innerHTML = `<div class="addf"><input id="frU" type="text" autocapitalize="none" spellcheck="false" maxlength="40" autocomplete="off" placeholder="${L('ime ali uporabniško ime','name or username')}"><button class="sb pri" id="frGo">➕ ${L('Dodaj','Add')}</button></div><div id="frSug"></div>
     <div class="ah2">${L('Ali ga poišči na 🏆 lestvici in odpri njegov profil.','Or find them on the 🏆 leaderboard and open their profile.')}</div>
     ${inc.length ? `<h4 class="sh">${L('Prošnje zate','Requests for you')} (${inc.length})</h4>` + inc.map(f => `<div class="req" data-u="${esc(f.username)}">${av(f.username, f.display_name, 30)}<div class="who"><b>${esc(f.display_name || f.username)}</b><small>@${esc(f.username)}</small></div>
       <button class="sb pri" data-a="ok">✓ ${L('Sprejmi','Accept')}</button><button class="sb" data-a="no">${L('Zavrni','Decline')}</button></div>`).join('') : ''}
@@ -4868,6 +4939,14 @@ async function frList(){ SO.re = frList; const B = $a('lbBody');
     await busy($a('frGo'), async () => { const r = await rpc('friend_request', {uname: u}, true);
       toast({accepted: L('Zdaj sta prijatelja.', 'You are friends now.'), already: L('Sta že prijatelja.', 'Already friends.'), pending: L('Prošnja je že poslana.', 'Request already sent.')}[r] || L('Prošnja poslana – ko jo sprejme, sta prijatelja.', 'Request sent - once accepted you are friends.')); SO.circle = null; }, frList); };
   $a('frGo').onclick = add; $a('frU').onkeydown = e => { if (e.key === 'Enter') add(); };
+  // as you type: people whose name or username fits (public leaderboard profiles), tap one to fill in the username
+  { let tm = 0, seq = 0; const box = $a('frSug'), skip = new Set([S.username, ...F.map(f => f.username)]);
+    $a('frU').oninput = () => { clearTimeout(tm); const q = $a('frU').value.trim(); if (q.length < 2){ box.innerHTML = ''; return; }
+      tm = setTimeout(async () => { const my = ++seq; let rows = []; try{ rows = await rpc('leaderboard2', {board: 'p2000', q, lim: 8, off: 0}); }catch(_){}
+        if (my !== seq) return; rows = (rows || []).filter(r => !skip.has(r.username));
+        box.innerHTML = rows.length ? rows.map(r => `<button class="fsug" data-u="${esc(r.username)}">${av(r.username, r.display_name, 24)}<span><b>${esc(r.display_name || r.username)}</b> <small>@${esc(r.username)}</small></span></button>`).join('')
+          : `<div class="ah2">${L('Ni zadetkov (iščemo med javnimi profili).','No match (public profiles only).')}</div>`;
+        box.querySelectorAll('.fsug').forEach(x => x.onclick = () => { $a('frU').value = x.dataset.u; box.innerHTML = ''; add(); }); }, 250); }; }
   B.querySelectorAll('.req button').forEach(b => b.onclick = () => { const u = b.closest('.req').dataset.u, a = b.dataset.a;
     busy(b, () => a === 'rm' ? rpc('friend_remove', {uname: u}, true) : rpc('friend_respond', {uname: u, ok: a === 'ok'}, true), async () => { SO.circle = null; await refreshBadge(); await frList(); }); });
   B.querySelectorAll('.lr[data-u]').forEach(d => d.onclick = () => lbProfile(d.dataset.u, () => soOpen('fr'))); }
@@ -5075,22 +5154,24 @@ window.adminMovePeak = p => { if (window.closeRoutes) closeRoutes();
   adminPickPoint(p.name, p.lat, p.lon, async (la, lo) => { await saveFix('peak', p.id, Object.assign(fixPlain(window.FIXES.peak[p.id]), {lat: la, lon: lo}));
     toast(L('Vrh premaknjen za vse.','Peak moved for everybody.')); setTimeout(() => window.openPeak && openPeak(p.id), 300); }); };
 // a point (hut, bivouac, shelter, parking, trailhead, spring, via ferrata): rename, change kind, move, hide - or a new one
-const PTYPES = [['hut', L('Planinska koča','Mountain hut')], ['biv', L('Bivak','Bivouac')], ['sh', L('Zavetišče','Shelter')], ['park', L('Parkirišče','Parking')], ['th', L('Izhodišče','Trailhead')], ['spring', L('Izvir','Spring')], ['ferr', L('Ferata','Via ferrata')]];
+const PTYPES = [['hut', L('Planinska koča','Mountain hut')], ['biv', L('Bivak','Bivouac')], ['sh', L('Zavetišče','Shelter')], ['park', L('Parkirišče','Parking')], ['th', L('Izhodišče','Trailhead')], ['spring', L('Izvir','Spring')], ['ferr', L('Ferata','Via ferrata')], ['cam', L('Spletna kamera','Webcam')]];
 window.adminPoiEdit = o => { const f = window.FIXES.poi[o.key] || {}, v = Object.assign({}, o, fixPlain(f), {lat: o.lat, lon: o.lon});
-  const grp = o.isNew ? PTYPES.map(x => x[0]) : o.t === 'ferr' ? ['ferr'] : ['hut', 'biv', 'sh'].includes(o.t) ? ['hut', 'biv', 'sh'] : ['park', 'th'].includes(o.t) ? ['park', 'th'] : [o.t];
+  const grp = o.isNew ? PTYPES.map(x => x[0]) : o.t === 'ferr' ? ['ferr'] : o.t === 'cam' ? ['cam'] : ['hut', 'biv', 'sh'].includes(o.t) ? ['hut', 'biv', 'sh'] : ['park', 'th'].includes(o.t) ? ['park', 'th'] : [o.t];
   modal(`<h3>🛠 ${o.isNew ? L('Nova točka','New point') : L('Uredi točko','Edit point')}</h3><div class="admform">
     <label>${L('Vrsta','Kind')}<select id="apT">${PTYPES.filter(x => grp.includes(x[0])).map(([k, n]) => `<option value="${k}"${(v.t || o.t) === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
     <label>${L('Ime','Name')}<input id="apN" maxlength="120" value="${esc(v.name || '')}"></label>
     <label class="apg">${L('Težavnost ferate (npr. B/C)','Via ferrata grade (e.g. B/C)')}<input id="apG" maxlength="40" value="${esc(v.grade || '')}"></label>
+    <label class="apc">${L('Slika (spletni naslov .jpg, osvežen)','Picture (URL of the .jpg, refreshed)')}<input id="apI" maxlength="400" value="${esc(v.img || '')}" placeholder="https://…/kamera.jpg"></label>
+    <label class="apc">${L('Povezava (stran kamere)','Link (camera page)')}<input id="apL" maxlength="400" value="${esc(v.link || '')}"></label>
     <label>Lat / lon<span class="ll" style="display:flex;gap:6px"><input id="apLa" type="number" step="0.000001" value="${(+o.lat).toFixed(6)}"><input id="apLo" type="number" step="0.000001" value="${(+o.lon).toFixed(6)}"></span></label>
     <div class="ab"><button class="sb" id="apM">📍 ${L('Premakni na karti','Move on the map')}</button></div>
     <label><input type="checkbox" id="apH" ${v.hide ? 'checked' : ''}> ${L('skrij (napačna / ne obstaja več)','hide (wrong / gone)')}</label>
     <div class="ab"><button class="sb pri" id="apS">💾 ${L('Shrani za vse','Save for everybody')}</button>${f._at ? `<button class="sb" id="apD">↺ ${o.key.startsWith('new|') ? L('Izbriši točko','Delete point') : L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="apE"></div></div>`);
-  const tg = () => { card.querySelector('.apg').style.display = $a('apT').value === 'ferr' ? '' : 'none'; }; tg(); $a('apT').onchange = tg;
-  const cur = () => ({t: $a('apT').value, name: $a('apN').value.trim(), grade: $a('apG').value.trim(), lat: +$a('apLa').value, lon: +$a('apLo').value, hide: $a('apH').checked});
+  const tg = () => { card.querySelector('.apg').style.display = $a('apT').value === 'ferr' ? '' : 'none'; card.querySelectorAll('.apc').forEach(x => x.style.display = $a('apT').value === 'cam' && !o.windy ? '' : 'none'); }; tg(); $a('apT').onchange = tg;
+  const cur = () => ({t: $a('apT').value, name: $a('apN').value.trim(), grade: $a('apG').value.trim(), img: $a('apI').value.trim(), link: $a('apL').value.trim(), lat: +$a('apLa').value, lon: +$a('apLo').value, hide: $a('apH').checked});
   $a('apM').onclick = () => { const c = cur(); closeModal(); adminPickPoint(c.name || L('točka','point'), c.lat, c.lon, async (la, lo) => { window.adminPoiEdit(Object.assign({}, o, c, {lat: la, lon: lo, _keep: c})); }, '✓ ' + L('Tukaj','Here')); };
-  if (o._keep){ $a('apN').value = o._keep.name; $a('apG').value = o._keep.grade; $a('apH').checked = o._keep.hide; $a('apT').value = o._keep.t; tg(); }
-  $a('apS').onclick = async () => { const c = cur(); if (c.t !== 'ferr') delete c.grade;
+  if (o._keep){ $a('apN').value = o._keep.name; $a('apG').value = o._keep.grade; $a('apI').value = o._keep.img || ''; $a('apL').value = o._keep.link || ''; $a('apH').checked = o._keep.hide; $a('apT').value = o._keep.t; tg(); }
+  $a('apS').onclick = async () => { const c = cur(); if (c.t !== 'ferr') delete c.grade; if (c.t !== 'cam' || o.windy){ delete c.img; delete c.link; } if (c.img && !/^https:\/\//.test(c.img)){ $a('apE').textContent = L('Slika mora imeti naslov https://…','The picture needs an https://… address'); return; }
     try{ await saveFix('poi', o.key, c); closeModal(); toast(L('Točka shranjena za vse.','Point saved for everybody.')); }catch(e){ $a('apE').textContent = errText(e); } };
   const d = $a('apD'); if (d) d.onclick = async () => { try{ await saveFix('poi', o.key, null, true); closeModal(); toast(L('Popravek odstranjen.','Fix removed.')); }catch(e){ $a('apE').textContent = errText(e); } }; };
 window.adminNewPoint = () => { const c = map.getCenter(); adminPickPoint(L('nova točka','new point'), c.lat, c.lng, async (la, lo) => { window.adminPoiEdit({key: 'new|' + Date.now().toString(36), t: 'hut', name: '', lat: la, lon: lo, isNew: true}); }, '✓ ' + L('Tukaj','Here')); };
@@ -5129,7 +5210,7 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
     ...Object.entries(F.closed).map(([k, v]) => ['closed', k, `⛔ ${v.name || L('pot brez imena','unnamed path')} (#${k})`, v._at]),
     ...Object.entries(F.poi || {}).map(([k, v]) => ['poi', k, `${(PTYPES.find(x => x[0] === v.t) || ['', ''])[1]} · ${v.name || ''}${v.hide ? ' · ' + L('skrita','hidden') : ''}${k.startsWith('new|') ? ' · ' + L('nova','new') : ''}`, v._at])].sort((a, b) => String(b[3]).localeCompare(String(a[3])));
   modal(`<h3>🛠 Admin</h3><div class="sub">${L('Popravki veljajo takoj za vse uporabnike.','Fixes apply to everybody at once.')} ${rows.length} ${L('popravkov','fixes')}.</div>
-    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button><button class="sb" id="adPoi">＋ ${L('Nova koča / bivak / ferata …','New hut / bivouac / ferrata …')}</button></div>
+    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button><button class="sb" id="adPoi">＋ ${L('Nova koča / bivak / ferata / kamera …','New hut / bivouac / ferrata / webcam …')}</button></div>
     <div class="admlist">${rows.map(([k, key, t, at]) => `<div class="it"><div><small>${k}</small> ${esc(t)}<br><small>${at ? new Date(at).toLocaleString() : ''}</small></div><button class="sb" data-k="${k}" data-key="${esc(key)}">↺</button></div>`).join('') || `<div class="sub">${L('Še ni popravkov.','No fixes yet.')}</div>`}</div>
     <div class="sub">${L('Vrh popraviš v njegovem oknu (🛠 Uredi vrh), pot v kartici poti (🛠 Uredi pot ali klik na ime v izbrani poti), kočo / bivak / parkirišče / ferato s klikom nanjo na karti (🛠 Uredi točko). Popravke opazijo samo admini (✎); ostali vidijo popravljene podatke.','Fix a peak in its window (🛠 Edit peak), a route in the route card (🛠 Edit route or click a name in the selected route), a hut / bivouac / parking / ferrata by clicking it on the map (🛠 Edit point). Only admins see the ✎ marks; everybody else just sees the corrected data.')}</div>`);
   card.querySelectorAll('.admlist [data-k]').forEach(b => b.onclick = async () => { try{ await saveFix(b.dataset.k, b.dataset.key, null, true); adminPanel(); }catch(e){ toastErr(errText(e)); } });
@@ -5144,6 +5225,7 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
 .admform label{display:block;margin:8px 0}.admform input[type=text],.admform input:not([type]),.admform select{width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #c9d0cc;border-radius:8px}.admform .am{color:#c62828}
 .ri .ed{border-bottom:1px dashed currentColor;outline:none;min-width:2em;display:inline-block;cursor:text}.ri .ed:empty::before{content:attr(data-ph);opacity:.45}.ri .ed:focus{background:rgba(255,179,0,.18)}
 .afx{color:#e08a00;font-size:.85em}.admpoi{border:1px solid #c9d0cc;background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
+#frSug{display:flex;flex-direction:column;gap:2px;margin:4px 0 6px}#frSug .fsug{display:flex;align-items:center;gap:8px;border:1px solid var(--line,#ddd);background:transparent;color:inherit;border-radius:8px;padding:5px 8px;cursor:pointer;text-align:left;font:inherit}#frSug .fsug small{color:#5b6461}
 .admlist .it{display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #edf0ee;padding:6px 0}.admlist small{color:#5b6461}`; document.head.append(c); }
 
 // ---------- 🔔 notifications: friends, groups, weather ----------

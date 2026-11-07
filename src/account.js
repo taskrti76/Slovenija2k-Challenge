@@ -172,16 +172,19 @@ if (BGL && get(GTK)) setTimeout(gpsStart, 1500);
 // app updates: the page inside the app is always the newest website; the app shell itself (APK) is checked once a day against the
 // latest GitHub release and, if newer, a bar offers the download (Android then asks once to install it over the old one - an app
 // from outside Google Play cannot replace itself silently). The APK tells its version in the user agent (" Dvat2000App/1.0.N").
-if (IN_APP) setTimeout(async () => { const mine = (navigator.userAgent.match(/ Dvat2000App\/([\d.]+)/) || [])[1] || '0', K = 'dvat3d_appchk';
-  const c = get(K); let latest = c && Date.now() - c.t < 864e5 ? c.v : null;
+// checked when the app opens and every 6 h while it runs; a new version also gives one phone notification
+const appUpdCheck = async () => { if (document.getElementById('appUpd')) return; const mine = (navigator.userAgent.match(/ Dvat2000App\/([\d.]+)/) || [])[1] || '0', K = 'dvat3d_appchk';
+  const c = get(K); let latest = c && Date.now() - c.t < 6 * 3600e3 ? c.v : null;
   if (!latest) try{ const j = await (await fetch('https://api.github.com/repos/taskrti76/Slovenija2k-Challenge/releases/latest')).json(); latest = String(j.tag_name || '').replace(/^app-v/, ''); put(K, {t: Date.now(), v: latest}); }catch(_){ return; }
   const n = v => v.split('.').map(Number), newer = (a, b) => { const x = n(a), y = n(b); for (let i = 0; i < 3; i++){ if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
   if (!latest || !newer(latest, mine) || get('dvat3d_appskip') === latest) return;
+  if (get('dvat3d_appntf') !== latest){ put('dvat3d_appntf', latest); try{ nShow([['📱 ' + L('Nova različica aplikacije', 'New app version') + ' ' + latest, L('Odpri aplikacijo in tapni »Posodobi«.', 'Open the app and tap »Update«.')]]); }catch(_){} }
   const bar = document.createElement('div'); bar.id = 'appUpd';
   bar.innerHTML = `📱 ${L(`Nova različica aplikacije (${esc(latest)})`, `New app version (${esc(latest)})`)} <a href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">${L('Posodobi','Update')}</a><button aria-label="${L('Zapri','Close')}">×</button>`;
   bar.querySelector('button').onclick = () => { put('dvat3d_appskip', latest); bar.remove(); };
   bar.querySelector('a').onclick = () => setTimeout(() => { bar.innerHTML = L('Prenašam … ko se prenese, tapni obvestilo in »Namesti«.', 'Downloading … when done, tap the notification and "Install".'); setTimeout(() => bar.remove(), 9000); }, 100);
-  document.body.append(bar); }, 4000);
+  document.body.append(bar); };
+if (IN_APP){ setTimeout(appUpdCheck, 4000); setInterval(appUpdCheck, 6 * 3600e3); }
 
 // ---------- sync ----------
 let syncing = false, again = false, syncT = 0, state = '';
@@ -809,7 +812,7 @@ async function frList(){ SO.re = frList; const B = $a('lbBody');
   if (lb.dataset.p !== 'fr') return;
   const inc = F.filter(f => f.state === 'incoming'), out = F.filter(f => f.state === 'outgoing'), fr = F.filter(f => f.state === 'friend');
   const R = ranked([{u: S.username, nm: S.display_name, c: myC()}].concat(fr.map(f => ({u: f.username, nm: f.display_name, c: f.counts || {}}))));
-  B.innerHTML = `<div class="addf"><input id="frU" type="text" autocapitalize="none" spellcheck="false" maxlength="24" placeholder="${L('uporabniško ime prijatelja','friend\'s username')}"><button class="sb pri" id="frGo">➕ ${L('Dodaj','Add')}</button></div>
+  B.innerHTML = `<div class="addf"><input id="frU" type="text" autocapitalize="none" spellcheck="false" maxlength="40" autocomplete="off" placeholder="${L('ime ali uporabniško ime','name or username')}"><button class="sb pri" id="frGo">➕ ${L('Dodaj','Add')}</button></div><div id="frSug"></div>
     <div class="ah2">${L('Ali ga poišči na 🏆 lestvici in odpri njegov profil.','Or find them on the 🏆 leaderboard and open their profile.')}</div>
     ${inc.length ? `<h4 class="sh">${L('Prošnje zate','Requests for you')} (${inc.length})</h4>` + inc.map(f => `<div class="req" data-u="${esc(f.username)}">${av(f.username, f.display_name, 30)}<div class="who"><b>${esc(f.display_name || f.username)}</b><small>@${esc(f.username)}</small></div>
       <button class="sb pri" data-a="ok">✓ ${L('Sprejmi','Accept')}</button><button class="sb" data-a="no">${L('Zavrni','Decline')}</button></div>`).join('') : ''}
@@ -822,6 +825,14 @@ async function frList(){ SO.re = frList; const B = $a('lbBody');
     await busy($a('frGo'), async () => { const r = await rpc('friend_request', {uname: u}, true);
       toast({accepted: L('Zdaj sta prijatelja.', 'You are friends now.'), already: L('Sta že prijatelja.', 'Already friends.'), pending: L('Prošnja je že poslana.', 'Request already sent.')}[r] || L('Prošnja poslana – ko jo sprejme, sta prijatelja.', 'Request sent - once accepted you are friends.')); SO.circle = null; }, frList); };
   $a('frGo').onclick = add; $a('frU').onkeydown = e => { if (e.key === 'Enter') add(); };
+  // as you type: people whose name or username fits (public leaderboard profiles), tap one to fill in the username
+  { let tm = 0, seq = 0; const box = $a('frSug'), skip = new Set([S.username, ...F.map(f => f.username)]);
+    $a('frU').oninput = () => { clearTimeout(tm); const q = $a('frU').value.trim(); if (q.length < 2){ box.innerHTML = ''; return; }
+      tm = setTimeout(async () => { const my = ++seq; let rows = []; try{ rows = await rpc('leaderboard2', {board: 'p2000', q, lim: 8, off: 0}); }catch(_){}
+        if (my !== seq) return; rows = (rows || []).filter(r => !skip.has(r.username));
+        box.innerHTML = rows.length ? rows.map(r => `<button class="fsug" data-u="${esc(r.username)}">${av(r.username, r.display_name, 24)}<span><b>${esc(r.display_name || r.username)}</b> <small>@${esc(r.username)}</small></span></button>`).join('')
+          : `<div class="ah2">${L('Ni zadetkov (iščemo med javnimi profili).','No match (public profiles only).')}</div>`;
+        box.querySelectorAll('.fsug').forEach(x => x.onclick = () => { $a('frU').value = x.dataset.u; box.innerHTML = ''; add(); }); }, 250); }; }
   B.querySelectorAll('.req button').forEach(b => b.onclick = () => { const u = b.closest('.req').dataset.u, a = b.dataset.a;
     busy(b, () => a === 'rm' ? rpc('friend_remove', {uname: u}, true) : rpc('friend_respond', {uname: u, ok: a === 'ok'}, true), async () => { SO.circle = null; await refreshBadge(); await frList(); }); });
   B.querySelectorAll('.lr[data-u]').forEach(d => d.onclick = () => lbProfile(d.dataset.u, () => soOpen('fr'))); }
@@ -1029,22 +1040,24 @@ window.adminMovePeak = p => { if (window.closeRoutes) closeRoutes();
   adminPickPoint(p.name, p.lat, p.lon, async (la, lo) => { await saveFix('peak', p.id, Object.assign(fixPlain(window.FIXES.peak[p.id]), {lat: la, lon: lo}));
     toast(L('Vrh premaknjen za vse.','Peak moved for everybody.')); setTimeout(() => window.openPeak && openPeak(p.id), 300); }); };
 // a point (hut, bivouac, shelter, parking, trailhead, spring, via ferrata): rename, change kind, move, hide - or a new one
-const PTYPES = [['hut', L('Planinska koča','Mountain hut')], ['biv', L('Bivak','Bivouac')], ['sh', L('Zavetišče','Shelter')], ['park', L('Parkirišče','Parking')], ['th', L('Izhodišče','Trailhead')], ['spring', L('Izvir','Spring')], ['ferr', L('Ferata','Via ferrata')]];
+const PTYPES = [['hut', L('Planinska koča','Mountain hut')], ['biv', L('Bivak','Bivouac')], ['sh', L('Zavetišče','Shelter')], ['park', L('Parkirišče','Parking')], ['th', L('Izhodišče','Trailhead')], ['spring', L('Izvir','Spring')], ['ferr', L('Ferata','Via ferrata')], ['cam', L('Spletna kamera','Webcam')]];
 window.adminPoiEdit = o => { const f = window.FIXES.poi[o.key] || {}, v = Object.assign({}, o, fixPlain(f), {lat: o.lat, lon: o.lon});
-  const grp = o.isNew ? PTYPES.map(x => x[0]) : o.t === 'ferr' ? ['ferr'] : ['hut', 'biv', 'sh'].includes(o.t) ? ['hut', 'biv', 'sh'] : ['park', 'th'].includes(o.t) ? ['park', 'th'] : [o.t];
+  const grp = o.isNew ? PTYPES.map(x => x[0]) : o.t === 'ferr' ? ['ferr'] : o.t === 'cam' ? ['cam'] : ['hut', 'biv', 'sh'].includes(o.t) ? ['hut', 'biv', 'sh'] : ['park', 'th'].includes(o.t) ? ['park', 'th'] : [o.t];
   modal(`<h3>🛠 ${o.isNew ? L('Nova točka','New point') : L('Uredi točko','Edit point')}</h3><div class="admform">
     <label>${L('Vrsta','Kind')}<select id="apT">${PTYPES.filter(x => grp.includes(x[0])).map(([k, n]) => `<option value="${k}"${(v.t || o.t) === k ? ' selected' : ''}>${n}</option>`).join('')}</select></label>
     <label>${L('Ime','Name')}<input id="apN" maxlength="120" value="${esc(v.name || '')}"></label>
     <label class="apg">${L('Težavnost ferate (npr. B/C)','Via ferrata grade (e.g. B/C)')}<input id="apG" maxlength="40" value="${esc(v.grade || '')}"></label>
+    <label class="apc">${L('Slika (spletni naslov .jpg, osvežen)','Picture (URL of the .jpg, refreshed)')}<input id="apI" maxlength="400" value="${esc(v.img || '')}" placeholder="https://…/kamera.jpg"></label>
+    <label class="apc">${L('Povezava (stran kamere)','Link (camera page)')}<input id="apL" maxlength="400" value="${esc(v.link || '')}"></label>
     <label>Lat / lon<span class="ll" style="display:flex;gap:6px"><input id="apLa" type="number" step="0.000001" value="${(+o.lat).toFixed(6)}"><input id="apLo" type="number" step="0.000001" value="${(+o.lon).toFixed(6)}"></span></label>
     <div class="ab"><button class="sb" id="apM">📍 ${L('Premakni na karti','Move on the map')}</button></div>
     <label><input type="checkbox" id="apH" ${v.hide ? 'checked' : ''}> ${L('skrij (napačna / ne obstaja več)','hide (wrong / gone)')}</label>
     <div class="ab"><button class="sb pri" id="apS">💾 ${L('Shrani za vse','Save for everybody')}</button>${f._at ? `<button class="sb" id="apD">↺ ${o.key.startsWith('new|') ? L('Izbriši točko','Delete point') : L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="apE"></div></div>`);
-  const tg = () => { card.querySelector('.apg').style.display = $a('apT').value === 'ferr' ? '' : 'none'; }; tg(); $a('apT').onchange = tg;
-  const cur = () => ({t: $a('apT').value, name: $a('apN').value.trim(), grade: $a('apG').value.trim(), lat: +$a('apLa').value, lon: +$a('apLo').value, hide: $a('apH').checked});
+  const tg = () => { card.querySelector('.apg').style.display = $a('apT').value === 'ferr' ? '' : 'none'; card.querySelectorAll('.apc').forEach(x => x.style.display = $a('apT').value === 'cam' && !o.windy ? '' : 'none'); }; tg(); $a('apT').onchange = tg;
+  const cur = () => ({t: $a('apT').value, name: $a('apN').value.trim(), grade: $a('apG').value.trim(), img: $a('apI').value.trim(), link: $a('apL').value.trim(), lat: +$a('apLa').value, lon: +$a('apLo').value, hide: $a('apH').checked});
   $a('apM').onclick = () => { const c = cur(); closeModal(); adminPickPoint(c.name || L('točka','point'), c.lat, c.lon, async (la, lo) => { window.adminPoiEdit(Object.assign({}, o, c, {lat: la, lon: lo, _keep: c})); }, '✓ ' + L('Tukaj','Here')); };
-  if (o._keep){ $a('apN').value = o._keep.name; $a('apG').value = o._keep.grade; $a('apH').checked = o._keep.hide; $a('apT').value = o._keep.t; tg(); }
-  $a('apS').onclick = async () => { const c = cur(); if (c.t !== 'ferr') delete c.grade;
+  if (o._keep){ $a('apN').value = o._keep.name; $a('apG').value = o._keep.grade; $a('apI').value = o._keep.img || ''; $a('apL').value = o._keep.link || ''; $a('apH').checked = o._keep.hide; $a('apT').value = o._keep.t; tg(); }
+  $a('apS').onclick = async () => { const c = cur(); if (c.t !== 'ferr') delete c.grade; if (c.t !== 'cam' || o.windy){ delete c.img; delete c.link; } if (c.img && !/^https:\/\//.test(c.img)){ $a('apE').textContent = L('Slika mora imeti naslov https://…','The picture needs an https://… address'); return; }
     try{ await saveFix('poi', o.key, c); closeModal(); toast(L('Točka shranjena za vse.','Point saved for everybody.')); }catch(e){ $a('apE').textContent = errText(e); } };
   const d = $a('apD'); if (d) d.onclick = async () => { try{ await saveFix('poi', o.key, null, true); closeModal(); toast(L('Popravek odstranjen.','Fix removed.')); }catch(e){ $a('apE').textContent = errText(e); } }; };
 window.adminNewPoint = () => { const c = map.getCenter(); adminPickPoint(L('nova točka','new point'), c.lat, c.lng, async (la, lo) => { window.adminPoiEdit({key: 'new|' + Date.now().toString(36), t: 'hut', name: '', lat: la, lon: lo, isNew: true}); }, '✓ ' + L('Tukaj','Here')); };
@@ -1083,7 +1096,7 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
     ...Object.entries(F.closed).map(([k, v]) => ['closed', k, `⛔ ${v.name || L('pot brez imena','unnamed path')} (#${k})`, v._at]),
     ...Object.entries(F.poi || {}).map(([k, v]) => ['poi', k, `${(PTYPES.find(x => x[0] === v.t) || ['', ''])[1]} · ${v.name || ''}${v.hide ? ' · ' + L('skrita','hidden') : ''}${k.startsWith('new|') ? ' · ' + L('nova','new') : ''}`, v._at])].sort((a, b) => String(b[3]).localeCompare(String(a[3])));
   modal(`<h3>🛠 Admin</h3><div class="sub">${L('Popravki veljajo takoj za vse uporabnike.','Fixes apply to everybody at once.')} ${rows.length} ${L('popravkov','fixes')}.</div>
-    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button><button class="sb" id="adPoi">＋ ${L('Nova koča / bivak / ferata …','New hut / bivouac / ferrata …')}</button></div>
+    <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button><button class="sb" id="adPoi">＋ ${L('Nova koča / bivak / ferata / kamera …','New hut / bivouac / ferrata / webcam …')}</button></div>
     <div class="admlist">${rows.map(([k, key, t, at]) => `<div class="it"><div><small>${k}</small> ${esc(t)}<br><small>${at ? new Date(at).toLocaleString() : ''}</small></div><button class="sb" data-k="${k}" data-key="${esc(key)}">↺</button></div>`).join('') || `<div class="sub">${L('Še ni popravkov.','No fixes yet.')}</div>`}</div>
     <div class="sub">${L('Vrh popraviš v njegovem oknu (🛠 Uredi vrh), pot v kartici poti (🛠 Uredi pot ali klik na ime v izbrani poti), kočo / bivak / parkirišče / ferato s klikom nanjo na karti (🛠 Uredi točko). Popravke opazijo samo admini (✎); ostali vidijo popravljene podatke.','Fix a peak in its window (🛠 Edit peak), a route in the route card (🛠 Edit route or click a name in the selected route), a hut / bivouac / parking / ferrata by clicking it on the map (🛠 Edit point). Only admins see the ✎ marks; everybody else just sees the corrected data.')}</div>`);
   card.querySelectorAll('.admlist [data-k]').forEach(b => b.onclick = async () => { try{ await saveFix(b.dataset.k, b.dataset.key, null, true); adminPanel(); }catch(e){ toastErr(errText(e)); } });
@@ -1098,6 +1111,7 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
 .admform label{display:block;margin:8px 0}.admform input[type=text],.admform input:not([type]),.admform select{width:100%;box-sizing:border-box;font:inherit;padding:6px 8px;border:1px solid #c9d0cc;border-radius:8px}.admform .am{color:#c62828}
 .ri .ed{border-bottom:1px dashed currentColor;outline:none;min-width:2em;display:inline-block;cursor:text}.ri .ed:empty::before{content:attr(data-ph);opacity:.45}.ri .ed:focus{background:rgba(255,179,0,.18)}
 .afx{color:#e08a00;font-size:.85em}.admpoi{border:1px solid #c9d0cc;background:#fff;border-radius:6px;padding:3px 8px;cursor:pointer;font:inherit}
+#frSug{display:flex;flex-direction:column;gap:2px;margin:4px 0 6px}#frSug .fsug{display:flex;align-items:center;gap:8px;border:1px solid var(--line,#ddd);background:transparent;color:inherit;border-radius:8px;padding:5px 8px;cursor:pointer;text-align:left;font:inherit}#frSug .fsug small{color:#5b6461}
 .admlist .it{display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid #edf0ee;padding:6px 0}.admlist small{color:#5b6461}`; document.head.append(c); }
 
 // ---------- 🔔 notifications: friends, groups, weather ----------
