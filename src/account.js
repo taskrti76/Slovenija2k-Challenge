@@ -315,7 +315,7 @@ const css = document.createElement('style'); css.textContent = `
 #fab .fb .fi{line-height:1}#fab .fb .fl{font:700 10px system-ui,sans-serif;letter-spacing:.02em;margin-top:2px}
 #fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
 #fab.open .fb{background:#1d2321}#fab.open .fb .fl,#fab.open .fb .fi{display:none}#fab .fb .fx{display:none;font-size:26px;line-height:1}#fab.open .fb .fx{display:block}
-@media (min-width:701px){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible{opacity:1;transform:none} #fab .fb .fl{display:none} }
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible{opacity:1;transform:none} #fab .fb .fl{display:none} }
 #fab .fo{position:absolute;left:5px;top:5px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;transform:translate(0,0) scale(.3);opacity:0;transition:transform .22s cubic-bezier(.3,1.4,.6,1),opacity .15s;padding:0}
 #fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
@@ -325,9 +325,21 @@ const css = document.createElement('style'); css.textContent = `
 #fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}
 #fab.open .fo:hover,#fab.open .fo:focus-visible,#fab.open .fo:active{background:#1976d2;color:#fff;z-index:6;transform:translate(var(--x),var(--y)) scale(1.18);box-shadow:0 6px 18px rgba(25,118,210,.45);outline:none}
 #fab .fo:hover .ol,#fab .fo:focus-visible .ol,#fab .fo:active .ol{background:#1976d2;color:#fff}
+#admMove{position:fixed;z-index:30;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#fff;color:#1d2321;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.3);
+  padding:8px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font:14px system-ui,sans-serif;max-width:calc(100vw - 24px);box-sizing:border-box}
+#admMove .d{color:#5b6461;font-variant-numeric:tabular-nums}#admMove button{border:0;border-radius:8px;padding:6px 11px;font:600 13px system-ui,sans-serif;cursor:pointer;background:#eef1ef;color:#1d2321}
+#admMove .sv{background:#c62828;color:#fff}#admMove .h{flex-basis:100%;font-size:12px;color:#5b6461}
 #fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.22);display:none}#fabBg.on{display:block}
-body.in360 #fab,body.drawing #fab{display:none}
-@media (max-width:700px){ #fab{width:66px;height:66px;margin-left:-33px;bottom:calc(16px + env(safe-area-inset-bottom))} #fab .fo{left:9px;top:9px} body.menu #fab,body.dopen #fab{display:none}
+body.in360 #fab,body.drawing #fab,body.fabcov #fab{display:none}
+#fabTab{display:none}
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #fab{width:62px;height:62px;margin-left:-31px;bottom:calc(14px + env(safe-area-inset-bottom))}
+  #fabTab{display:flex;position:absolute;z-index:8;left:50%;bottom:0;transform:translateX(-50%);width:236px;height:calc(30px + env(safe-area-inset-bottom));box-sizing:border-box;
+    padding:0 14px env(safe-area-inset-bottom);align-items:center;justify-content:space-between;background:#fff;color:#1d2321;border-radius:16px 16px 0 0;
+    box-shadow:0 -2px 12px rgba(0,0,0,.28);font:700 12px system-ui,sans-serif;cursor:pointer;touch-action:none;user-select:none}
+  #fabTab .tg{position:absolute;left:50%;top:4px;width:0;height:0}
+  #fabTab .tl{animation:fpull 1.6s ease-in-out 1.5s 3}#fabTab .tr{color:#c62828;font-variant-numeric:tabular-nums}
+  @keyframes fpull{0%,100%{transform:none}40%{transform:translateY(-5px)}}
+  body.menu #fabTab,body.dopen #fabTab,body.in360 #fabTab,body.drawing #fabTab,body.fabcov #fabTab,body.fabopen #fabTab{display:none} #fab .fo{left:7px;top:7px} body.menu #fab,body.dopen #fab{display:none}
   #fab .fb::before{content:'';position:absolute;top:7px;width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.7)} }
 #accBox .ts{margin-top:10px;min-height:65px}
 #accBox .me{display:flex;gap:12px;align-items:center;margin:2px 0 6px}
@@ -366,7 +378,7 @@ body.gpson #gpsPill{display:block}
 #shCard{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;background:#fff;color:#1d2321;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.28);padding:10px 12px;font-size:calc(13px*var(--ui,1));max-width:calc(100% - 24px);display:none}
 #shCard.on{display:block}#shCard .r{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}#shCard button{border:1px solid #8a948f;border-radius:8px;background:#fff;font:600 .92em system-ui,sans-serif;padding:5px 9px;cursor:pointer}
 #shCard .x{float:right;border:0;font-size:1.4em;line-height:1;padding:0 0 0 8px}
-@media (max-width:700px){ #accWin{padding:0;align-items:stretch} #accWin .acard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} }`;
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #accWin{padding:0;align-items:stretch} #accWin .acard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} }`;
 document.head.append(css);
 
 // ---------- account section inside ⚙ Nastavitve ----------
@@ -474,14 +486,27 @@ function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accFor
 // ---------- ◉ round menu (bottom left of the map): settings, account, leaderboard, friends, groups, guide ----------
 // tap -> the options pop out around it on an arc; tap outside / Esc / the button again -> closed
 const fab = document.createElement('div'); fab.id = 'fab';
-const PHN = () => innerWidth <= 700;
+const PHN = () => PHONE_UI();
 const fabFace = () => { const b = fab.querySelector('.fb'); if (!b) return; const n = b.querySelector('.bdg');
-  b.innerHTML = PHN() ? `<span class="fi">▲</span><span class="fl">${L('Vrhovi','Peaks')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
+  b.innerHTML = PHN() ? `<span class="fi">☰</span><span class="fl">${L('Meni','Menu')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
   b.title = PHN() ? L('Tapni = meni · povleci gor = seznam vrhov','Tap = menu · swipe up = peak list') : L('Meni','Menu'); };
 fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"></button>`;
 document.body.append(fab); fabFace(); addEventListener('resize', fabFace);
 { const dr = document.getElementById('drawer'); if (dr) new MutationObserver(() => document.body.classList.toggle('dopen', dr.classList.contains('open'))).observe(dr, {attributes: true, attributeFilter: ['class']}); }
 const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.append(fabBg);
+// phone: the peak list is a sheet pulled up from the bottom edge - its tab sits under the red button (tap or swipe it up)
+const fabTab = document.createElement('div'); fabTab.id = 'fabTab'; fabTab.setAttribute('role', 'button'); fabTab.title = L('Seznam vrhov (tapni ali povleci gor)','Peak list (tap or swipe up)');
+fabTab.innerHTML = `<span class="tg"></span><span class="tl">︿ ${L('Vrhovi','Peaks')}</span><span class="tr" id="fabCnt"></span>`; document.body.append(fabTab);
+const peaksUp = () => { fabClose(); if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.remove('menu'); document.getElementById('drawer').classList.add('open'); };
+{ let y0 = null; fabTab.addEventListener('pointerdown', e => { y0 = e.clientY; try { fabTab.setPointerCapture(e.pointerId); } catch(_){} });
+  fabTab.addEventListener('pointermove', e => { if (y0 != null && y0 - e.clientY > 18){ y0 = null; peaksUp(); } });
+  fabTab.addEventListener('pointerup', () => { if (y0 != null) peaksUp(); y0 = null; }); }
+{ const vc = document.getElementById('vcount3'), cp = () => { const c = document.getElementById('fabCnt'); if (c && vc) c.textContent = vc.textContent.replace(/[()]/g, '').trim(); };
+  if (vc) new MutationObserver(cp).observe(vc, {childList: true, characterData: true, subtree: true}); cp(); }
+// a window at the bottom (planner, routes, drawing, sharing) wins: the red button and the tab step aside while it is there
+setInterval(() => { const W = innerWidth, H = innerHeight, f = {l: W / 2 - 60, r: W / 2 + 60, t: H - 110};
+  const c = ['plCard', 'rcard', 'dcard', 'shCard'].some(id => { const e = document.getElementById(id); if (!e || !e.offsetWidth) return false; const q = e.getBoundingClientRect(); return q.left < f.r && f.l < q.right && q.bottom > f.t && q.top < H; });
+  if (c !== document.body.classList.contains('fabcov')){ document.body.classList.toggle('fabcov', c); if (c) fabClose(); } }, 500);
 const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'), () => { document.getElementById('drawer').classList.remove('open'); if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.add('menu'); }]] : []),
   ['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
   ['👤', L('Moj profil','My profile'), () => meOpen()],
@@ -492,28 +517,45 @@ const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'),
   ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
   ...(PHN() ? [['❓', L('Vodič','Guide'), () => window.startTour && startTour()]] : []),
   ...(window.ADMIN ? [['🛠', L('Admin','Admin'), () => window.adminPanel && adminPanel()]] : [])];
-function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
-// bubbles on symmetric arcs above the centred button: up to 4 on the inner arc, the rest on the outer one, each arc spread evenly
-// from left to right (170° … 10°); the outer arc's radius fits the screen width; outer labels sit above their bubbles
-function fabPos(n){ const Ro = Math.min(196, innerWidth / 2 - 36), Ri = Math.min(108, Ro - 64), arc = (m, R, up) => [...Array(m)].map((_, k) => {
-    const sp = m > 1 ? Math.min(160, 40 * (m - 1)) : 0, a = -90 - sp / 2 + (m > 1 ? sp * k / (m - 1) : 0); return [R, a, up]; });
-  if (n <= 4) return arc(n, Math.max(96, Ri), false);
-  const inner = n <= 6 ? 3 : 4; return arc(inner, Ri, false).concat(arc(n - inner, Ro, true)); }
-function fabOpen(){ const it = fabItems(), P = fabPos(it.length);
+function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); document.body.classList.remove('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
+// bubbles on symmetric rings above the centred button. Every bubble and its label is checked against all the others, the button
+// and the screen edges; the first layout with no overlap wins (fewest rings, roundest, closest), so it also fits a phone held sideways
+function fabPos(labels){ const n = labels.length, cv = fabPos.cv || (fabPos.cv = document.createElement('canvas').getContext('2d'));
+  cv.font = '600 11px system-ui,sans-serif'; const LW = labels.map(t => cv.measureText(t).width + 14), BR = 25, LH = 17, G = 4;
+  const fr = fab.getBoundingClientRect(), cx = fr.left + fr.width / 2, cy = fr.top + fr.height / 2, bh = fr.width / 2 + 3;
+  const X0 = 6 - cx, X1 = innerWidth - 6 - cx, Y0 = 8 - cy, Y1 = innerHeight - 4 - cy, BTN = [-bh, -bh, bh, bh];
+  const box = (x, y, up, w) => [[x - BR, y - BR, x + BR, y + BR], up ? [x - w / 2, y - BR - 2 - LH, x + w / 2, y - BR - 2] : [x - w / 2, y + BR + 2, x + w / 2, y + BR + 2 + LH]];
+  const hit = (a, b) => a[0] < b[2] + G && b[0] < a[2] + G && a[1] < b[3] + G && b[1] < a[3] + G, inS = r => r[0] >= X0 && r[2] <= X1 && r[1] >= Y0 && r[3] <= Y1;
+  const parts = (m, k, lo) => k === 1 ? (m >= lo ? [[m]] : []) : [...Array(Math.max(0, m - lo + 1))].flatMap((_, i) => parts(m - lo - i, k - 1, lo + i).map(q => [lo + i, ...q]));
+  let best = null, bs = 1e9;
+  for (let k = 1; k <= 4 && !best; k++) for (const sx of [1, 1.25, 1.55, 1.9]) for (const D of [64, 72, 82]) for (const R1 of [90, 104]) for (const dist of parts(n, k, 1)){
+    const placed = [], out = []; let idx = 0, ok = true;
+    for (let j = 0; j < k && ok; j++){ const c = dist[j], R = R1 + j * D; let done = false;
+      for (const sp of c === 1 ? [0] : [40, 60, 80, 100, 120, 140, 160, 170].sort((a, b) => Math.abs(a - Math.min(160, 46 * (c - 1))) - Math.abs(b - Math.min(160, 46 * (c - 1))))) { for (const up of [false, true]){
+        const pts = [...Array(c)].map((_, i) => { const a = (-90 - sp / 2 + (c > 1 ? sp * i / (c - 1) : 0)) * Math.PI / 180; return [Math.cos(a) * R * sx, Math.sin(a) * R]; });
+        const rs = pts.map(([x, y], i) => box(x, y, up, LW[idx + i])).flat();
+        if (!rs.every(r => inS(r) && !hit(r, BTN))) continue;
+        let bad = false; for (let u = 0; u < rs.length && !bad; u++){ for (let v = u + 1; v < rs.length && !bad; v++) if ((u >> 1) !== (v >> 1) && hit(rs[u], rs[v])) bad = true; for (const q of placed) if (hit(rs[u], q)){ bad = true; break; } }
+        if (bad) continue; placed.push(...rs); out.push(...pts.map(([x, y]) => [x, y, up])); done = true; break; } if (done) break; }
+      if (!done) ok = false; idx += c; }
+    if (ok){ const sc = -Math.min(...out.map(q => q[1])) + 0.35 * Math.max(...out.map(q => Math.abs(q[0]))) + 25 * dist.reduce((a, c, j) => a + Math.abs(c - n * (R1 + j * D) / dist.reduce((t, _, i) => t + R1 + i * D, 0)), 0);
+      if (sc < bs){ bs = sc; best = out; } } }
+  if (best){ fabPos.fb = false; return best; }
+  fabPos.fb = true; return labels.map((_, i) => { const a = (-170 + 160 * i / Math.max(1, n - 1)) * Math.PI / 180, R = 110 + (i % 2) * 70; return [Math.cos(a) * R, Math.sin(a) * R, i % 2 === 1]; }); }
+function fabOpen(it0){ const it = Array.isArray(it0) ? it0 : fabItems(), P = fabPos(it.map(x => x[1]));
   fab.querySelectorAll('.fo').forEach(o => o.remove());
-  it.forEach(([ic, lab, fn, b], k) => { const R0 = P[k][0], a = P[k][1] * Math.PI / 180, o = document.createElement('button');
-    o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(Math.cos(a) * R0) + 'px'); o.style.setProperty('--y', Math.round(Math.sin(a) * R0) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
+  it.forEach(([ic, lab, fn, b], k) => { const o = document.createElement('button');
+    o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(P[k][0]) + 'px'); o.style.setProperty('--y', Math.round(P[k][1]) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
     o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
     o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
-  fabBg.classList.add('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
+  fabBg.classList.add('on'); document.body.classList.add('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
 let fabY = null, fabSw = false;
 fab.querySelector('.fb').addEventListener('pointerdown', e => { fabY = e.clientY; fabSw = false; try { e.currentTarget.setPointerCapture(e.pointerId); } catch(_){} });
-fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null || fabSw || !PHN()) return; if (fabY - e.clientY > 30){ fabSw = true; fabClose();
-  if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.remove('menu'); document.getElementById('drawer').classList.add('open'); } });
+fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null || fabSw || !PHN()) return; if (fabY - e.clientY > 30){ fabSw = true; peaksUp(); } });
 addEventListener('pointerup', () => { fabY = null; });
 fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
-window.openMenu = fabOpen;
+window.openMenu = () => fabOpen(); window.__fabOpen = fabOpen; window.__fabPos = fabPos;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
   if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 
@@ -629,7 +671,7 @@ body.socdot #lbBtn::after{content:'';width:8px;height:8px;border-radius:50%;back
 #lbPage .two{display:flex;gap:6px}#lbPage textarea.inp{resize:vertical}
 #lbPage .kick{border:0;background:none;color:#b3261e;font-size:1.2em;cursor:pointer;padding:0 0 0 6px;vertical-align:middle}#lbPage .unv{color:#b3261e;cursor:pointer;font-size:.9em}
 #lbPage .pk.rt b{color:#6a1b9a}#lbPage .pk span i{color:#3d4643}
-@media (max-width:700px){ #lbPage .lbnav{flex-wrap:nowrap;gap:2px;overflow-x:auto;scrollbar-width:none} #lbPage .lbnav::-webkit-scrollbar{display:none} #lbPage .lbnav button{font-size:.82em;padding:6px 6px} #lbPage .two{flex-direction:column;gap:0} #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #lbPage .lbnav{flex-wrap:nowrap;gap:2px;overflow-x:auto;scrollbar-width:none} #lbPage .lbnav::-webkit-scrollbar{display:none} #lbPage .lbnav button{font-size:.82em;padding:6px 6px} #lbPage .two{flex-direction:column;gap:0} #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
 document.head.append(lbCss);
 const LB = {board: 'p2000', q: '', off: 0, rows: [], tot: 0, busy: false};
 const boardMax = () => (BOARDS.find(b => b[0] === LB.board) || BOARDS[0])[2];
@@ -960,14 +1002,42 @@ window.adminPeakBox = p => { const box = document.createElement('div'); box.clas
   box.innerHTML = `<details><summary>🛠 ${L('Uredi vrh (admin)','Edit peak (admin)')}${f._at ? ' · ' + L('popravljeno','fixed') : ''}</summary>
     <label>${L('Ime','Name')}<input class="an" value="${esc(p.name)}"></label><label>${L('Višina (m)','Height (m)')}<input class="ae" type="number" step="0.1" value="${p.elev}"></label>
     <label>Lat / lon<span class="ll"><input class="ala" type="number" step="0.000001" value="${p.lat}"><input class="alo" type="number" step="0.000001" value="${p.lon}"></span></label>
-    <div class="ab"><button class="amv">📍 ${L('Klikni novo lego na karti','Click the new spot on the map')}</button></div>
+    <div class="ab"><button class="amv">📍 ${L('Premakni na karti','Move on the map')}</button></div>
     <div class="ab"><button class="asv">💾 ${L('Shrani za vse','Save for everybody')}</button>${f._at ? `<button class="ad">↺ ${L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am"></div></details>`;
   const q = c => box.querySelector(c), msg = t => { q('.am').textContent = t; };
-  q('.amv').onclick = () => { msg(L('Klikni na karto …','Click on the map …')); map.getCanvas().style.cursor = 'crosshair';
-    map.once('click', e => { map.getCanvas().style.cursor = ''; q('.ala').value = e.lngLat.lat.toFixed(6); q('.alo').value = e.lngLat.lng.toFixed(6); msg(L('Lega izbrana — shrani.','Spot picked — save.')); }); };
+  q('.amv').onclick = () => adminMovePeak(p);
   q('.asv').onclick = async () => { try{ await saveFix('peak', p.id, {name: q('.an').value.trim() || p.name, elev: +q('.ae').value, lat: +q('.ala').value, lon: +q('.alo').value}); toast(L('Vrh popravljen za vse.','Peak fixed for everybody.')); }catch(e){ msg(errText(e)); } };
   const d = q('.ad'); if (d) d.onclick = async () => { try{ await saveFix('peak', p.id, null, true); toast(L('Popravek odstranjen.','Fix removed.')); }catch(e){ msg(errText(e)); } };
   return box; };
+// move a peak: the window closes, a red pin can be dragged (or the map clicked); the bar on top saves it for everybody
+const fixPlain = f => { const o = Object.assign({}, f || {}); delete o._at; return o; };
+window.adminMovePeak = p => { document.querySelectorAll('.maplibregl-popup').forEach(e => e.remove()); if (window.closeRoutes) closeRoutes();
+  const old = document.getElementById('admMove'); if (old && old._done) old._done();
+  window.ADM_MOVE = true; const mk = new maplibregl.Marker({draggable: true, color: '#c62828'}).setLngLat([p.lon, p.lat]).addTo(map);
+  const bar = document.createElement('div'); bar.id = 'admMove';
+  bar.innerHTML = `<b>📍 ${esc(p.name)}</b><span class="d"></span><button class="sv">💾 ${L('Shrani','Save')}</button><button class="cx">✕</button><div class="h">${L('Povleci rdečo bucko ali klikni na karto.','Drag the red pin or click the map.')}</div>`;
+  document.body.append(bar); map.easeTo({center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 700});
+  const dist = () => { const q = mk.getLngLat(); return Math.round(Math.hypot((q.lat - p.lat) * 111320, (q.lng - p.lon) * 111320 * Math.cos(p.lat * Math.PI / 180))); };
+  const upd = () => { bar.querySelector('.d').textContent = '↔ ' + dist() + ' m'; }; upd(); mk.on('drag', upd);
+  const onClick = e => { mk.setLngLat(e.lngLat); upd(); }; map.on('click', onClick);
+  const done = () => { window.ADM_MOVE = false; map.off('click', onClick); mk.remove(); bar.remove(); }; bar._done = done;
+  bar.querySelector('.cx').onclick = done;
+  bar.querySelector('.sv').onclick = async () => { const q = mk.getLngLat(); bar.querySelector('.sv').disabled = true;
+    try{ await saveFix('peak', p.id, Object.assign(fixPlain(window.FIXES.peak[p.id]), {lat: +q.lat.toFixed(6), lon: +q.lng.toFixed(6)})); done(); toast(L('Vrh premaknjen za vse.','Peak moved for everybody.')); setTimeout(() => window.openPeak && openPeak(p.id), 300); }
+    catch(e){ bar.querySelector('.sv').disabled = false; bar.querySelector('.h').textContent = errText(e); } }; };
+// route: draw it again along the trails (or a new route) - the drawing tool in admin mode (trails.js), saved here
+window.adminRouteGeom = async (A, coords) => {
+  if (!A.isNew){ await saveFix('route', A.key, Object.assign(fixPlain(A.fix), {geom: coords})); toast(L('Trasa poti shranjena za vse.','Route line saved for everybody.')); return true; }
+  return await new Promise(res => {
+    modal(`<h3>🛠 ${L('Nova pot','New route')} · ${esc(A.p.name)}</h3><div class="admform">
+      <label>${L('Izhodišče','Start')}<input id="anS" maxlength="80" value="${esc(A.start || '')}"></label>
+      <label>${L('Ime poti','Route name')}<input id="anN" maxlength="120" placeholder="${L('npr. Tominškova pot','e.g. Tominšek route')}"></label>
+      <label>${L('Najtežje (T)','Hardest (T)')}<select id="anT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${t === 3 ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+      <label><input type="checkbox" id="anF"> ${L('ferata','via ferrata')}</label>
+      <label>${L('Opomba','Note')}<input id="anO" maxlength="300"></label>
+      <div class="ab"><button class="sb pri" id="anV">💾 ${L('Shrani za vse','Save for everybody')}</button></div><div class="am" id="anM"></div></div>`);
+    $a('anV').onclick = async () => { try{ await saveFix('route', A.key, {add: true, geom: coords, start: $a('anS').value.trim() || L('izhodišče','start'), name: $a('anN').value.trim(), t: +$a('anT').value, f: $a('anF').checked, note: $a('anO').value.trim()});
+      closeModal(); toast(L('Nova pot dodana za vse.','New route added for everybody.')); res(true); }catch(e){ $a('anM').textContent = errText(e); } }; }); };
 // route card: grade, via ferrata, name, note, hide
 window.adminRouteEdit = (p, r) => { const f = r.fix || {};
   modal(`<h3>🛠 ${L('Uredi pot','Edit route')}</h3><div class="sub">${esc(p.name)} · ${L('iz','from')} ${esc(((r.start && r.start.name) || '').replace(/^pri /, ''))}</div>
@@ -976,10 +1046,12 @@ window.adminRouteEdit = (p, r) => { const f = r.fix || {};
     <label>${L('Ime poti','Route name')}<input id="afN" maxlength="120" value="${esc(f.name || '')}" placeholder="${L('pusti prazno = iz OSM','empty = from OSM')}"></label>
     <label>${L('Opomba (ključna mesta, nevarnosti)','Note (key passages, hazards)')}<input id="afO" maxlength="300" value="${esc(f.note || '')}"></label>
     <label><input type="checkbox" id="afH" ${f.hide ? 'checked' : ''}> ${L('skrij to pot (napačna)','hide this route (wrong)')}</label>
-    <div class="ab"><button class="sb pri" id="afS">💾 ${L('Shrani za vse','Save for everybody')}</button>${r.fix ? `<button class="sb" id="afD">↺ ${L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="afM"></div></div>`);
-  const done = async (del) => { try{ await saveFix('route', r.key, del ? null : {t: +$a('afT').value, f: $a('afF').checked, name: $a('afN').value.trim(), note: $a('afO').value.trim(), hide: $a('afH').checked}, del); closeModal(); toast(L('Pot popravljena za vse.','Route fixed for everybody.')); }
+    <div class="ab"><button class="sb" id="afR">✏️ ${L('Nariši traso znova (po poteh)','Redraw the line (along trails)')}</button><button class="sb" id="afA">＋ ${L('Nova pot na ta vrh','New route to this peak')}</button></div>
+    <div class="ab"><button class="sb pri" id="afS">💾 ${L('Shrani za vse','Save for everybody')}</button>${r.fix ? `<button class="sb" id="afD">↺ ${r.fix.add ? L('Izbriši to pot','Delete this route') : L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="afM"></div></div>`);
+  const done = async (del) => { try{ await saveFix('route', r.key, del ? null : Object.assign(fixPlain(r.fix), {t: +$a('afT').value, f: $a('afF').checked, name: $a('afN').value.trim(), note: $a('afO').value.trim(), hide: $a('afH').checked}), del); closeModal(); toast(L('Pot popravljena za vse.','Route fixed for everybody.')); }
     catch(e){ $a('afM').textContent = errText(e); } };
-  $a('afS').onclick = () => done(false); const d = $a('afD'); if (d) d.onclick = () => done(true); };
+  $a('afS').onclick = () => done(false); const d = $a('afD'); if (d) d.onclick = () => done(true);
+  $a('afR').onclick = () => { closeModal(); window.adminRedraw && adminRedraw(p, r); }; $a('afA').onclick = () => { closeModal(); window.adminRedraw && adminRedraw(p, null); }; };
 // admin panel: list of fixes, close a path by clicking it
 window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.peak).map(([k, v]) => ['peak', k, (byId[k] ? byId[k].name : k) + ` · ${v.lat != null ? (+v.lat).toFixed(5) + ', ' + (+v.lon).toFixed(5) : ''}${v.elev ? ' · ' + v.elev + ' m' : ''}`, v._at]),
     ...Object.entries(F.route).map(([k, v]) => ['route', k, `${k.split('|')[0]} · ${v.hide ? L('skrita','hidden') : 'T' + v.t}${v.f ? ' ferata' : ''}${v.name ? ' · ' + v.name : ''}${v.note ? ' · ' + v.note : ''}`, v._at]),

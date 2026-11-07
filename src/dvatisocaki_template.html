@@ -37,6 +37,7 @@
   #langsw{float:right;display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-top:2px}
   #langsw button{font:600 calc(11px * var(--ui,1)) system-ui,sans-serif;padding:3px 7px;border:0;background:transparent;color:var(--mute);cursor:pointer}
   #langsw button.on{background:var(--ink);color:var(--panel)}
+  .admd{background:#fff4e5;border:1px solid #f0c48a;border-radius:9px;padding:7px 9px;margin:6px 0;font-size:.88em;line-height:1.35}.admd .rb{margin-top:6px}.admd .pri{background:#c62828;color:#fff;border-color:#c62828}.admd .aerr{color:#b3261e;margin-top:4px}
   #tour{position:fixed;inset:0;z-index:50}
   #tour .tacc{display:flex;gap:8px;margin:0 0 12px}#tour .tacc button{flex:1;border:0;border-radius:9px;background:#1565c0;color:#fff;font:600 1em system-ui,sans-serif;padding:9px;cursor:pointer}#tour .tacc button+button{background:transparent;color:var(--ink);border:1px solid var(--line)}
   #tour .th{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,14,13,.62);transition:all .25s;pointer-events:none;outline:2px solid #ffb300}
@@ -45,15 +46,16 @@
   #tour .tbtns{display:flex;gap:8px;align-items:center}#tour .tbtns span{flex:1}
   #tour button{font:inherit;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   #tour .nx{background:#c62828;border-color:#c62828;color:#fff}#tour .sk{border:0;color:var(--mute);padding-left:0}
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #tour .tc{font-size:13px;padding:11px 13px} #tour p{margin:0 0 9px;line-height:1.38} #tour h3{font-size:1.08em;margin:1px 0 4px} #tour button{padding:7px 12px} }
   #tour .tl{display:flex;gap:8px;margin:0 0 12px}#tour .tl button.on{background:var(--ink);color:var(--panel)}
   .dlg{position:fixed;inset:0;z-index:60;background:rgba(10,14,13,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:15vh}
   .dlgc{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(360px,calc(100% - 32px));box-shadow:0 12px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);font-size:calc(14px * var(--ui,1))}
   .dlgc b{display:block;margin-bottom:10px;font-size:1.08em}.dlgc input{width:100%;box-sizing:border-box;font:inherit;font-size:max(16px,1em);padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--ink)}
   .dlgb{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.dlgb button{font:inherit;font-weight:600;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .dlgb .o{background:#1565c0;border-color:#1565c0;color:#fff}
-  @media (max-width:700px){ #langsw{margin-right:40px} }
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #langsw{margin-right:40px} }
   #ptab,#ltab{display:none}
-  @media (min-width:701px){
+  @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){
     #ptab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:11;
       writing-mode:vertical-rl;font:700 calc(15px * var(--ui,1)) system-ui,sans-serif;letter-spacing:.02em;padding:16px 9px;border:0;border-radius:10px 0 0 10px;
       background:#c62828;color:#fff;box-shadow:-3px 2px 12px rgba(0,0,0,.25);cursor:pointer;transition:right .25s}
@@ -130,7 +132,7 @@
   #dfoot button{font:inherit;font-size:0.857em;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .ok{color:#2e7d32}.warn{color:#b26a00}
     .maplibregl-popup{will-change:auto!important}
-  @media (min-width:701px){ .panel input[type=checkbox],.panel input[type=radio],#dlist input[type=checkbox],.maplibregl-popup-content input[type=checkbox]{width:calc(14px * var(--ui,1));height:calc(14px * var(--ui,1))} }
+  @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){ .panel input[type=checkbox],.panel input[type=radio],#dlist input[type=checkbox],.maplibregl-popup-content input[type=checkbox]{width:calc(14px * var(--ui,1));height:calc(14px * var(--ui,1))} }
   .maplibregl-popup-content{font:calc(13px * var(--ui,1))/1.45 system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#1d2321;padding:10px 12px}
   .maplibregl-popup-content button:not(.maplibregl-popup-close-button){margin-top:6px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;cursor:pointer}
   /* close ×: small round button in the corner, the first line keeps clear of it */
@@ -199,7 +201,7 @@
   #hleg,#snowleg{top:10px;bottom:auto;right:54px;background:#fff;color:#333;border:0;border-radius:6px;box-shadow:0 0 0 2px rgba(0,0,0,.1);backdrop-filter:none}
   #hleg .lh button,#snowleg .lh button,#hleg .lh .u,#snowleg #snowlegdate,#snowleg .sl,#snowleg .sl3,#hleg .hl{color:#555}
   #hleg.min,#snowleg.min{height:29px;box-sizing:border-box;display:flex;align-items:center;padding:0 6px}#hleg.min .lh,#snowleg.min .lh{width:100%}
-  @media (max-width:700px){#hleg,#snowleg{top:calc(10px + env(safe-area-inset-top));bottom:auto;right:52px}}
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){#hleg,#snowleg{top:calc(10px + env(safe-area-inset-top));bottom:auto;right:52px}}
   #drawBtn{display:none!important}   /* drawing is in the round ☰ menu (PC) and the tab bar (phone) */
   .ri.rhid{opacity:.5}.rnote2{font-size:.88em;color:#8a5a00;margin-top:2px}
   .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
@@ -210,7 +212,7 @@
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
   body.in360 #hleg{display:none!important}
-  @media (max-width:700px){body.pop #hleg,body.pop #snowleg{display:none!important}}
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){body.pop #hleg,body.pop #snowleg{display:none!important}}
   /* 360 view */
   #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
   body.in360 #v360{display:block}
@@ -242,7 +244,7 @@
   .pl{pointer-events:auto;cursor:pointer}
   /* phone */
   /* drawing tools: panel next to the sidebar + profile strip at the bottom (gpx.studio-like) */
-  @media (min-width:701px){
+  @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){
     #dcard,#rcard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(280px * var(--ui,1)),40vw);max-height:calc(100vh - 60px)}
     #dcard .rh,#rcard .rh{cursor:move;user-select:none}
     .card.dragging{opacity:.85;box-shadow:0 10px 30px rgba(0,0,0,.3)}
@@ -269,7 +271,7 @@
   .cs{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);cursor:pointer;padding:0}
   .cs.on{box-shadow:0 0 0 2px var(--ink)}
   .hlp{font-size:.82em;color:var(--mute);margin-top:6px}.hlp summary{cursor:pointer}
-  @media (max-width:700px){
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){
     #dprof{display:none!important}
     :root{--tab:env(safe-area-inset-bottom)}   /* no tab bar any more: one red button in the middle (account.js #fab) */
     .dsk{display:none!important}
@@ -336,7 +338,8 @@
 #boot.out{opacity:0;pointer-events:none}#boot img{border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
 #boot i{width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
-<script>window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
+<script>window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
+window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
   try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:250}).catch(function(){}); }catch(e){} };
 setTimeout(window.bootOut,12000);</script>
 <div id="map"></div>
@@ -521,7 +524,7 @@ const IS_PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,scr
 const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); window.IS_IOS=IS_IOS;
 // more tiles in flight at once (default 16): 360 views need hundreds; phones keep fewer (mobile networks choke on many)
 try{ maplibregl.setMaxParallelImageRequests(IS_IOS?12:IS_PHONE?24:48); }catch(_){}
-const map = new maplibregl.Map({ locale:SL_LOCALE,
+const map = new maplibregl.Map({ locale:SL_LOCALE, attributionControl:{compact:true},
   container:"map", style,
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
   maxBounds:[[12.9,45.3],[16.7,47.0]], // all of Slovenia (Snežnik, Pohorje …)
@@ -636,8 +639,8 @@ new MutationObserver(updH).observe(document.getElementById('snowleg'),{attribute
   try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; }
 // legends (snow, height) stay clear of the peak list and its red tab on the right (unless you dragged them somewhere yourself)
 function placeLegends(){ for(const L of [document.getElementById('snowleg'),hleg]){ if(!L||L.dataset.moved) continue;
-    let right=innerWidth>700?54:52;   // left of the map button column
-    if(innerWidth>700){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
+    let right=!PHONE_UI()?54:52;   // left of the map button column
+    if(!PHONE_UI()){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
       if(dr&&dr.classList.contains('open')) right=Math.max(right,innerWidth-dr.getBoundingClientRect().left+12);
       if(pt&&getComputedStyle(pt).display!=='none'){ const r=pt.getBoundingClientRect(); if(r.width) right=Math.max(right,innerWidth-r.left+10); } }
     L.style.right=right+'px'; } }
@@ -1186,6 +1189,8 @@ async function loadOsmBorder(){
   }
 }
 map.on('load',loadOsmBorder);
+// sources (Esri, Mapterhorn, OSM ...) stay behind the (i) until it is clicked
+{ const ac=()=>document.querySelectorAll('.maplibregl-ctrl-attrib.maplibregl-compact-show').forEach(e=>e.classList.remove('maplibregl-compact-show')); ac(); map.on('load',()=>{ ac(); setTimeout(ac,600); }); map.on('resize',()=>setTimeout(ac,0)); }
 
 // --- water: rivers, streams, lakes with names (OpenFreeMap vector tiles, OpenMapTiles schema - fetched per map area like the
 //     images, nothing added to our data pack) + waterfalls (OSM via Overpass, once, kept 30 days)
@@ -1291,7 +1296,7 @@ const refreshMap=()=>{const s=map.getSource('peaks'); if(s) s.setData(fc());}; w
 // --- popup
 let popup=null;
 function openPeak(id,fly){
-  if(window.DRAW_ON) return;
+  if(window.DRAW_ON||window.ADM_MOVE) return;
   const p=byId[id]; if(!p||p.lat==null) return;
   const box=document.createElement('div');
   box.innerHTML=`<b>${p.name}</b> · ${p.elev.toFixed(p.elev%1?1:0)} m${p.rank?` · <span title="rang po prominenci">#${p.rank}</span>`:''}
@@ -1319,8 +1324,8 @@ function openPeak(id,fly){
   if(!fly){ show(); return; }
   // from the list: fly so the peak sits in the middle of the free part of the screen (a bit low, so its window fits above it)
   const m=map.getContainer().getBoundingClientRect(), pnl=document.querySelector('.panel'), dr=document.getElementById('drawer');
-  const L0=innerWidth>700&&pnl&&!document.body.classList.contains('lclosed')?pnl.getBoundingClientRect().right:m.left;
-  const R0=innerWidth>700&&dr&&dr.classList.contains('open')?dr.getBoundingClientRect().left:m.right;
+  const L0=!PHONE_UI()&&pnl&&!document.body.classList.contains('lclosed')?pnl.getBoundingClientRect().right:m.left;
+  const R0=!PHONE_UI()&&dr&&dr.classList.contains('open')?dr.getBoundingClientRect().left:m.right;
   const H=m.height, off=[(L0+R0)/2-(m.left+m.right)/2, Math.min(H*0.22,170)];
   const tok=openPeak.tok=(openPeak.tok||0)+1;
   map.flyTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),pitch:Math.min(60,map.getMaxPitch()),offset:off,essential:true,duration:1400});
@@ -1338,12 +1343,12 @@ window.TICKS={get:()=>new Set(visited), set:ids=>{ visited=new Set(ids.filter(id
 const $=id=>document.getElementById(id), drawer=$('drawer');
 $('ptab').onclick=()=>{ drawer.classList.toggle('open'); document.body.classList.remove('menu'); };
 // desktop: drawer state remembered, open by default on first visit (the list is the main point of the site)
-new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); $('ptabChev').textContent=o?'›':'‹'; }).observe(drawer,{attributes:true,attributeFilter:['class']});
-if(innerWidth>700&&innerHeight>500) drawer.classList.add('open'); // desktop: list open on load (not on a phone held sideways - the map would be covered)
+new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&!PHONE_UI()); $('ptabChev').textContent=o?'›':'‹'; }).observe(drawer,{attributes:true,attributeFilter:['class']});
+if(!PHONE_UI()&&innerHeight>500) drawer.classList.add('open'); // desktop: list open on load (not on a phone held sideways - the map would be covered)
 $('mclose').onclick=()=>document.body.classList.remove('menu');
 document.querySelector('.panel h1').append($('mclose'));
 // desktop: layers sheet open/closed (remembered)
-try{ const c=localStorage.getItem('dvat3d_lclosed'); if(innerWidth>700&&(c==='1'||(c===null&&innerHeight<=500))) document.body.classList.add('lclosed'); }catch(_){}
+try{ const c=localStorage.getItem('dvat3d_lclosed'); if(!PHONE_UI()&&(c==='1'||(c===null&&innerHeight<=500))) document.body.classList.add('lclosed'); }catch(_){}
 const syncL=()=>{ $('ltabChev').textContent=document.body.classList.contains('lclosed')?'›':'‹'; }; syncL();
 $('ltab').onclick=()=>{ const c=document.body.classList.toggle('lclosed'); syncL(); try{ localStorage.setItem('dvat3d_lclosed',c?'1':'0'); }catch(_){} };
 function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
@@ -1392,7 +1397,7 @@ function renderList(){
 $('dlist').onclick=e=>{const t=e.target;
   const g=t.closest('.rg'); if(g){ const r=g.dataset.r; CLOSED.has(r)?CLOSED.delete(r):CLOSED.add(r); renderList(); return; }
   if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
-  else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
+  else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(PHONE_UI()) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
   const TP=PEAKS.filter(inTier), R=TP.filter(isMain), nA=cntV(TP), nR=cntV(R);
   $('vcount3').textContent=`${nR} / ${R.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';

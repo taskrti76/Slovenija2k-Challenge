@@ -89,10 +89,10 @@ if (panelH){ const b = document.createElement('div'); b.id = 'langsw';
 function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.reload(); }
 
 // ---------- 2) first-use guide ----------
-const PHONE = () => innerWidth <= 700;
+const PHONE = () => PHONE_UI();
 const STEPS = [
   {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.', lang:true},
-  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpreš tako, da rdeči gumb spodaj povlečeš navzgor.', sel:()=>'#drawer', open:'peaks'},
+  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).', sel:()=>'#drawer', open:'peaks'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
   {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
   {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
@@ -100,7 +100,7 @@ const STEPS = [
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri rdeči gumb → 🗓 Načrtovalnik.', sel:()=>'#fab .fb', open:'map'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu. Na telefonu: rdeči gumb → ◧ Karta in sloji.', sel:()=>'.panel .grp', open:'layers'},
-  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini: tapni ga in okrog njega se v krogih odpre meni — ◧ Karta in sloji (telefon), 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik ture, 🏆 Lestvica, prijatelji in skupine, 📍 GPS vrhovi (aplikacija). Na telefonu ga povleci navzgor za seznam vrhov; na računalniku je prosojen, dokler se mu ne približaš z miško. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, obvestila, zemljevidi brez signala, aplikacija in ta vodič.', sel:()=>'#fab .fb', open:'map'},
+  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.', sel:()=>'#fab .fb', open:'map'},
   {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fb', open:'map'},
   {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija z rdečim gumbom → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>'#fab .fb', open:'map'},
   {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov in v meniju (rdeči gumb).<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
@@ -111,7 +111,7 @@ Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
   '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 15-step guide — skip it any time.',
   'Seznam vrhov':'Peak list',
-  '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpreš tako, da rdeči gumb spodaj povlečeš navzgor.':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters. On a phone, swipe the red button at the bottom upwards to open it.',
+  '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters. On a phone the »︿ Peaks« tab under the red button opens it (tap or swipe up).',
   'Klikni vrh na karti':'Click a peak on the map',
   'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.':'The window shows height, prominence, the difficulty of the normal route (easy / demanding / very demanding) and today\'s weather. From here open the routes or the 360° view.',
   'Poti na vrh':'Routes to the top',
@@ -127,7 +127,7 @@ Object.assign(EN, {
   'Podlage in sloji':'Base maps and layers',
   'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu. Na telefonu: rdeči gumb → ◧ Karta in sloji.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, parkings, via ferratas, snow and weather; text size. On a computer the panel hides with the blue tab on the left edge. On a phone: red button → ◧ Map & layers.',
   'Rdeči gumb in nastavitve':'The red button and settings',
-  'Rdeči gumb spodaj na sredini: tapni ga in okrog njega se v krogih odpre meni — ◧ Karta in sloji (telefon), 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik ture, 🏆 Lestvica, prijatelji in skupine, 📍 GPS vrhovi (aplikacija). Na telefonu ga povleci navzgor za seznam vrhov; na računalniku je prosojen, dokler se mu ne približaš z miško. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, obvestila, zemljevidi brez signala, aplikacija in ta vodič.':'The red button at the bottom centre: tap it and the menu opens in circles around it — ◧ Map & layers (phone), 👤 My profile, ⚙ Settings, ✏️ Draw route, 🗓 Trip planner, 🏆 Leaderboard, friends and groups, 📍 GPS summits (app). On a phone swipe it up for the peak list; on a computer it stays faint until the mouse comes near. Settings hold winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings — plus the account, notifications, offline maps, the app and this guide.',
+  'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.':'The red button at the bottom centre opens the menu in circles: ◧ Map & layers, 👤 My profile, ⚙ Settings, ✏️ Draw route, 🗓 Trip planner, 🏆 Leaderboard, friends, groups, 📍 GPS summits. The »︿ Peaks« tab under it opens the peak list. In ⚙ Settings: winter experience, fitness and the hardest route you are comfortable with (used by the weather rating and warnings), account, notifications, offline maps and this guide.',
   '👤 Moj profil':'👤 My profile',
   'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.':'Everything of yours in one place: counts, ⭐ wishlist (☆ in a peak window), your climbs with dates, drawn routes (on the map or GPX), friends, groups and badges. Works without an account too.',
   '🗺 Brez signala in aplikacija':'🗺 Offline and the app',
@@ -178,6 +178,8 @@ function placeStep(){ if (!ov) return;
     const l = !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
     r = {left:l+8, top:r.top+8, width:rt-l-16, height:r.height-16}; }
   else if (r && S.center) r = {left:r.left+8, top:r.top+8, width:r.width-16, height:r.height-16};
+  // phone: a window that fills most of the screen (peak list, route sheet) - only its top part is lit, the card gets the rest
+  if (r && !S.center && PHONE() && r.height > innerHeight * 0.5){ const top = Math.max(r.top, 0); r = {left:r.left, top, width:r.width, height:Math.max(130, innerHeight * 0.4 - top)}; }
   if (r){ hole.style.cssText = `display:block;left:${r.left-6}px;top:${r.top-6}px;width:${r.width+12}px;height:${r.height+12}px`; } else hole.style.cssText = 'display:block;left:50%;top:40%;width:0;height:0';
   if (card.dataset.step !== String(step)){ card.dataset.step = step;   // same step again (sheet slid in, routes loaded): only move it
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
@@ -188,16 +190,18 @@ function placeStep(){ if (!ov) return;
     if (S.acc && window.accountStepButtons){ const A = window.accountStepButtons(endTour); card.querySelectorAll('.tacc button').forEach(b => b.onclick = () => A[+b.dataset.a][1]()); } const nx = card.querySelector('.nx'), bk = card.querySelector('.bk');
     if (nx) nx.onclick = () => { step++; showStep(); }; if (bk) bk.onclick = () => { step--; showStep(); };
     card.querySelectorAll('.tl button').forEach(b => b.onclick = () => { LS('dvat3d_tour_step', '1'); setLang(b.dataset.l); }); }
-  // place the card next to the highlighted element (or centred)
-  const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px';
-  let x = innerWidth/2-cw/2, y = innerHeight/2-120;
-  if (r && !S.center){ const right = r.left+r.width+16, left = r.left-cw-16;
-    if (PHONE()){ x = 12; y = r.top > innerHeight / 2 ? Math.max(12, r.top - 12 - 250) : Math.min(innerHeight - 260, r.top + r.height + 18); }
-    else if (right+cw < innerWidth) { x = right; y = Math.max(12, Math.min(innerHeight-260, r.top)); }
-    else if (left > 0) { x = left; y = Math.max(12, Math.min(innerHeight-260, r.top)); } }
-  else if (r && S.center){ x = r.left+r.width/2-cw/2; y = Math.max(12, r.top+r.height/2-120); }
-  // long cards (tips, big text): keep the whole card on screen
-  const ch = card.offsetHeight; if (y + ch > innerHeight - 12) y = Math.max(12, innerHeight - 12 - ch);
+  // place the card next to the highlighted element, never over it: beside it on a computer, else in the larger free band above or
+  // below it (the card scrolls inside if the band is short); map steps: in the middle of the lit map
+  const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px'; card.style.maxHeight = '';
+  let x = innerWidth/2-cw/2, y = innerHeight/2-120, ch = card.offsetHeight;
+  if (r && !S.center){ const right = r.left+r.width+16, left = r.left-cw-16, fitY = () => Math.max(12, Math.min(innerHeight-12-ch, r.top));
+    if (!PHONE() && right+cw < innerWidth-8){ x = right; y = fitY(); }
+    else if (!PHONE() && left > 8){ x = left; y = fitY(); }
+    else { const above = r.top - 18, below = innerHeight - (r.top + r.height) - 18, up = above > below, room = Math.max(150, (up ? above : below) - 12);
+      if (ch > room){ card.style.maxHeight = room+'px'; ch = room; }
+      x = Math.max(12, Math.min(innerWidth-12-cw, r.left + r.width/2 - cw/2)); y = up ? Math.max(12, r.top - 12 - ch) : Math.min(innerHeight - 12 - ch, r.top + r.height + 12); } }
+  else if (r && S.center){ x = r.left+r.width/2-cw/2; y = Math.max(12, r.top+r.height/2-ch/2); }
+  if (y + ch > innerHeight - 12) y = Math.max(12, innerHeight - 12 - ch);
   card.style.left = x+'px'; card.style.top = y+'px'; }
 window.startTour = () => tour(0);
 addEventListener('resize', () => { if (ov) showStep(); });

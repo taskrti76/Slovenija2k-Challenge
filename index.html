@@ -37,6 +37,7 @@
   #langsw{float:right;display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;margin-top:2px}
   #langsw button{font:600 calc(11px * var(--ui,1)) system-ui,sans-serif;padding:3px 7px;border:0;background:transparent;color:var(--mute);cursor:pointer}
   #langsw button.on{background:var(--ink);color:var(--panel)}
+  .admd{background:#fff4e5;border:1px solid #f0c48a;border-radius:9px;padding:7px 9px;margin:6px 0;font-size:.88em;line-height:1.35}.admd .rb{margin-top:6px}.admd .pri{background:#c62828;color:#fff;border-color:#c62828}.admd .aerr{color:#b3261e;margin-top:4px}
   #tour{position:fixed;inset:0;z-index:50}
   #tour .tacc{display:flex;gap:8px;margin:0 0 12px}#tour .tacc button{flex:1;border:0;border-radius:9px;background:#1565c0;color:#fff;font:600 1em system-ui,sans-serif;padding:9px;cursor:pointer}#tour .tacc button+button{background:transparent;color:var(--ink);border:1px solid var(--line)}
   #tour .th{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,14,13,.62);transition:all .25s;pointer-events:none;outline:2px solid #ffb300}
@@ -45,15 +46,16 @@
   #tour .tbtns{display:flex;gap:8px;align-items:center}#tour .tbtns span{flex:1}
   #tour button{font:inherit;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   #tour .nx{background:#c62828;border-color:#c62828;color:#fff}#tour .sk{border:0;color:var(--mute);padding-left:0}
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #tour .tc{font-size:13px;padding:11px 13px} #tour p{margin:0 0 9px;line-height:1.38} #tour h3{font-size:1.08em;margin:1px 0 4px} #tour button{padding:7px 12px} }
   #tour .tl{display:flex;gap:8px;margin:0 0 12px}#tour .tl button.on{background:var(--ink);color:var(--panel)}
   .dlg{position:fixed;inset:0;z-index:60;background:rgba(10,14,13,.45);display:flex;align-items:flex-start;justify-content:center;padding-top:15vh}
   .dlgc{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(360px,calc(100% - 32px));box-shadow:0 12px 40px rgba(0,0,0,.35);backdrop-filter:blur(8px);font-size:calc(14px * var(--ui,1))}
   .dlgc b{display:block;margin-bottom:10px;font-size:1.08em}.dlgc input{width:100%;box-sizing:border-box;font:inherit;font-size:max(16px,1em);padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--ink)}
   .dlgb{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}.dlgb button{font:inherit;font-weight:600;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .dlgb .o{background:#1565c0;border-color:#1565c0;color:#fff}
-  @media (max-width:700px){ #langsw{margin-right:40px} }
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #langsw{margin-right:40px} }
   #ptab,#ltab{display:none}
-  @media (min-width:701px){
+  @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){
     #ptab{display:flex;flex-direction:column;align-items:center;gap:8px;position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:11;
       writing-mode:vertical-rl;font:700 calc(15px * var(--ui,1)) system-ui,sans-serif;letter-spacing:.02em;padding:16px 9px;border:0;border-radius:10px 0 0 10px;
       background:#c62828;color:#fff;box-shadow:-3px 2px 12px rgba(0,0,0,.25);cursor:pointer;transition:right .25s}
@@ -130,7 +132,7 @@
   #dfoot button{font:inherit;font-size:0.857em;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   .ok{color:#2e7d32}.warn{color:#b26a00}
     .maplibregl-popup{will-change:auto!important}
-  @media (min-width:701px){ .panel input[type=checkbox],.panel input[type=radio],#dlist input[type=checkbox],.maplibregl-popup-content input[type=checkbox]{width:calc(14px * var(--ui,1));height:calc(14px * var(--ui,1))} }
+  @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){ .panel input[type=checkbox],.panel input[type=radio],#dlist input[type=checkbox],.maplibregl-popup-content input[type=checkbox]{width:calc(14px * var(--ui,1));height:calc(14px * var(--ui,1))} }
   .maplibregl-popup-content{font:calc(13px * var(--ui,1))/1.45 system-ui,sans-serif;-webkit-font-smoothing:antialiased;color:#1d2321;padding:10px 12px}
   .maplibregl-popup-content button:not(.maplibregl-popup-close-button){margin-top:6px;font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #bbb;background:#fff;cursor:pointer}
   /* close ×: small round button in the corner, the first line keeps clear of it */
@@ -199,7 +201,7 @@
   #hleg,#snowleg{top:10px;bottom:auto;right:54px;background:#fff;color:#333;border:0;border-radius:6px;box-shadow:0 0 0 2px rgba(0,0,0,.1);backdrop-filter:none}
   #hleg .lh button,#snowleg .lh button,#hleg .lh .u,#snowleg #snowlegdate,#snowleg .sl,#snowleg .sl3,#hleg .hl{color:#555}
   #hleg.min,#snowleg.min{height:29px;box-sizing:border-box;display:flex;align-items:center;padding:0 6px}#hleg.min .lh,#snowleg.min .lh{width:100%}
-  @media (max-width:700px){#hleg,#snowleg{top:calc(10px + env(safe-area-inset-top));bottom:auto;right:52px}}
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){#hleg,#snowleg{top:calc(10px + env(safe-area-inset-top));bottom:auto;right:52px}}
   #drawBtn{display:none!important}   /* drawing is in the round ☰ menu (PC) and the tab bar (phone) */
   .ri.rhid{opacity:.5}.rnote2{font-size:.88em;color:#8a5a00;margin-top:2px}
   .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
@@ -210,7 +212,7 @@
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
   body.in360 #hleg{display:none!important}
-  @media (max-width:700px){body.pop #hleg,body.pop #snowleg{display:none!important}}
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){body.pop #hleg,body.pop #snowleg{display:none!important}}
   /* 360 view */
   #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
   body.in360 #v360{display:block}
@@ -242,7 +244,7 @@
   .pl{pointer-events:auto;cursor:pointer}
   /* phone */
   /* drawing tools: panel next to the sidebar + profile strip at the bottom (gpx.studio-like) */
-  @media (min-width:701px){
+  @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){
     #dcard,#rcard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(280px * var(--ui,1)),40vw);max-height:calc(100vh - 60px)}
     #dcard .rh,#rcard .rh{cursor:move;user-select:none}
     .card.dragging{opacity:.85;box-shadow:0 10px 30px rgba(0,0,0,.3)}
@@ -269,7 +271,7 @@
   .cs{width:20px;height:20px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);cursor:pointer;padding:0}
   .cs.on{box-shadow:0 0 0 2px var(--ink)}
   .hlp{font-size:.82em;color:var(--mute);margin-top:6px}.hlp summary{cursor:pointer}
-  @media (max-width:700px){
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){
     #dprof{display:none!important}
     :root{--tab:env(safe-area-inset-bottom)}   /* no tab bar any more: one red button in the middle (account.js #fab) */
     .dsk{display:none!important}
@@ -336,7 +338,8 @@
 #boot.out{opacity:0;pointer-events:none}#boot img{border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
 #boot i{width:130px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
-<script>window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
+<script>window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
+window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
   try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:250}).catch(function(){}); }catch(e){} };
 setTimeout(window.bootOut,12000);</script>
 <div id="map"></div>
@@ -521,7 +524,7 @@ const IS_PHONE=matchMedia('(pointer:coarse)').matches&&Math.min(screen.width,scr
 const IS_IOS=/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); window.IS_IOS=IS_IOS;
 // more tiles in flight at once (default 16): 360 views need hundreds; phones keep fewer (mobile networks choke on many)
 try{ maplibregl.setMaxParallelImageRequests(IS_IOS?12:IS_PHONE?24:48); }catch(_){}
-const map = new maplibregl.Map({ locale:SL_LOCALE,
+const map = new maplibregl.Map({ locale:SL_LOCALE, attributionControl:{compact:true},
   container:"map", style,
   center:[13.84,46.33], zoom:11.3, pitch:LITE_ON?55:68, bearing:-10, maxPitch:LITE_ON?70:85,
   maxBounds:[[12.9,45.3],[16.7,47.0]], // all of Slovenia (Snežnik, Pohorje …)
@@ -636,8 +639,8 @@ new MutationObserver(updH).observe(document.getElementById('snowleg'),{attribute
   try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; }
 // legends (snow, height) stay clear of the peak list and its red tab on the right (unless you dragged them somewhere yourself)
 function placeLegends(){ for(const L of [document.getElementById('snowleg'),hleg]){ if(!L||L.dataset.moved) continue;
-    let right=innerWidth>700?54:52;   // left of the map button column
-    if(innerWidth>700){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
+    let right=!PHONE_UI()?54:52;   // left of the map button column
+    if(!PHONE_UI()){ const dr=document.getElementById('drawer'), pt=document.getElementById('ptab');
       if(dr&&dr.classList.contains('open')) right=Math.max(right,innerWidth-dr.getBoundingClientRect().left+12);
       if(pt&&getComputedStyle(pt).display!=='none'){ const r=pt.getBoundingClientRect(); if(r.width) right=Math.max(right,innerWidth-r.left+10); } }
     L.style.right=right+'px'; } }
@@ -1186,6 +1189,8 @@ async function loadOsmBorder(){
   }
 }
 map.on('load',loadOsmBorder);
+// sources (Esri, Mapterhorn, OSM ...) stay behind the (i) until it is clicked
+{ const ac=()=>document.querySelectorAll('.maplibregl-ctrl-attrib.maplibregl-compact-show').forEach(e=>e.classList.remove('maplibregl-compact-show')); ac(); map.on('load',()=>{ ac(); setTimeout(ac,600); }); map.on('resize',()=>setTimeout(ac,0)); }
 
 // --- water: rivers, streams, lakes with names (OpenFreeMap vector tiles, OpenMapTiles schema - fetched per map area like the
 //     images, nothing added to our data pack) + waterfalls (OSM via Overpass, once, kept 30 days)
@@ -1291,7 +1296,7 @@ const refreshMap=()=>{const s=map.getSource('peaks'); if(s) s.setData(fc());}; w
 // --- popup
 let popup=null;
 function openPeak(id,fly){
-  if(window.DRAW_ON) return;
+  if(window.DRAW_ON||window.ADM_MOVE) return;
   const p=byId[id]; if(!p||p.lat==null) return;
   const box=document.createElement('div');
   box.innerHTML=`<b>${p.name}</b> · ${p.elev.toFixed(p.elev%1?1:0)} m${p.rank?` · <span title="rang po prominenci">#${p.rank}</span>`:''}
@@ -1319,8 +1324,8 @@ function openPeak(id,fly){
   if(!fly){ show(); return; }
   // from the list: fly so the peak sits in the middle of the free part of the screen (a bit low, so its window fits above it)
   const m=map.getContainer().getBoundingClientRect(), pnl=document.querySelector('.panel'), dr=document.getElementById('drawer');
-  const L0=innerWidth>700&&pnl&&!document.body.classList.contains('lclosed')?pnl.getBoundingClientRect().right:m.left;
-  const R0=innerWidth>700&&dr&&dr.classList.contains('open')?dr.getBoundingClientRect().left:m.right;
+  const L0=!PHONE_UI()&&pnl&&!document.body.classList.contains('lclosed')?pnl.getBoundingClientRect().right:m.left;
+  const R0=!PHONE_UI()&&dr&&dr.classList.contains('open')?dr.getBoundingClientRect().left:m.right;
   const H=m.height, off=[(L0+R0)/2-(m.left+m.right)/2, Math.min(H*0.22,170)];
   const tok=openPeak.tok=(openPeak.tok||0)+1;
   map.flyTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),pitch:Math.min(60,map.getMaxPitch()),offset:off,essential:true,duration:1400});
@@ -1338,12 +1343,12 @@ window.TICKS={get:()=>new Set(visited), set:ids=>{ visited=new Set(ids.filter(id
 const $=id=>document.getElementById(id), drawer=$('drawer');
 $('ptab').onclick=()=>{ drawer.classList.toggle('open'); document.body.classList.remove('menu'); };
 // desktop: drawer state remembered, open by default on first visit (the list is the main point of the site)
-new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&innerWidth>700); $('ptabChev').textContent=o?'›':'‹'; }).observe(drawer,{attributes:true,attributeFilter:['class']});
-if(innerWidth>700&&innerHeight>500) drawer.classList.add('open'); // desktop: list open on load (not on a phone held sideways - the map would be covered)
+new MutationObserver(()=>{ const o=drawer.classList.contains('open'); document.body.classList.toggle('dopen',o&&!PHONE_UI()); $('ptabChev').textContent=o?'›':'‹'; }).observe(drawer,{attributes:true,attributeFilter:['class']});
+if(!PHONE_UI()&&innerHeight>500) drawer.classList.add('open'); // desktop: list open on load (not on a phone held sideways - the map would be covered)
 $('mclose').onclick=()=>document.body.classList.remove('menu');
 document.querySelector('.panel h1').append($('mclose'));
 // desktop: layers sheet open/closed (remembered)
-try{ const c=localStorage.getItem('dvat3d_lclosed'); if(innerWidth>700&&(c==='1'||(c===null&&innerHeight<=500))) document.body.classList.add('lclosed'); }catch(_){}
+try{ const c=localStorage.getItem('dvat3d_lclosed'); if(!PHONE_UI()&&(c==='1'||(c===null&&innerHeight<=500))) document.body.classList.add('lclosed'); }catch(_){}
 const syncL=()=>{ $('ltabChev').textContent=document.body.classList.contains('lclosed')?'›':'‹'; }; syncL();
 $('ltab').onclick=()=>{ const c=document.body.classList.toggle('lclosed'); syncL(); try{ localStorage.setItem('dvat3d_lclosed',c?'1':'0'); }catch(_){} };
 function syncTabs(){ const tb=$('tabbar'); if(!tb) return;
@@ -1392,7 +1397,7 @@ function renderList(){
 $('dlist').onclick=e=>{const t=e.target;
   const g=t.closest('.rg'); if(g){ const r=g.dataset.r; CLOSED.has(r)?CLOSED.delete(r):CLOSED.add(r); renderList(); return; }
   if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
-  else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(innerWidth<700) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
+  else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(PHONE_UI()) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
   const TP=PEAKS.filter(inTier), R=TP.filter(isMain), nA=cntV(TP), nR=cntV(R);
   $('vcount3').textContent=`${nR} / ${R.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
@@ -2241,7 +2246,7 @@ const hutNear=st=>{ let best='', bd=700; for(const h of HUTS){ if(!h.name||/^Biv
 async function routeProfiles(){ const cur=RT; if(!cur) return;
   for(const r of [...cur.routes]){ if(r.P||(window.LITE_ON&&r!==cur.routes[cur.sel])) continue; r.P=await profile(r.coords);
     // longer than 11 h of walking (DIN 33466) or down > 40 % of up -> remove, unless it is the only way up
-    if(r.P&&(walkTime(r.P.km,r.P.up,r.P.down)>11||r.P.down>0.4*r.P.up)&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
+    if(r.P&&!r.adm&&(walkTime(r.P.km,r.P.up,r.P.down)>11||r.P.down>0.4*r.P.up)&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
     if(RT===cur) renderRoutes(); } }
 function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=g?r.coords.slice(0,-1):r.coords;
   const f=[{type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:c}}];
@@ -2257,10 +2262,13 @@ window.peakRoutesUI = async function(id){
   const nearStart=(la,lo)=>{ let b=null,bd=300; for(const x of STARTS){ const d=hav(x.lat,x.lon,la,lo); if(d<bd){ bd=d; b={...x}; } } for(const h of HUTS){ const d=hav(h.lat,h.lon,la,lo); if(d<bd){ bd=d; b={name:h.name,lat:h.lat,lon:h.lon,kind:'hut'}; } } return b; };
   const nearPark=(la,lo)=>STARTS.some(x=>hav(x.lat,x.lon,la,lo)<300);
   const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:nearPark(la,lo)?1:0; // routes ending at a hut are continued down to a parking
-  const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
-  if(!res||!res.routes.length){ RT=null; setRoutesLayer();
+  let res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
+  const FXR=(window.FIXES&&window.FIXES.route)||{};
+  const ADD=Object.entries(FXR).filter(([k,f])=>k.startsWith(p.id+'|new|')&&f.geom&&f.geom.length>1&&(!f.hide||window.ADMIN)).map(([k,f])=>admRoute(k,f));
+  if((!res||!res.routes.length)&&!ADD.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
-      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
+      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button>${window.ADMIN?` · <button class="lnk" onclick="adminRedraw(byId['${p.id}'],null)">＋ Nova pot (admin)</button>`:''}</div>`; return; }
+  const res0=res; res=res0&&res0.routes.length?res0:{routes:[]};
   const MAXKM=22; // > ~11 h walking: dropped (checked again with the height profile)
   res.routes=res.routes.filter((r,i,a)=>r.stats.len/1000<=MAXKM||a.length===1);
   res.routes.forEach(r=>{ const pk=[p.lon,p.lat], last=r.coords[r.coords.length-1]; r.gap=Math.round(hav(last[1],last[0],p.lat,p.lon)); r.coords=[...r.coords,pk];
@@ -2269,15 +2277,41 @@ window.peakRoutesUI = async function(id){
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
     if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=(r.start.kind==='hut'?r.start.name:'')||hutNear(r.start)||r.start.name||relStartName(r,p);
     const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); });
-  // admin fixes (account.js, table "fixes"): hide a wrong route, correct its T-grade / via ferrata / name, add a note
-  const FXR=(window.FIXES&&window.FIXES.route)||{};
+  // admin fixes (account.js, table "fixes"): hide a wrong route, correct its T-grade / via ferrata / name / line, add a note;
+  // routes an admin drew are added
   res.routes=res.routes.filter(r=>{ r.key=routeKey(p,r); const f=FXR[r.key]; if(!f) return true; r.fix=f;
-    if(f.t) r.stats.sac=+f.t; if(f.f!=null) r.stats.ferrata=!!f.f; return !f.hide||window.ADMIN; });
+    if(f.t) r.stats.sac=+f.t; if(f.f!=null) r.stats.ferrata=!!f.f;
+    if(f.geom&&f.geom.length>1){ r.coords=f.geom.map(x=>x.slice()); r.stats.len=lineLen(r.coords); r.gap=0; r.adm=true; const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); }
+    return !f.hide||window.ADMIN; }).concat(ADD);
   if(!res.routes.length){ RT=null; setRoutesLayer(); c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Ni poti.</div>`; return; }
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };
 window.rerenderRoutes = () => { if (RT) renderRoutes(); };
+const lineLen=c=>{ let m=0; for(let i=1;i<c.length;i++) m+=hav(c[i-1][1],c[i-1][0],c[i][1],c[i][0]); return m; };
+// a route an admin drew (fix key "peak|new|…"): start, line, grade from the fix
+const admRoute=(k,f)=>{ const c=f.geom.map(x=>x.slice()), s0=c[0];
+  return {key:k, fix:f, adm:true, coords:c, gap:0, fname:'', start:{name:f.start||'izhodišče', lat:s0[1], lon:s0[0], kind:'adm'},
+    stats:{len:lineLen(c), sac:+f.t||3, ferrata:!!f.f, marked:1, pzs:0, cov:1, rels:[]}, huts:hutsAlong(c).filter(h=>h!==f.start)}; };
+// fewer points for storage: Douglas-Peucker, tolerance in metres
+function simplifyM(c,tol){ if(c.length<3) return c.slice(); const keep=new Uint8Array(c.length); keep[0]=keep[c.length-1]=1; const st=[[0,c.length-1]];
+  const kx=111320*Math.cos(c[0][1]*Math.PI/180), ky=111320;
+  while(st.length){ const [a,b]=st.pop(); const ax=c[a][0]*kx, ay=c[a][1]*ky, bx=c[b][0]*kx, by=c[b][1]*ky, dx=bx-ax, dy=by-ay, L2=dx*dx+dy*dy||1e-9; let md=0, mi=-1;
+    for(let i=a+1;i<b;i++){ const px=c[i][0]*kx, py=c[i][1]*ky, t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/L2)), d=Math.hypot(px-ax-t*dx,py-ay-t*dy); if(d>md){ md=d; mi=i; } }
+    if(md>tol){ keep[mi]=1; st.push([a,mi],[mi,b]); } }
+  return c.filter((_,i)=>keep[i]); }
+// admin: draw a route's line again (or a new route) with the drawing tool - follows the trails like any drawing; saved for everybody
+window.adminRedraw=(p,r)=>{ D.adm={p, key:r?r.key:`${p.id}|new|${Date.now().toString(36)}`, isNew:!r, fix:(r&&r.fix)||{}, start:'', err:''};
+  if(r) loadIntoEditor(r.coords,-1); else { D.pts=[]; D.segs=[]; D.hist=[]; D.sel=-1; D.edit=-1; }
+  D.follow=true; closeRoutes(); startDraw(); ensureGraph(p.lat,p.lon,0.17); drawChanged();
+  if(!r) map.easeTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),duration:800}); };
+window.adminDrawSave=async()=>{ const A=D.adm; if(!A) return; let c=drawCoords(); if(c.length<2) return;
+  const e=c[c.length-1], s0=c[0]; if(hav(s0[1],s0[0],A.p.lat,A.p.lon)<hav(e[1],e[0],A.p.lat,A.p.lon)) c=c.slice().reverse();   // start -> summit
+  c=simplifyM(c,2).map(([a,b])=>[+a.toFixed(5),+b.toFixed(5)]);
+  if(A.isNew){ let best='',bd=600; for(const x of [...STARTS,...HUTS]){ if(!x.name) continue; const d=hav(x.lat,x.lon,c[0][1],c[0][0]); if(d<bd){ bd=d; best=x.name; } } A.start=best; }
+  try{ if(await window.adminRouteGeom(A,c)){ const id=A.p.id; D.adm=null; D.pts=[]; D.segs=[]; D.hist=[]; stopDraw(); setTimeout(()=>window.peakRoutesUI(id),500); } }
+  catch(err){ A.err=(err&&err.message)||String(err); drawRender(); } };
+window.adminDrawCancel=()=>{ const A=D.adm; D.adm=null; D.pts=[]; D.segs=[]; D.hist=[]; stopDraw(); if(A) window.peakRoutesUI(A.p.id); };
 // a route's key for admin fixes: peak · start point (~10 m) · its name (relation / ferrata / start)
 const routeKey=(p,r)=>{ const ri=r.rel!=null?r.rel:null, nm=ri!=null&&RELS[ri]?relName(RELS[ri]):r.fname||'';
   return `${p.id}|${r.start.lat!=null?r.start.lat.toFixed(4)+','+r.start.lon.toFixed(4):'?'}|${nm}`.slice(0,200); };
@@ -2381,7 +2415,7 @@ function setDrawData(){
   D.pts.forEach((p,i)=>f.push({type:'Feature',properties:{i,r:i===0?'s':i===n-1?'e':'m',sel:i===D.sel},geometry:{type:'Point',coordinates:p}}));
   map.getSource('draw').setData({type:'FeatureCollection',features:f});
 }
-const DESK=()=>innerWidth>700;
+const DESK=()=>!PHONE_UI();
 let PROFMIN=false; try{ PROFMIN=localStorage.getItem('dvat3d_profmin')==='1'; }catch(_){}
 window.profToggle=()=>{ PROFMIN=!PROFMIN; try{ localStorage.setItem('dvat3d_profmin',PROFMIN?'1':'0'); }catch(_){} drawRender(); };
 // movable windows (PC): drag by the title bar, position remembered per window
@@ -2455,6 +2489,8 @@ function drawRender(){
       <button class="lnk" onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶</button><button class="lnk" onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑</button><button class="x" onclick="stopDraw()">×</button></div>`;
     return; }
   card.innerHTML=`<div class="rh"><button class="lnk" onclick="drawMin(true)" aria-label="Skrij">▾</button><b>${D.edit>=0?'✎ '+MY[D.edit].name:'✎ Risanje poti'}</b><button class="x" onclick="stopDraw()">×</button></div>
+    ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha.
+      <div class="rb"><button class="pri" onclick="adminDrawSave()" ${drawCoords().length<2?'disabled':''}>💾 Shrani za vse</button><button onclick="adminDrawCancel()">Prekliči</button></div>${D.adm.err?`<div class="aerr">${esc(D.adm.err)}</div>`:''}</div>`:''}
     <div class="tbar">${tools}</div>
     <label class="sw"><input type="checkbox" id="dfollow" ${D.follow?'checked':''}><i></i> Sledi potem in cestam</label>
     <div class="cols">Barva: ${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
@@ -2469,7 +2505,7 @@ let profTimer=null;
 function drawChanged(){ D.P=null; drawRender(); clearTimeout(profTimer); const c=drawCoords(); if(c.length<2) return;
   profTimer=setTimeout(async()=>{ D.P=await profile(c); drawRender(); },300); }
 window.startDraw=()=>{ ensureGraph(); window.DRAW_ON=true; document.body.classList.add('drawing'); document.body.classList.remove('menu'); if(popup) popup.remove(); map.getCanvas().style.cursor='crosshair'; map.doubleClickZoom.disable(); el('drawBtn').textContent='Končaj risanje'; drawRender(); };
-window.stopDraw=()=>{ window.DRAW_ON=false; document.body.classList.remove('drawing'); D.sel=-1; map.getCanvas().style.cursor=''; map.doubleClickZoom.enable(); el('drawBtn').textContent='Riši pot'; drawRender(); };
+window.stopDraw=()=>{ D.adm=null; window.DRAW_ON=false; document.body.classList.remove('drawing'); D.sel=-1; map.getCanvas().style.cursor=''; map.doubleClickZoom.enable(); el('drawBtn').textContent='Riši pot'; drawRender(); };
 window.drawMin=v=>{ D.min=v; drawRender(); };
 window.drawUndo=()=>{ const h=D.hist.pop(); if(!h) return; const s=JSON.parse(h); D.pts=s.p; D.segs=s.s; D.sel=-1; drawChanged(); };
 window.drawClear=()=>{ if(!D.pts.length) return; pushHist(); D.pts=[]; D.segs=[]; D.sel=-1; D.edit=-1; drawChanged(); };
@@ -2599,7 +2635,7 @@ const plSave=()=>{ try{ localStorage.setItem(PLK,JSON.stringify(PL)); }catch(_){
 const DAYC=['#1565c0','#e65100','#2e7d32','#6a1b9a','#c62828','#00838f','#827717','#4e342e'];
 const plCard=document.createElement('div'); plCard.className='card'; plCard.id='plCard'; document.body.append(plCard);
 const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:none;z-index:7}#plCard.on{display:block}
-@media (min-width:701px){#plCard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(340px * var(--ui,1)),44vw);max-height:calc(100vh - 60px)}#plCard .rh{cursor:move;user-select:none}}
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){#plCard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(340px * var(--ui,1)),44vw);max-height:calc(100vh - 60px)}#plCard .rh{cursor:move;user-select:none}}
 #plCard .pls{margin:4px 0}#plCard .plr{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line)}#plCard .plr .n{width:20px;height:20px;border-radius:50%;background:#1d2321;color:#fff;font:700 11px system-ui;display:flex;align-items:center;justify-content:center;flex:none}
 #plCard .plr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#plCard .plr button{border:0;background:none;cursor:pointer;color:var(--mute);font-size:1em;padding:2px 4px}
 #plCard .pla{display:flex;gap:6px;margin:6px 0}#plCard .pla input{flex:1;min-width:0;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
@@ -3224,10 +3260,10 @@ if (panelH){ const b = document.createElement('div'); b.id = 'langsw';
 function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.reload(); }
 
 // ---------- 2) first-use guide ----------
-const PHONE = () => innerWidth <= 700;
+const PHONE = () => PHONE_UI();
 const STEPS = [
   {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.', lang:true},
-  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpreš tako, da rdeči gumb spodaj povlečeš navzgor.', sel:()=>'#drawer', open:'peaks'},
+  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).', sel:()=>'#drawer', open:'peaks'},
   {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
   {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
   {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
@@ -3235,7 +3271,7 @@ const STEPS = [
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
   {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri rdeči gumb → 🗓 Načrtovalnik.', sel:()=>'#fab .fb', open:'map'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu. Na telefonu: rdeči gumb → ◧ Karta in sloji.', sel:()=>'.panel .grp', open:'layers'},
-  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini: tapni ga in okrog njega se v krogih odpre meni — ◧ Karta in sloji (telefon), 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik ture, 🏆 Lestvica, prijatelji in skupine, 📍 GPS vrhovi (aplikacija). Na telefonu ga povleci navzgor za seznam vrhov; na računalniku je prosojen, dokler se mu ne približaš z miško. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, obvestila, zemljevidi brez signala, aplikacija in ta vodič.', sel:()=>'#fab .fb', open:'map'},
+  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.', sel:()=>'#fab .fb', open:'map'},
   {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fb', open:'map'},
   {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija z rdečim gumbom → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>'#fab .fb', open:'map'},
   {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov in v meniju (rdeči gumb).<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
@@ -3246,7 +3282,7 @@ Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
   '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 15 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 15-step guide — skip it any time.',
   'Seznam vrhov':'Peak list',
-  '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpreš tako, da rdeči gumb spodaj povlečeš navzgor.':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters. On a phone, swipe the red button at the bottom upwards to open it.',
+  '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters. On a phone the »︿ Peaks« tab under the red button opens it (tap or swipe up).',
   'Klikni vrh na karti':'Click a peak on the map',
   'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.':'The window shows height, prominence, the difficulty of the normal route (easy / demanding / very demanding) and today\'s weather. From here open the routes or the 360° view.',
   'Poti na vrh':'Routes to the top',
@@ -3262,7 +3298,7 @@ Object.assign(EN, {
   'Podlage in sloji':'Base maps and layers',
   'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu. Na telefonu: rdeči gumb → ◧ Karta in sloji.':'Relief, satellite, OpenTopoMap or the snow map; layers for trails, huts, parkings, via ferratas, snow and weather; text size. On a computer the panel hides with the blue tab on the left edge. On a phone: red button → ◧ Map & layers.',
   'Rdeči gumb in nastavitve':'The red button and settings',
-  'Rdeči gumb spodaj na sredini: tapni ga in okrog njega se v krogih odpre meni — ◧ Karta in sloji (telefon), 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik ture, 🏆 Lestvica, prijatelji in skupine, 📍 GPS vrhovi (aplikacija). Na telefonu ga povleci navzgor za seznam vrhov; na računalniku je prosojen, dokler se mu ne približaš z miško. V nastavitvah so izkušnje z zimo, kondicija (časi hoje) in najtežje, kar ti je še prijetno (T-lestvica, ferate) — vpliva na oceno vremena in opozorila pri poteh — pa še račun, obvestila, zemljevidi brez signala, aplikacija in ta vodič.':'The red button at the bottom centre: tap it and the menu opens in circles around it — ◧ Map & layers (phone), 👤 My profile, ⚙ Settings, ✏️ Draw route, 🗓 Trip planner, 🏆 Leaderboard, friends and groups, 📍 GPS summits (app). On a phone swipe it up for the peak list; on a computer it stays faint until the mouse comes near. Settings hold winter experience, fitness (walking times) and the hardest you are comfortable with (T scale, via ferratas) — used by the weather rating and route warnings — plus the account, notifications, offline maps, the app and this guide.',
+  'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.':'The red button at the bottom centre opens the menu in circles: ◧ Map & layers, 👤 My profile, ⚙ Settings, ✏️ Draw route, 🗓 Trip planner, 🏆 Leaderboard, friends, groups, 📍 GPS summits. The »︿ Peaks« tab under it opens the peak list. In ⚙ Settings: winter experience, fitness and the hardest route you are comfortable with (used by the weather rating and warnings), account, notifications, offline maps and this guide.',
   '👤 Moj profil':'👤 My profile',
   'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.':'Everything of yours in one place: counts, ⭐ wishlist (☆ in a peak window), your climbs with dates, drawn routes (on the map or GPX), friends, groups and badges. Works without an account too.',
   '🗺 Brez signala in aplikacija':'🗺 Offline and the app',
@@ -3313,6 +3349,8 @@ function placeStep(){ if (!ov) return;
     const l = !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
     r = {left:l+8, top:r.top+8, width:rt-l-16, height:r.height-16}; }
   else if (r && S.center) r = {left:r.left+8, top:r.top+8, width:r.width-16, height:r.height-16};
+  // phone: a window that fills most of the screen (peak list, route sheet) - only its top part is lit, the card gets the rest
+  if (r && !S.center && PHONE() && r.height > innerHeight * 0.5){ const top = Math.max(r.top, 0); r = {left:r.left, top, width:r.width, height:Math.max(130, innerHeight * 0.4 - top)}; }
   if (r){ hole.style.cssText = `display:block;left:${r.left-6}px;top:${r.top-6}px;width:${r.width+12}px;height:${r.height+12}px`; } else hole.style.cssText = 'display:block;left:50%;top:40%;width:0;height:0';
   if (card.dataset.step !== String(step)){ card.dataset.step = step;   // same step again (sheet slid in, routes loaded): only move it
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
@@ -3323,16 +3361,18 @@ function placeStep(){ if (!ov) return;
     if (S.acc && window.accountStepButtons){ const A = window.accountStepButtons(endTour); card.querySelectorAll('.tacc button').forEach(b => b.onclick = () => A[+b.dataset.a][1]()); } const nx = card.querySelector('.nx'), bk = card.querySelector('.bk');
     if (nx) nx.onclick = () => { step++; showStep(); }; if (bk) bk.onclick = () => { step--; showStep(); };
     card.querySelectorAll('.tl button').forEach(b => b.onclick = () => { LS('dvat3d_tour_step', '1'); setLang(b.dataset.l); }); }
-  // place the card next to the highlighted element (or centred)
-  const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px';
-  let x = innerWidth/2-cw/2, y = innerHeight/2-120;
-  if (r && !S.center){ const right = r.left+r.width+16, left = r.left-cw-16;
-    if (PHONE()){ x = 12; y = r.top > innerHeight / 2 ? Math.max(12, r.top - 12 - 250) : Math.min(innerHeight - 260, r.top + r.height + 18); }
-    else if (right+cw < innerWidth) { x = right; y = Math.max(12, Math.min(innerHeight-260, r.top)); }
-    else if (left > 0) { x = left; y = Math.max(12, Math.min(innerHeight-260, r.top)); } }
-  else if (r && S.center){ x = r.left+r.width/2-cw/2; y = Math.max(12, r.top+r.height/2-120); }
-  // long cards (tips, big text): keep the whole card on screen
-  const ch = card.offsetHeight; if (y + ch > innerHeight - 12) y = Math.max(12, innerHeight - 12 - ch);
+  // place the card next to the highlighted element, never over it: beside it on a computer, else in the larger free band above or
+  // below it (the card scrolls inside if the band is short); map steps: in the middle of the lit map
+  const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px'; card.style.maxHeight = '';
+  let x = innerWidth/2-cw/2, y = innerHeight/2-120, ch = card.offsetHeight;
+  if (r && !S.center){ const right = r.left+r.width+16, left = r.left-cw-16, fitY = () => Math.max(12, Math.min(innerHeight-12-ch, r.top));
+    if (!PHONE() && right+cw < innerWidth-8){ x = right; y = fitY(); }
+    else if (!PHONE() && left > 8){ x = left; y = fitY(); }
+    else { const above = r.top - 18, below = innerHeight - (r.top + r.height) - 18, up = above > below, room = Math.max(150, (up ? above : below) - 12);
+      if (ch > room){ card.style.maxHeight = room+'px'; ch = room; }
+      x = Math.max(12, Math.min(innerWidth-12-cw, r.left + r.width/2 - cw/2)); y = up ? Math.max(12, r.top - 12 - ch) : Math.min(innerHeight - 12 - ch, r.top + r.height + 12); } }
+  else if (r && S.center){ x = r.left+r.width/2-cw/2; y = Math.max(12, r.top+r.height/2-ch/2); }
+  if (y + ch > innerHeight - 12) y = Math.max(12, innerHeight - 12 - ch);
   card.style.left = x+'px'; card.style.top = y+'px'; }
 window.startTour = () => tour(0);
 addEventListener('resize', () => { if (ov) showStep(); });
@@ -3797,7 +3837,7 @@ window.wxBox = p => {
     const r = el.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(), top = r.top - m.top - 8;
     // keep it clear of the side panels (PC): left sheet + tab, peak list + tab
     const pnl = document.body.classList.contains('lclosed') ? 0 : (document.querySelector('.panel') || {}).offsetWidth || 0, dr = document.getElementById('drawer');
-    const L0 = m.left + (innerWidth > 700 ? pnl + 50 : 8), R0 = m.right - (innerWidth > 700 && dr && dr.classList.contains('open') ? dr.offsetWidth + 50 : 8);
+    const L0 = m.left + (!PHONE_UI() ? pnl + 50 : 8), R0 = m.right - (!PHONE_UI() && dr && dr.classList.contains('open') ? dr.offsetWidth + 50 : 8);
     let dx = r.left < L0 ? r.left - L0 : r.right > R0 ? r.right - R0 : 0;
     if (top < 0 || dx) map.panBy([dx, Math.min(0, top)], {duration:300}); });
   box.innerHTML = `<div class="wxh">${L('Vreme na vrhu','Summit weather')} · ${Math.round(topH(p))} m</div><div class="wxs" style="color:#888">${L('Nalagam napoved …','Loading forecast …')}</div>`;
@@ -3905,7 +3945,7 @@ const css = document.createElement('style'); css.textContent = `
 #setWin .advbox .btn2{background:#fff!important;color:#1d2321!important;border:1px solid #8a948f}#setWin .advbox .btn2:hover{background:#eef2f0!important}
 #setWin .advbox,#setWin .advbox label{color:#1d2321}#setWin .advbox .row,#setWin .advbox div[style*="color"],#setWin .hint{color:#4a524f!important}#setWin h4{color:#4a524f}#setWin .advbox label{display:flex;gap:8px;align-items:center;margin:6px 0}
 #gearBtn{float:right;margin:2px 6px 0 0;border:1px solid var(--line);border-radius:7px;background:transparent;color:var(--mute);font:600 calc(11px*var(--ui,1)) system-ui,sans-serif;padding:3px 7px;cursor:pointer}
-@media (max-width:700px){ #setWin{padding:0;align-items:stretch} #setWin .setcard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} #gearBtn{display:none} }`;
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #setWin{padding:0;align-items:stretch} #setWin .setcard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} #gearBtn{display:none} }`;
 document.head.append(css);
 
 const win = document.createElement('div'); win.id = 'setWin';
@@ -4264,7 +4304,7 @@ const css = document.createElement('style'); css.textContent = `
 #fab .fb .fi{line-height:1}#fab .fb .fl{font:700 10px system-ui,sans-serif;letter-spacing:.02em;margin-top:2px}
 #fab .fb .bdg{position:absolute;top:-2px;right:-4px;margin:0}
 #fab.open .fb{background:#1d2321}#fab.open .fb .fl,#fab.open .fb .fi{display:none}#fab .fb .fx{display:none;font-size:26px;line-height:1}#fab.open .fb .fx{display:block}
-@media (min-width:701px){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible{opacity:1;transform:none} #fab .fb .fl{display:none} }
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){ #fab .fb{opacity:.42;transform:scale(.82)} #fab:hover .fb,#fab.open .fb,#fab .fb:focus-visible{opacity:1;transform:none} #fab .fb .fl{display:none} }
 #fab .fo{position:absolute;left:5px;top:5px;width:48px;height:48px;border-radius:50%;border:0;background:#fff;color:#1d2321;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.3);
   display:flex;align-items:center;justify-content:center;transform:translate(0,0) scale(.3);opacity:0;transition:transform .22s cubic-bezier(.3,1.4,.6,1),opacity .15s;padding:0}
 #fab.open .fo{transform:translate(var(--x),var(--y)) scale(1);opacity:1}
@@ -4274,9 +4314,21 @@ const css = document.createElement('style'); css.textContent = `
 #fab .fo .bdg{position:absolute;top:-3px;right:-5px;margin:0}
 #fab.open .fo:hover,#fab.open .fo:focus-visible,#fab.open .fo:active{background:#1976d2;color:#fff;z-index:6;transform:translate(var(--x),var(--y)) scale(1.18);box-shadow:0 6px 18px rgba(25,118,210,.45);outline:none}
 #fab .fo:hover .ol,#fab .fo:focus-visible .ol,#fab .fo:active .ol{background:#1976d2;color:#fff}
+#admMove{position:fixed;z-index:30;top:calc(10px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:#fff;color:#1d2321;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.3);
+  padding:8px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font:14px system-ui,sans-serif;max-width:calc(100vw - 24px);box-sizing:border-box}
+#admMove .d{color:#5b6461;font-variant-numeric:tabular-nums}#admMove button{border:0;border-radius:8px;padding:6px 11px;font:600 13px system-ui,sans-serif;cursor:pointer;background:#eef1ef;color:#1d2321}
+#admMove .sv{background:#c62828;color:#fff}#admMove .h{flex-basis:100%;font-size:12px;color:#5b6461}
 #fabBg{position:fixed;inset:0;z-index:8;background:rgba(0,0,0,.22);display:none}#fabBg.on{display:block}
-body.in360 #fab,body.drawing #fab{display:none}
-@media (max-width:700px){ #fab{width:66px;height:66px;margin-left:-33px;bottom:calc(16px + env(safe-area-inset-bottom))} #fab .fo{left:9px;top:9px} body.menu #fab,body.dopen #fab{display:none}
+body.in360 #fab,body.drawing #fab,body.fabcov #fab{display:none}
+#fabTab{display:none}
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #fab{width:62px;height:62px;margin-left:-31px;bottom:calc(14px + env(safe-area-inset-bottom))}
+  #fabTab{display:flex;position:absolute;z-index:8;left:50%;bottom:0;transform:translateX(-50%);width:236px;height:calc(30px + env(safe-area-inset-bottom));box-sizing:border-box;
+    padding:0 14px env(safe-area-inset-bottom);align-items:center;justify-content:space-between;background:#fff;color:#1d2321;border-radius:16px 16px 0 0;
+    box-shadow:0 -2px 12px rgba(0,0,0,.28);font:700 12px system-ui,sans-serif;cursor:pointer;touch-action:none;user-select:none}
+  #fabTab .tg{position:absolute;left:50%;top:4px;width:0;height:0}
+  #fabTab .tl{animation:fpull 1.6s ease-in-out 1.5s 3}#fabTab .tr{color:#c62828;font-variant-numeric:tabular-nums}
+  @keyframes fpull{0%,100%{transform:none}40%{transform:translateY(-5px)}}
+  body.menu #fabTab,body.dopen #fabTab,body.in360 #fabTab,body.drawing #fabTab,body.fabcov #fabTab,body.fabopen #fabTab{display:none} #fab .fo{left:7px;top:7px} body.menu #fab,body.dopen #fab{display:none}
   #fab .fb::before{content:'';position:absolute;top:7px;width:18px;height:3px;border-radius:2px;background:rgba(255,255,255,.7)} }
 #accBox .ts{margin-top:10px;min-height:65px}
 #accBox .me{display:flex;gap:12px;align-items:center;margin:2px 0 6px}
@@ -4315,7 +4367,7 @@ body.gpson #gpsPill{display:block}
 #shCard{position:absolute;left:50%;bottom:calc(64px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;background:#fff;color:#1d2321;border-radius:12px;box-shadow:0 4px 18px rgba(0,0,0,.28);padding:10px 12px;font-size:calc(13px*var(--ui,1));max-width:calc(100% - 24px);display:none}
 #shCard.on{display:block}#shCard .r{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}#shCard button{border:1px solid #8a948f;border-radius:8px;background:#fff;font:600 .92em system-ui,sans-serif;padding:5px 9px;cursor:pointer}
 #shCard .x{float:right;border:0;font-size:1.4em;line-height:1;padding:0 0 0 8px}
-@media (max-width:700px){ #accWin{padding:0;align-items:stretch} #accWin .acard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} }`;
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #accWin{padding:0;align-items:stretch} #accWin .acard{border-radius:0;width:100%;padding-bottom:calc(18px + env(safe-area-inset-bottom))} }`;
 document.head.append(css);
 
 // ---------- account section inside ⚙ Nastavitve ----------
@@ -4423,14 +4475,27 @@ function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accFor
 // ---------- ◉ round menu (bottom left of the map): settings, account, leaderboard, friends, groups, guide ----------
 // tap -> the options pop out around it on an arc; tap outside / Esc / the button again -> closed
 const fab = document.createElement('div'); fab.id = 'fab';
-const PHN = () => innerWidth <= 700;
+const PHN = () => PHONE_UI();
 const fabFace = () => { const b = fab.querySelector('.fb'); if (!b) return; const n = b.querySelector('.bdg');
-  b.innerHTML = PHN() ? `<span class="fi">▲</span><span class="fl">${L('Vrhovi','Peaks')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
+  b.innerHTML = PHN() ? `<span class="fi">☰</span><span class="fl">${L('Meni','Menu')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
   b.title = PHN() ? L('Tapni = meni · povleci gor = seznam vrhov','Tap = menu · swipe up = peak list') : L('Meni','Menu'); };
 fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"></button>`;
 document.body.append(fab); fabFace(); addEventListener('resize', fabFace);
 { const dr = document.getElementById('drawer'); if (dr) new MutationObserver(() => document.body.classList.toggle('dopen', dr.classList.contains('open'))).observe(dr, {attributes: true, attributeFilter: ['class']}); }
 const fabBg = document.createElement('div'); fabBg.id = 'fabBg'; document.body.append(fabBg);
+// phone: the peak list is a sheet pulled up from the bottom edge - its tab sits under the red button (tap or swipe it up)
+const fabTab = document.createElement('div'); fabTab.id = 'fabTab'; fabTab.setAttribute('role', 'button'); fabTab.title = L('Seznam vrhov (tapni ali povleci gor)','Peak list (tap or swipe up)');
+fabTab.innerHTML = `<span class="tg"></span><span class="tl">︿ ${L('Vrhovi','Peaks')}</span><span class="tr" id="fabCnt"></span>`; document.body.append(fabTab);
+const peaksUp = () => { fabClose(); if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.remove('menu'); document.getElementById('drawer').classList.add('open'); };
+{ let y0 = null; fabTab.addEventListener('pointerdown', e => { y0 = e.clientY; try { fabTab.setPointerCapture(e.pointerId); } catch(_){} });
+  fabTab.addEventListener('pointermove', e => { if (y0 != null && y0 - e.clientY > 18){ y0 = null; peaksUp(); } });
+  fabTab.addEventListener('pointerup', () => { if (y0 != null) peaksUp(); y0 = null; }); }
+{ const vc = document.getElementById('vcount3'), cp = () => { const c = document.getElementById('fabCnt'); if (c && vc) c.textContent = vc.textContent.replace(/[()]/g, '').trim(); };
+  if (vc) new MutationObserver(cp).observe(vc, {childList: true, characterData: true, subtree: true}); cp(); }
+// a window at the bottom (planner, routes, drawing, sharing) wins: the red button and the tab step aside while it is there
+setInterval(() => { const W = innerWidth, H = innerHeight, f = {l: W / 2 - 60, r: W / 2 + 60, t: H - 110};
+  const c = ['plCard', 'rcard', 'dcard', 'shCard'].some(id => { const e = document.getElementById(id); if (!e || !e.offsetWidth) return false; const q = e.getBoundingClientRect(); return q.left < f.r && f.l < q.right && q.bottom > f.t && q.top < H; });
+  if (c !== document.body.classList.contains('fabcov')){ document.body.classList.toggle('fabcov', c); if (c) fabClose(); } }, 500);
 const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'), () => { document.getElementById('drawer').classList.remove('open'); if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.add('menu'); }]] : []),
   ['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
   ['👤', L('Moj profil','My profile'), () => meOpen()],
@@ -4441,28 +4506,45 @@ const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'),
   ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
   ...(PHN() ? [['❓', L('Vodič','Guide'), () => window.startTour && startTour()]] : []),
   ...(window.ADMIN ? [['🛠', L('Admin','Admin'), () => window.adminPanel && adminPanel()]] : [])];
-function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
-// bubbles on symmetric arcs above the centred button: up to 4 on the inner arc, the rest on the outer one, each arc spread evenly
-// from left to right (170° … 10°); the outer arc's radius fits the screen width; outer labels sit above their bubbles
-function fabPos(n){ const Ro = Math.min(196, innerWidth / 2 - 36), Ri = Math.min(108, Ro - 64), arc = (m, R, up) => [...Array(m)].map((_, k) => {
-    const sp = m > 1 ? Math.min(160, 40 * (m - 1)) : 0, a = -90 - sp / 2 + (m > 1 ? sp * k / (m - 1) : 0); return [R, a, up]; });
-  if (n <= 4) return arc(n, Math.max(96, Ri), false);
-  const inner = n <= 6 ? 3 : 4; return arc(inner, Ri, false).concat(arc(n - inner, Ro, true)); }
-function fabOpen(){ const it = fabItems(), P = fabPos(it.length);
+function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); document.body.classList.remove('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
+// bubbles on symmetric rings above the centred button. Every bubble and its label is checked against all the others, the button
+// and the screen edges; the first layout with no overlap wins (fewest rings, roundest, closest), so it also fits a phone held sideways
+function fabPos(labels){ const n = labels.length, cv = fabPos.cv || (fabPos.cv = document.createElement('canvas').getContext('2d'));
+  cv.font = '600 11px system-ui,sans-serif'; const LW = labels.map(t => cv.measureText(t).width + 14), BR = 25, LH = 17, G = 4;
+  const fr = fab.getBoundingClientRect(), cx = fr.left + fr.width / 2, cy = fr.top + fr.height / 2, bh = fr.width / 2 + 3;
+  const X0 = 6 - cx, X1 = innerWidth - 6 - cx, Y0 = 8 - cy, Y1 = innerHeight - 4 - cy, BTN = [-bh, -bh, bh, bh];
+  const box = (x, y, up, w) => [[x - BR, y - BR, x + BR, y + BR], up ? [x - w / 2, y - BR - 2 - LH, x + w / 2, y - BR - 2] : [x - w / 2, y + BR + 2, x + w / 2, y + BR + 2 + LH]];
+  const hit = (a, b) => a[0] < b[2] + G && b[0] < a[2] + G && a[1] < b[3] + G && b[1] < a[3] + G, inS = r => r[0] >= X0 && r[2] <= X1 && r[1] >= Y0 && r[3] <= Y1;
+  const parts = (m, k, lo) => k === 1 ? (m >= lo ? [[m]] : []) : [...Array(Math.max(0, m - lo + 1))].flatMap((_, i) => parts(m - lo - i, k - 1, lo + i).map(q => [lo + i, ...q]));
+  let best = null, bs = 1e9;
+  for (let k = 1; k <= 4 && !best; k++) for (const sx of [1, 1.25, 1.55, 1.9]) for (const D of [64, 72, 82]) for (const R1 of [90, 104]) for (const dist of parts(n, k, 1)){
+    const placed = [], out = []; let idx = 0, ok = true;
+    for (let j = 0; j < k && ok; j++){ const c = dist[j], R = R1 + j * D; let done = false;
+      for (const sp of c === 1 ? [0] : [40, 60, 80, 100, 120, 140, 160, 170].sort((a, b) => Math.abs(a - Math.min(160, 46 * (c - 1))) - Math.abs(b - Math.min(160, 46 * (c - 1))))) { for (const up of [false, true]){
+        const pts = [...Array(c)].map((_, i) => { const a = (-90 - sp / 2 + (c > 1 ? sp * i / (c - 1) : 0)) * Math.PI / 180; return [Math.cos(a) * R * sx, Math.sin(a) * R]; });
+        const rs = pts.map(([x, y], i) => box(x, y, up, LW[idx + i])).flat();
+        if (!rs.every(r => inS(r) && !hit(r, BTN))) continue;
+        let bad = false; for (let u = 0; u < rs.length && !bad; u++){ for (let v = u + 1; v < rs.length && !bad; v++) if ((u >> 1) !== (v >> 1) && hit(rs[u], rs[v])) bad = true; for (const q of placed) if (hit(rs[u], q)){ bad = true; break; } }
+        if (bad) continue; placed.push(...rs); out.push(...pts.map(([x, y]) => [x, y, up])); done = true; break; } if (done) break; }
+      if (!done) ok = false; idx += c; }
+    if (ok){ const sc = -Math.min(...out.map(q => q[1])) + 0.35 * Math.max(...out.map(q => Math.abs(q[0]))) + 25 * dist.reduce((a, c, j) => a + Math.abs(c - n * (R1 + j * D) / dist.reduce((t, _, i) => t + R1 + i * D, 0)), 0);
+      if (sc < bs){ bs = sc; best = out; } } }
+  if (best){ fabPos.fb = false; return best; }
+  fabPos.fb = true; return labels.map((_, i) => { const a = (-170 + 160 * i / Math.max(1, n - 1)) * Math.PI / 180, R = 110 + (i % 2) * 70; return [Math.cos(a) * R, Math.sin(a) * R, i % 2 === 1]; }); }
+function fabOpen(it0){ const it = Array.isArray(it0) ? it0 : fabItems(), P = fabPos(it.map(x => x[1]));
   fab.querySelectorAll('.fo').forEach(o => o.remove());
-  it.forEach(([ic, lab, fn, b], k) => { const R0 = P[k][0], a = P[k][1] * Math.PI / 180, o = document.createElement('button');
-    o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(Math.cos(a) * R0) + 'px'); o.style.setProperty('--y', Math.round(Math.sin(a) * R0) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
+  it.forEach(([ic, lab, fn, b], k) => { const o = document.createElement('button');
+    o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(P[k][0]) + 'px'); o.style.setProperty('--y', Math.round(P[k][1]) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
     o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
     o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
-  fabBg.classList.add('on'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
+  fabBg.classList.add('on'); document.body.classList.add('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
 let fabY = null, fabSw = false;
 fab.querySelector('.fb').addEventListener('pointerdown', e => { fabY = e.clientY; fabSw = false; try { e.currentTarget.setPointerCapture(e.pointerId); } catch(_){} });
-fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null || fabSw || !PHN()) return; if (fabY - e.clientY > 30){ fabSw = true; fabClose();
-  if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.remove('menu'); document.getElementById('drawer').classList.add('open'); } });
+fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null || fabSw || !PHN()) return; if (fabY - e.clientY > 30){ fabSw = true; peaksUp(); } });
 addEventListener('pointerup', () => { fabY = null; });
 fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
-window.openMenu = fabOpen;
+window.openMenu = () => fabOpen(); window.__fabOpen = fabOpen; window.__fabPos = fabPos;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
   if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 
@@ -4578,7 +4660,7 @@ body.socdot #lbBtn::after{content:'';width:8px;height:8px;border-radius:50%;back
 #lbPage .two{display:flex;gap:6px}#lbPage textarea.inp{resize:vertical}
 #lbPage .kick{border:0;background:none;color:#b3261e;font-size:1.2em;cursor:pointer;padding:0 0 0 6px;vertical-align:middle}#lbPage .unv{color:#b3261e;cursor:pointer;font-size:.9em}
 #lbPage .pk.rt b{color:#6a1b9a}#lbPage .pk span i{color:#3d4643}
-@media (max-width:700px){ #lbPage .lbnav{flex-wrap:nowrap;gap:2px;overflow-x:auto;scrollbar-width:none} #lbPage .lbnav::-webkit-scrollbar{display:none} #lbPage .lbnav button{font-size:.82em;padding:6px 6px} #lbPage .two{flex-direction:column;gap:0} #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){ #lbPage .lbnav{flex-wrap:nowrap;gap:2px;overflow-x:auto;scrollbar-width:none} #lbPage .lbnav::-webkit-scrollbar{display:none} #lbPage .lbnav button{font-size:.82em;padding:6px 6px} #lbPage .two{flex-direction:column;gap:0} #lbPage .lbtabs{display:grid;grid-template-columns:1fr 1fr} #lbPage .lbtabs button{white-space:normal;padding:6px 8px} #lbPage{padding:0} #lbPage .lbc{border-radius:0;width:100%;height:100%} #lbPage .grid{grid-template-columns:repeat(2,1fr)} #lbPage .lr{grid-template-columns:28px 32px 1fr auto;gap:8px} }`;
 document.head.append(lbCss);
 const LB = {board: 'p2000', q: '', off: 0, rows: [], tot: 0, busy: false};
 const boardMax = () => (BOARDS.find(b => b[0] === LB.board) || BOARDS[0])[2];
@@ -4909,14 +4991,42 @@ window.adminPeakBox = p => { const box = document.createElement('div'); box.clas
   box.innerHTML = `<details><summary>🛠 ${L('Uredi vrh (admin)','Edit peak (admin)')}${f._at ? ' · ' + L('popravljeno','fixed') : ''}</summary>
     <label>${L('Ime','Name')}<input class="an" value="${esc(p.name)}"></label><label>${L('Višina (m)','Height (m)')}<input class="ae" type="number" step="0.1" value="${p.elev}"></label>
     <label>Lat / lon<span class="ll"><input class="ala" type="number" step="0.000001" value="${p.lat}"><input class="alo" type="number" step="0.000001" value="${p.lon}"></span></label>
-    <div class="ab"><button class="amv">📍 ${L('Klikni novo lego na karti','Click the new spot on the map')}</button></div>
+    <div class="ab"><button class="amv">📍 ${L('Premakni na karti','Move on the map')}</button></div>
     <div class="ab"><button class="asv">💾 ${L('Shrani za vse','Save for everybody')}</button>${f._at ? `<button class="ad">↺ ${L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am"></div></details>`;
   const q = c => box.querySelector(c), msg = t => { q('.am').textContent = t; };
-  q('.amv').onclick = () => { msg(L('Klikni na karto …','Click on the map …')); map.getCanvas().style.cursor = 'crosshair';
-    map.once('click', e => { map.getCanvas().style.cursor = ''; q('.ala').value = e.lngLat.lat.toFixed(6); q('.alo').value = e.lngLat.lng.toFixed(6); msg(L('Lega izbrana — shrani.','Spot picked — save.')); }); };
+  q('.amv').onclick = () => adminMovePeak(p);
   q('.asv').onclick = async () => { try{ await saveFix('peak', p.id, {name: q('.an').value.trim() || p.name, elev: +q('.ae').value, lat: +q('.ala').value, lon: +q('.alo').value}); toast(L('Vrh popravljen za vse.','Peak fixed for everybody.')); }catch(e){ msg(errText(e)); } };
   const d = q('.ad'); if (d) d.onclick = async () => { try{ await saveFix('peak', p.id, null, true); toast(L('Popravek odstranjen.','Fix removed.')); }catch(e){ msg(errText(e)); } };
   return box; };
+// move a peak: the window closes, a red pin can be dragged (or the map clicked); the bar on top saves it for everybody
+const fixPlain = f => { const o = Object.assign({}, f || {}); delete o._at; return o; };
+window.adminMovePeak = p => { document.querySelectorAll('.maplibregl-popup').forEach(e => e.remove()); if (window.closeRoutes) closeRoutes();
+  const old = document.getElementById('admMove'); if (old && old._done) old._done();
+  window.ADM_MOVE = true; const mk = new maplibregl.Marker({draggable: true, color: '#c62828'}).setLngLat([p.lon, p.lat]).addTo(map);
+  const bar = document.createElement('div'); bar.id = 'admMove';
+  bar.innerHTML = `<b>📍 ${esc(p.name)}</b><span class="d"></span><button class="sv">💾 ${L('Shrani','Save')}</button><button class="cx">✕</button><div class="h">${L('Povleci rdečo bucko ali klikni na karto.','Drag the red pin or click the map.')}</div>`;
+  document.body.append(bar); map.easeTo({center: [p.lon, p.lat], zoom: Math.max(map.getZoom(), 15), duration: 700});
+  const dist = () => { const q = mk.getLngLat(); return Math.round(Math.hypot((q.lat - p.lat) * 111320, (q.lng - p.lon) * 111320 * Math.cos(p.lat * Math.PI / 180))); };
+  const upd = () => { bar.querySelector('.d').textContent = '↔ ' + dist() + ' m'; }; upd(); mk.on('drag', upd);
+  const onClick = e => { mk.setLngLat(e.lngLat); upd(); }; map.on('click', onClick);
+  const done = () => { window.ADM_MOVE = false; map.off('click', onClick); mk.remove(); bar.remove(); }; bar._done = done;
+  bar.querySelector('.cx').onclick = done;
+  bar.querySelector('.sv').onclick = async () => { const q = mk.getLngLat(); bar.querySelector('.sv').disabled = true;
+    try{ await saveFix('peak', p.id, Object.assign(fixPlain(window.FIXES.peak[p.id]), {lat: +q.lat.toFixed(6), lon: +q.lng.toFixed(6)})); done(); toast(L('Vrh premaknjen za vse.','Peak moved for everybody.')); setTimeout(() => window.openPeak && openPeak(p.id), 300); }
+    catch(e){ bar.querySelector('.sv').disabled = false; bar.querySelector('.h').textContent = errText(e); } }; };
+// route: draw it again along the trails (or a new route) - the drawing tool in admin mode (trails.js), saved here
+window.adminRouteGeom = async (A, coords) => {
+  if (!A.isNew){ await saveFix('route', A.key, Object.assign(fixPlain(A.fix), {geom: coords})); toast(L('Trasa poti shranjena za vse.','Route line saved for everybody.')); return true; }
+  return await new Promise(res => {
+    modal(`<h3>🛠 ${L('Nova pot','New route')} · ${esc(A.p.name)}</h3><div class="admform">
+      <label>${L('Izhodišče','Start')}<input id="anS" maxlength="80" value="${esc(A.start || '')}"></label>
+      <label>${L('Ime poti','Route name')}<input id="anN" maxlength="120" placeholder="${L('npr. Tominškova pot','e.g. Tominšek route')}"></label>
+      <label>${L('Najtežje (T)','Hardest (T)')}<select id="anT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${t === 3 ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+      <label><input type="checkbox" id="anF"> ${L('ferata','via ferrata')}</label>
+      <label>${L('Opomba','Note')}<input id="anO" maxlength="300"></label>
+      <div class="ab"><button class="sb pri" id="anV">💾 ${L('Shrani za vse','Save for everybody')}</button></div><div class="am" id="anM"></div></div>`);
+    $a('anV').onclick = async () => { try{ await saveFix('route', A.key, {add: true, geom: coords, start: $a('anS').value.trim() || L('izhodišče','start'), name: $a('anN').value.trim(), t: +$a('anT').value, f: $a('anF').checked, note: $a('anO').value.trim()});
+      closeModal(); toast(L('Nova pot dodana za vse.','New route added for everybody.')); res(true); }catch(e){ $a('anM').textContent = errText(e); } }; }); };
 // route card: grade, via ferrata, name, note, hide
 window.adminRouteEdit = (p, r) => { const f = r.fix || {};
   modal(`<h3>🛠 ${L('Uredi pot','Edit route')}</h3><div class="sub">${esc(p.name)} · ${L('iz','from')} ${esc(((r.start && r.start.name) || '').replace(/^pri /, ''))}</div>
@@ -4925,10 +5035,12 @@ window.adminRouteEdit = (p, r) => { const f = r.fix || {};
     <label>${L('Ime poti','Route name')}<input id="afN" maxlength="120" value="${esc(f.name || '')}" placeholder="${L('pusti prazno = iz OSM','empty = from OSM')}"></label>
     <label>${L('Opomba (ključna mesta, nevarnosti)','Note (key passages, hazards)')}<input id="afO" maxlength="300" value="${esc(f.note || '')}"></label>
     <label><input type="checkbox" id="afH" ${f.hide ? 'checked' : ''}> ${L('skrij to pot (napačna)','hide this route (wrong)')}</label>
-    <div class="ab"><button class="sb pri" id="afS">💾 ${L('Shrani za vse','Save for everybody')}</button>${r.fix ? `<button class="sb" id="afD">↺ ${L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="afM"></div></div>`);
-  const done = async (del) => { try{ await saveFix('route', r.key, del ? null : {t: +$a('afT').value, f: $a('afF').checked, name: $a('afN').value.trim(), note: $a('afO').value.trim(), hide: $a('afH').checked}, del); closeModal(); toast(L('Pot popravljena za vse.','Route fixed for everybody.')); }
+    <div class="ab"><button class="sb" id="afR">✏️ ${L('Nariši traso znova (po poteh)','Redraw the line (along trails)')}</button><button class="sb" id="afA">＋ ${L('Nova pot na ta vrh','New route to this peak')}</button></div>
+    <div class="ab"><button class="sb pri" id="afS">💾 ${L('Shrani za vse','Save for everybody')}</button>${r.fix ? `<button class="sb" id="afD">↺ ${r.fix.add ? L('Izbriši to pot','Delete this route') : L('Odstrani popravek','Remove the fix')}</button>` : ''}</div><div class="am" id="afM"></div></div>`);
+  const done = async (del) => { try{ await saveFix('route', r.key, del ? null : Object.assign(fixPlain(r.fix), {t: +$a('afT').value, f: $a('afF').checked, name: $a('afN').value.trim(), note: $a('afO').value.trim(), hide: $a('afH').checked}), del); closeModal(); toast(L('Pot popravljena za vse.','Route fixed for everybody.')); }
     catch(e){ $a('afM').textContent = errText(e); } };
-  $a('afS').onclick = () => done(false); const d = $a('afD'); if (d) d.onclick = () => done(true); };
+  $a('afS').onclick = () => done(false); const d = $a('afD'); if (d) d.onclick = () => done(true);
+  $a('afR').onclick = () => { closeModal(); window.adminRedraw && adminRedraw(p, r); }; $a('afA').onclick = () => { closeModal(); window.adminRedraw && adminRedraw(p, null); }; };
 // admin panel: list of fixes, close a path by clicking it
 window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.peak).map(([k, v]) => ['peak', k, (byId[k] ? byId[k].name : k) + ` · ${v.lat != null ? (+v.lat).toFixed(5) + ', ' + (+v.lon).toFixed(5) : ''}${v.elev ? ' · ' + v.elev + ' m' : ''}`, v._at]),
     ...Object.entries(F.route).map(([k, v]) => ['route', k, `${k.split('|')[0]} · ${v.hide ? L('skrita','hidden') : 'T' + v.t}${v.f ? ' ferata' : ''}${v.name ? ' · ' + v.name : ''}${v.note ? ' · ' + v.note : ''}`, v._at]),

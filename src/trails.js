@@ -764,7 +764,7 @@ const hutNear=st=>{ let best='', bd=700; for(const h of HUTS){ if(!h.name||/^Biv
 async function routeProfiles(){ const cur=RT; if(!cur) return;
   for(const r of [...cur.routes]){ if(r.P||(window.LITE_ON&&r!==cur.routes[cur.sel])) continue; r.P=await profile(r.coords);
     // longer than 11 h of walking (DIN 33466) or down > 40 % of up -> remove, unless it is the only way up
-    if(r.P&&(walkTime(r.P.km,r.P.up,r.P.down)>11||r.P.down>0.4*r.P.up)&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
+    if(r.P&&!r.adm&&(walkTime(r.P.km,r.P.up,r.P.down)>11||r.P.down>0.4*r.P.up)&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
     if(RT===cur) renderRoutes(); } }
 function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=g?r.coords.slice(0,-1):r.coords;
   const f=[{type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:c}}];
@@ -780,10 +780,13 @@ window.peakRoutesUI = async function(id){
   const nearStart=(la,lo)=>{ let b=null,bd=300; for(const x of STARTS){ const d=hav(x.lat,x.lon,la,lo); if(d<bd){ bd=d; b={...x}; } } for(const h of HUTS){ const d=hav(h.lat,h.lon,la,lo); if(d<bd){ bd=d; b={name:h.name,lat:h.lat,lon:h.lon,kind:'hut'}; } } return b; };
   const nearPark=(la,lo)=>STARTS.some(x=>hav(x.lat,x.lon,la,lo)<300);
   const nearEnd=(la,lo)=>PEAKS.some(q=>q.lat!=null&&q!==p&&hav(q.lat,q.lon,la,lo)<400)?-1:nearPark(la,lo)?1:0; // routes ending at a hut are continued down to a parking
-  const res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
-  if(!res||!res.routes.length){ RT=null; setRoutesLayer();
+  let res=peakRoutes(G,p.lat,p.lon,STARTS,{snap:250,maxCost:30000,max:7,nearEnd,peakName:p.name});
+  const FXR=(window.FIXES&&window.FIXES.route)||{};
+  const ADD=Object.entries(FXR).filter(([k,f])=>k.startsWith(p.id+'|new|')&&f.geom&&f.geom.length>1&&(!f.hide||window.ADMIN)).map(([k,f])=>admRoute(k,f));
+  if((!res||!res.routes.length)&&!ADD.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
-      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button></div>`; return; }
+      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button>${window.ADMIN?` · <button class="lnk" onclick="adminRedraw(byId['${p.id}'],null)">＋ Nova pot (admin)</button>`:''}</div>`; return; }
+  const res0=res; res=res0&&res0.routes.length?res0:{routes:[]};
   const MAXKM=22; // > ~11 h walking: dropped (checked again with the height profile)
   res.routes=res.routes.filter((r,i,a)=>r.stats.len/1000<=MAXKM||a.length===1);
   res.routes.forEach(r=>{ const pk=[p.lon,p.lat], last=r.coords[r.coords.length-1]; r.gap=Math.round(hav(last[1],last[0],p.lat,p.lon)); r.coords=[...r.coords,pk];
@@ -792,15 +795,41 @@ window.peakRoutesUI = async function(id){
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
     if(!r.start.name||/^pri /.test(r.start.name)) r.start.name=(r.start.kind==='hut'?r.start.name:'')||hutNear(r.start)||r.start.name||relStartName(r,p);
     const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); });
-  // admin fixes (account.js, table "fixes"): hide a wrong route, correct its T-grade / via ferrata / name, add a note
-  const FXR=(window.FIXES&&window.FIXES.route)||{};
+  // admin fixes (account.js, table "fixes"): hide a wrong route, correct its T-grade / via ferrata / name / line, add a note;
+  // routes an admin drew are added
   res.routes=res.routes.filter(r=>{ r.key=routeKey(p,r); const f=FXR[r.key]; if(!f) return true; r.fix=f;
-    if(f.t) r.stats.sac=+f.t; if(f.f!=null) r.stats.ferrata=!!f.f; return !f.hide||window.ADMIN; });
+    if(f.t) r.stats.sac=+f.t; if(f.f!=null) r.stats.ferrata=!!f.f;
+    if(f.geom&&f.geom.length>1){ r.coords=f.geom.map(x=>x.slice()); r.stats.len=lineLen(r.coords); r.gap=0; r.adm=true; const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); }
+    return !f.hide||window.ADMIN; }).concat(ADD);
   if(!res.routes.length){ RT=null; setRoutesLayer(); c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Ni poti.</div>`; return; }
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
   await routeProfiles();
 };
 window.rerenderRoutes = () => { if (RT) renderRoutes(); };
+const lineLen=c=>{ let m=0; for(let i=1;i<c.length;i++) m+=hav(c[i-1][1],c[i-1][0],c[i][1],c[i][0]); return m; };
+// a route an admin drew (fix key "peak|new|…"): start, line, grade from the fix
+const admRoute=(k,f)=>{ const c=f.geom.map(x=>x.slice()), s0=c[0];
+  return {key:k, fix:f, adm:true, coords:c, gap:0, fname:'', start:{name:f.start||'izhodišče', lat:s0[1], lon:s0[0], kind:'adm'},
+    stats:{len:lineLen(c), sac:+f.t||3, ferrata:!!f.f, marked:1, pzs:0, cov:1, rels:[]}, huts:hutsAlong(c).filter(h=>h!==f.start)}; };
+// fewer points for storage: Douglas-Peucker, tolerance in metres
+function simplifyM(c,tol){ if(c.length<3) return c.slice(); const keep=new Uint8Array(c.length); keep[0]=keep[c.length-1]=1; const st=[[0,c.length-1]];
+  const kx=111320*Math.cos(c[0][1]*Math.PI/180), ky=111320;
+  while(st.length){ const [a,b]=st.pop(); const ax=c[a][0]*kx, ay=c[a][1]*ky, bx=c[b][0]*kx, by=c[b][1]*ky, dx=bx-ax, dy=by-ay, L2=dx*dx+dy*dy||1e-9; let md=0, mi=-1;
+    for(let i=a+1;i<b;i++){ const px=c[i][0]*kx, py=c[i][1]*ky, t=Math.max(0,Math.min(1,((px-ax)*dx+(py-ay)*dy)/L2)), d=Math.hypot(px-ax-t*dx,py-ay-t*dy); if(d>md){ md=d; mi=i; } }
+    if(md>tol){ keep[mi]=1; st.push([a,mi],[mi,b]); } }
+  return c.filter((_,i)=>keep[i]); }
+// admin: draw a route's line again (or a new route) with the drawing tool - follows the trails like any drawing; saved for everybody
+window.adminRedraw=(p,r)=>{ D.adm={p, key:r?r.key:`${p.id}|new|${Date.now().toString(36)}`, isNew:!r, fix:(r&&r.fix)||{}, start:'', err:''};
+  if(r) loadIntoEditor(r.coords,-1); else { D.pts=[]; D.segs=[]; D.hist=[]; D.sel=-1; D.edit=-1; }
+  D.follow=true; closeRoutes(); startDraw(); ensureGraph(p.lat,p.lon,0.17); drawChanged();
+  if(!r) map.easeTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),duration:800}); };
+window.adminDrawSave=async()=>{ const A=D.adm; if(!A) return; let c=drawCoords(); if(c.length<2) return;
+  const e=c[c.length-1], s0=c[0]; if(hav(s0[1],s0[0],A.p.lat,A.p.lon)<hav(e[1],e[0],A.p.lat,A.p.lon)) c=c.slice().reverse();   // start -> summit
+  c=simplifyM(c,2).map(([a,b])=>[+a.toFixed(5),+b.toFixed(5)]);
+  if(A.isNew){ let best='',bd=600; for(const x of [...STARTS,...HUTS]){ if(!x.name) continue; const d=hav(x.lat,x.lon,c[0][1],c[0][0]); if(d<bd){ bd=d; best=x.name; } } A.start=best; }
+  try{ if(await window.adminRouteGeom(A,c)){ const id=A.p.id; D.adm=null; D.pts=[]; D.segs=[]; D.hist=[]; stopDraw(); setTimeout(()=>window.peakRoutesUI(id),500); } }
+  catch(err){ A.err=(err&&err.message)||String(err); drawRender(); } };
+window.adminDrawCancel=()=>{ const A=D.adm; D.adm=null; D.pts=[]; D.segs=[]; D.hist=[]; stopDraw(); if(A) window.peakRoutesUI(A.p.id); };
 // a route's key for admin fixes: peak · start point (~10 m) · its name (relation / ferrata / start)
 const routeKey=(p,r)=>{ const ri=r.rel!=null?r.rel:null, nm=ri!=null&&RELS[ri]?relName(RELS[ri]):r.fname||'';
   return `${p.id}|${r.start.lat!=null?r.start.lat.toFixed(4)+','+r.start.lon.toFixed(4):'?'}|${nm}`.slice(0,200); };
@@ -904,7 +933,7 @@ function setDrawData(){
   D.pts.forEach((p,i)=>f.push({type:'Feature',properties:{i,r:i===0?'s':i===n-1?'e':'m',sel:i===D.sel},geometry:{type:'Point',coordinates:p}}));
   map.getSource('draw').setData({type:'FeatureCollection',features:f});
 }
-const DESK=()=>innerWidth>700;
+const DESK=()=>!PHONE_UI();
 let PROFMIN=false; try{ PROFMIN=localStorage.getItem('dvat3d_profmin')==='1'; }catch(_){}
 window.profToggle=()=>{ PROFMIN=!PROFMIN; try{ localStorage.setItem('dvat3d_profmin',PROFMIN?'1':'0'); }catch(_){} drawRender(); };
 // movable windows (PC): drag by the title bar, position remembered per window
@@ -978,6 +1007,8 @@ function drawRender(){
       <button class="lnk" onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶</button><button class="lnk" onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑</button><button class="x" onclick="stopDraw()">×</button></div>`;
     return; }
   card.innerHTML=`<div class="rh"><button class="lnk" onclick="drawMin(true)" aria-label="Skrij">▾</button><b>${D.edit>=0?'✎ '+MY[D.edit].name:'✎ Risanje poti'}</b><button class="x" onclick="stopDraw()">×</button></div>
+    ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha.
+      <div class="rb"><button class="pri" onclick="adminDrawSave()" ${drawCoords().length<2?'disabled':''}>💾 Shrani za vse</button><button onclick="adminDrawCancel()">Prekliči</button></div>${D.adm.err?`<div class="aerr">${esc(D.adm.err)}</div>`:''}</div>`:''}
     <div class="tbar">${tools}</div>
     <label class="sw"><input type="checkbox" id="dfollow" ${D.follow?'checked':''}><i></i> Sledi potem in cestam</label>
     <div class="cols">Barva: ${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
@@ -992,7 +1023,7 @@ let profTimer=null;
 function drawChanged(){ D.P=null; drawRender(); clearTimeout(profTimer); const c=drawCoords(); if(c.length<2) return;
   profTimer=setTimeout(async()=>{ D.P=await profile(c); drawRender(); },300); }
 window.startDraw=()=>{ ensureGraph(); window.DRAW_ON=true; document.body.classList.add('drawing'); document.body.classList.remove('menu'); if(popup) popup.remove(); map.getCanvas().style.cursor='crosshair'; map.doubleClickZoom.disable(); el('drawBtn').textContent='Končaj risanje'; drawRender(); };
-window.stopDraw=()=>{ window.DRAW_ON=false; document.body.classList.remove('drawing'); D.sel=-1; map.getCanvas().style.cursor=''; map.doubleClickZoom.enable(); el('drawBtn').textContent='Riši pot'; drawRender(); };
+window.stopDraw=()=>{ D.adm=null; window.DRAW_ON=false; document.body.classList.remove('drawing'); D.sel=-1; map.getCanvas().style.cursor=''; map.doubleClickZoom.enable(); el('drawBtn').textContent='Riši pot'; drawRender(); };
 window.drawMin=v=>{ D.min=v; drawRender(); };
 window.drawUndo=()=>{ const h=D.hist.pop(); if(!h) return; const s=JSON.parse(h); D.pts=s.p; D.segs=s.s; D.sel=-1; drawChanged(); };
 window.drawClear=()=>{ if(!D.pts.length) return; pushHist(); D.pts=[]; D.segs=[]; D.sel=-1; D.edit=-1; drawChanged(); };
@@ -1122,7 +1153,7 @@ const plSave=()=>{ try{ localStorage.setItem(PLK,JSON.stringify(PL)); }catch(_){
 const DAYC=['#1565c0','#e65100','#2e7d32','#6a1b9a','#c62828','#00838f','#827717','#4e342e'];
 const plCard=document.createElement('div'); plCard.className='card'; plCard.id='plCard'; document.body.append(plCard);
 const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:none;z-index:7}#plCard.on{display:block}
-@media (min-width:701px){#plCard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(340px * var(--ui,1)),44vw);max-height:calc(100vh - 60px)}#plCard .rh{cursor:move;user-select:none}}
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){#plCard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(340px * var(--ui,1)),44vw);max-height:calc(100vh - 60px)}#plCard .rh{cursor:move;user-select:none}}
 #plCard .pls{margin:4px 0}#plCard .plr{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line)}#plCard .plr .n{width:20px;height:20px;border-radius:50%;background:#1d2321;color:#fff;font:700 11px system-ui;display:flex;align-items:center;justify-content:center;flex:none}
 #plCard .plr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#plCard .plr button{border:0;background:none;cursor:pointer;color:var(--mute);font-size:1em;padding:2px 4px}
 #plCard .pla{display:flex;gap:6px;margin:6px 0}#plCard .pla input{flex:1;min-width:0;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}

@@ -226,7 +226,7 @@ window.wxBox = p => {
     const r = el.getBoundingClientRect(), m = map.getContainer().getBoundingClientRect(), top = r.top - m.top - 8;
     // keep it clear of the side panels (PC): left sheet + tab, peak list + tab
     const pnl = document.body.classList.contains('lclosed') ? 0 : (document.querySelector('.panel') || {}).offsetWidth || 0, dr = document.getElementById('drawer');
-    const L0 = m.left + (innerWidth > 700 ? pnl + 50 : 8), R0 = m.right - (innerWidth > 700 && dr && dr.classList.contains('open') ? dr.offsetWidth + 50 : 8);
+    const L0 = m.left + (!PHONE_UI() ? pnl + 50 : 8), R0 = m.right - (!PHONE_UI() && dr && dr.classList.contains('open') ? dr.offsetWidth + 50 : 8);
     let dx = r.left < L0 ? r.left - L0 : r.right > R0 ? r.right - R0 : 0;
     if (top < 0 || dx) map.panBy([dx, Math.min(0, top)], {duration:300}); });
   box.innerHTML = `<div class="wxh">${L('Vreme na vrhu','Summit weather')} · ${Math.round(topH(p))} m</div><div class="wxs" style="color:#888">${L('Nalagam napoved …','Loading forecast …')}</div>`;

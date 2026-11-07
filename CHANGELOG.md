@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.65 — 2026-11-07
+- Red button menu: bubbles laid out on rings with every bubble and label checked against the others and the screen edges
+  (no overlap at any count or screen size). Phone: the button is "☰ Meni"; a "︿ Vrhovi · n/98" tab under it opens the peak list
+  (tap or swipe up). The button and tab step aside while a window sits at the bottom (planner, routes, drawing, sharing).
+- Phone held sideways keeps the phone layout.
+- Map sources stay behind the (i) until clicked (also on a computer).
+- Guide: the card never covers what it shows - beside it on a computer, otherwise in the larger free band above / below
+  (scrolls if short); big sheets are lit only at the top; smaller text on phones; shorter red-button step.
+- Admin: "📍 Premakni na karti" closes the peak window and shows a draggable red pin (or click the map) with a save bar.
+  Route editor: "✏️ Nariši traso znova" redraws a route's line with the drawing tool (follows trails), "＋ Nova pot" adds a
+  route to the peak (start, name, T, ferrata, note); routes added by admin can be deleted again. Needs supabase/09_admin_routes.sql.
+
 ## web-v0.64 — 2026-11-07
 - Snow in the day rating now scales with the route's difficulty (T1–T6, via ferrata = T6) and winter experience: T1/T2 lose
   little even at 50 cm, T6 without winter experience drops to ~0 above 15 cm. Uses the selected route's T grade if any.
