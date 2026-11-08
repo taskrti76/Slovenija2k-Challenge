@@ -201,7 +201,7 @@ function placeStep(){ if (!ov) return;
       if (b.height && (b.top < 50 || b.bottom > innerHeight * 0.55)){ placeStep.pan = step; try{ el.scrollIntoView({block:'nearest'}); }catch(_){} const b2 = el.getBoundingClientRect(); map.panBy([0, b2.top - innerHeight * 0.3], {duration:500}); } } if (el && el.matches('input') && el.closest('label')) el = el.closest('label'); if (el && el.closest('.panel') && placeStep.sc !== step){ placeStep.sc = step; el.scrollIntoView({block:'center'}); } if (el){ const b = el.getBoundingClientRect(); if (b.width && b.height) r = b; } }
   // map steps: light up the whole map (minus the open side panels on PC), card in the middle
   if (r && S.center && !PHONE()){ const pn = document.querySelector('.panel'), dr = document.getElementById('drawer');
-    const l = !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
+    const l = window.V2 && window.v2Free ? Math.max(r.left, v2Free()[0]) : !document.body.classList.contains('lclosed') && pn ? Math.max(r.left, pn.getBoundingClientRect().right) : r.left, rt = window.V2 ? r.right : dr && dr.classList.contains('open') ? Math.min(r.right, dr.getBoundingClientRect().left) : r.right;
     r = {left:l+8, top:r.top+8, width:rt-l-16, height:r.height-16}; }
   else if (r && S.center) r = {left:r.left+8, top:r.top+8, width:r.width-16, height:r.height-16};
   // phone: a window that fills most of the screen (peak list, route sheet) - only its top part is lit, the card gets the rest

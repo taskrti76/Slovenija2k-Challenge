@@ -920,6 +920,7 @@ window.peakRoutesUI = async function(id){
   await routeProfiles();
 };
 window.rerenderRoutes = () => { if (RT) renderRoutes(); };
+window.searchIndex = () => PLI||(PLI=plIndex());   // search bar (design.js)
 const lineLen=c=>{ let m=0; for(let i=1;i<c.length;i++) m+=hav(c[i-1][1],c[i-1][0],c[i][1],c[i][0]); return m; };
 // a route an admin drew (fix key "peak|new|…"): start, line, grade from the fix
 const admRoute=(k,f)=>{ const c=f.geom.map(x=>x.slice()), s0=c[0];
@@ -1010,6 +1011,7 @@ function renderRoutes(){
   c.classList.toggle('rmin',!!RT.min);
   if(RT.min){ const r=RT.routes[RT.sel], s=r.stats, P=r.P;
     c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:''} · ${SACT[s.sac]||'T?'}</div>`; return; }
+  if(window.V2) return renderRoutesV2(c,hd);
   c.innerHTML=hd+
     RT.routes.map((r,i)=>{ const s=r.stats, P=r.P;
       const ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null;
@@ -1028,6 +1030,37 @@ function renderRoutes(){
       try{ await window.adminRoutePatch(r,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
   c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }
+// new look (design.js): sort switch; the selected route as a card with big numbers, its profile and buttons; the others as short rows
+function renderRoutesV2(c,hd){
+  const PR=window.PROFILE||{}, fk=PR.fitK||1;
+  const info=(r,i)=>{ const s=r.stats, ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null, f=r.fix||{}, A=!!window.ADMIN&&i===RT.sel;
+    const ed=(k,v,ph)=>A?`<span class="ed" data-k="${k}" data-ph="${ph}" contenteditable="plaintext-only" spellcheck="false">${esc(v)}</span>`:esc(v);
+    const stN=r.start.name.replace(/^pri /,''), via=f.via!=null?f.via:r.huts.slice(0,2).join(', '), rn=f.name||(R?relName(R):r.fname||''), pz=s.pzs>0.6||(R&&relPZS(R));
+    const over=!!((PR.maxT&&s.sac>PR.maxT)||(s.ferrata&&PR.ferrata===false));
+    return {s,R,f,A,ed,stN,via,rn,pz,over,t:r.P?fmtT(profT(r.P)*fk):'…',up:r.P?Math.round(r.P.up):null}; };
+  const SO=RT.sort||'', r=RT.routes[RT.sel], o=info(r,RT.sel), s=o.s;
+  let h=hd+`<div class="v2sort">${[['t',LP('Najhitrejše','Fastest')],['u',LP('Najmanj vzpona','Least ascent')],['e',LP('Najlažje','Easiest')]].map(([k,l])=>`<button data-o="${k}" class="${SO===k?'on':''}">${l}</button>`).join('')}</div>`;
+  h+=`<div class="ri on v2sel${o.f.hide?' rhid':''}" data-i="${RT.sel}">
+    <div class="v2t"><b>${LP('iz','from')} ${o.ed('start',o.stN,'izhodišče')}</b>${o.via||o.A?` <span class="via">${LP('čez','via')} ${o.ed('via',o.via,'koče na poti')}</span>`:''}${window.ADMIN&&o.f.hide?' <span class="via">(skrita — admin)</span>':''}${window.ADMIN&&r.fix?' <span class="afx" title="Popravljeno (vidijo samo admini)">✎</span>':''}</div>
+    ${o.rn||o.pz||o.A?`<div class="rp">${o.pz?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span> ':''}${o.rn||o.A?o.ed('name',o.rn,'ime poti'):'markirana pot'}${o.R&&o.R.ref&&o.R.name&&!o.f.name?` <span class="via">(${esc(o.R.ref)})</span>`:''}</div>`:''}
+    ${o.f.note||o.A?`<div class="rnote2">ⓘ ${o.ed('note',o.f.note||'','opomba (ključna mesta, nevarnosti)')}</div>`:''}
+    <div class="v2m"><div><b>${o.t}</b><span>${LP('tvoj čas','your time')}</span></div><div><b>${(s.len/1000).toFixed(1)} km</b><span>${LP('dolžina','length')}</span></div><div><b>↑ ${o.up!=null?o.up:'…'} m</b><span>${LP('vzpon','ascent')}</span></div>
+      <div><b><i class="v2tb${o.over?' w':''}">${SACT[s.sac]||'T?'}</i></b><span>${o.over?LP('nad tvojo mejo','above your limit'):s.ferrata?LP('ferata','via ferrata'):LP('težavnost','grade')}</span></div></div>
+    <div class="v2x">${Math.round(s.marked*100)} % ${LP('markirano','marked')}${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · zadnjih ${r.gap} m brez poti`:''}</div>
+    ${r.P?`<div class="prof">${profileSVG(r.P)}${profStats(r.P)}</div>`:''}
+    <div class="rb">${window.ADMIN?'<button onclick="adminRoute()">Uredi (admin)</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">${LP('Uredi kot svojo','Edit as my own')}</button><button onclick="sideView()">${LP('Od strani','Side view')}</button><button class="pri" onclick="routeClimbed()">✓ ${LP('Šel sem po tej poti','I took this route')}</button></div></div>`;
+  h+=RT.routes.map((x,i)=>{ if(i===RT.sel) return ''; const q=info(x,i);
+    return `<div class="ri v2c${q.f.hide?' rhid':''}" data-i="${i}"><div class="l"><b>${LP('iz','from')} ${esc(q.stN)}</b><span>${esc([q.via&&LP('čez ','via ')+q.via,q.rn].filter(Boolean).join(' · '))}</span></div>
+      <div class="r"><b>${q.t}</b><span>${q.up!=null?'↑ '+q.up+' m · ':''}<i class="v2tb${q.over?' w':''}">${SACT[x.stats.sac]||'T?'}</i></span></div></div>`; }).join('');
+  c.innerHTML=h+`<div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
+  c.querySelectorAll('.v2sort button').forEach(b=>b.onclick=e=>{ e.stopPropagation(); const k=b.dataset.o, cur=RT.routes[RT.sel]; RT.sort=RT.sort===k?'':k;
+    const tt=x=>x.P?profT(x.P):9e9, up=x=>x.P?x.P.up:9e9, ez=x=>(x.stats.ferrata?10:0)+x.stats.sac+tt(x)/100;
+    if(RT.sort) RT.routes.sort((a,b)=>RT.sort==='t'?tt(a)-tt(b):RT.sort==='u'?up(a)-up(b):ez(a)-ez(b));
+    RT.sel=RT.routes.indexOf(cur); setRoutesLayer(); renderRoutes(); });
+  c.querySelectorAll('.ri .ed').forEach(x=>{ const v0=x.textContent; x.onclick=e=>e.stopPropagation(); x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); x.blur(); } if(e.key==='Escape'){ x.textContent=v0; x.blur(); } };
+    x.onblur=async()=>{ const v=x.textContent.trim(); if(v===v0.trim()) return; const rr=RT.routes[RT.sel];
+      try{ await window.adminRoutePatch(rr,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
+  c.querySelectorAll('.ri.v2c').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); renderRoutes(); c.scrollTop=0; sideView(); routeProfiles(); }); }
 window.routeClimbed=()=>{ if(!RT) return; const r=RT.routes[RT.sel]; window.climbedVia&&window.climbedVia(RT.peak.id, routeLabel(r)); };
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };
 window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name} iz ${r.start.name.replace(/^pri /,'')}`;
@@ -1075,7 +1108,8 @@ function makeMovable(id,handle='.rh'){ const card=el(id); if(!card) return; cons
 // legend appears (it may have been saved on a bigger window).
 function makeLegendMovable(id){ const card=el(id); if(!card) return; const key=()=>'dvat3d_pos_'+id+(DESK()?'':'_ph');
   // free strip between the left side (open panel / blue tab) and the right side (open peak list / red tab): legends never sit under them
-  const sides=()=>{ let L=0, R=innerWidth; const vis=e=>e&&getComputedStyle(e).display!=='none'&&e.getBoundingClientRect().width>0;
+  const sides=()=>{ if(window.V2&&DESK()&&window.v2Free){ const f=v2Free(); return [f[0]+6,f[1]-60]; }
+    let L=0, R=innerWidth; const vis=e=>e&&getComputedStyle(e).display!=='none'&&e.getBoundingClientRect().width>0;
     const pn=document.querySelector('.panel'), lt=document.getElementById('ltab'), dr=el('drawer'), pt=el('ptab');
     if(DESK()&&vis(pn)&&!document.body.classList.contains('lclosed')) L=Math.max(L,pn.getBoundingClientRect().right);
     if(vis(lt)) L=Math.max(L,lt.getBoundingClientRect().right);

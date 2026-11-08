@@ -1328,7 +1328,8 @@ function openPeak(id,fly){
     d.querySelectorAll('a').forEach(a=>a.onclick=()=>window.camOpen(cn[+a.dataset.k].c.key)); box.append(d); } }
   if(window.gpsPeakBtn){ const gb=gpsPeakBtn(p); if(gb) box.append(gb); }   // app: confirm this summit with a fresh GPS fix
   if(window.adminPeakBox&&window.ADMIN) box.append(adminPeakBox(p));   // admin: correct position / height / name
-  if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
+  if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }
+  if(window.V2&&window.v2PeakBox) v2PeakBox(box,p,{lab,row,rb,vb});   // new look (design.js): same parts, new order and header   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   // focusAfterOpen off: the browser used to scroll the whole page (and the map inside it) to a popup still off-screen,
@@ -1337,8 +1338,9 @@ function openPeak(id,fly){
   if(!fly){ show(); return; }
   // from the list: fly so the peak sits in the middle of the free part of the screen (a bit low, so its window fits above it)
   const m=map.getContainer().getBoundingClientRect(), pnl=document.querySelector('.panel'), dr=document.getElementById('drawer');
-  const L0=!PHONE_UI()&&pnl&&!document.body.classList.contains('lclosed')?pnl.getBoundingClientRect().right:m.left;
-  const R0=!PHONE_UI()&&dr&&dr.classList.contains('open')?dr.getBoundingClientRect().left:m.right;
+  let L0=!PHONE_UI()&&pnl&&!document.body.classList.contains('lclosed')?pnl.getBoundingClientRect().right:m.left;
+  let R0=!PHONE_UI()&&dr&&dr.classList.contains('open')?dr.getBoundingClientRect().left:m.right;
+  if(window.V2&&!PHONE_UI()&&window.v2Free) [L0,R0]=v2Free();   // new look: list and layers both on the left
   const H=m.height, off=[(L0+R0)/2-(m.left+m.right)/2, Math.min(H*0.22,170)];
   const tok=openPeak.tok=(openPeak.tok||0)+1;
   map.flyTo({center:[p.lon,p.lat],zoom:Math.max(map.getZoom(),13.5),pitch:Math.min(60,map.getMaxPitch()),offset:off,essential:true,duration:1400});

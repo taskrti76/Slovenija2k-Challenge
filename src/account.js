@@ -589,7 +589,7 @@ fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null
 addEventListener('pointerup', () => { fabY = null; });
 fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
-window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.fabFace = fabFace; window.__fabOpen = fabOpen; window.__fabPos = fabPos;
+window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.fabFace = fabFace; window.fabItemsList = () => fabItems(); window.__fabOpen = fabOpen; window.__fabPos = fabPos;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
   if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 

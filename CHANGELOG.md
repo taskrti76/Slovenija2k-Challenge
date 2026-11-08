@@ -2,6 +2,19 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.70 — 2026-11-09
+- "Nov videz" (still opt-in, ?v2=1 or Nastavitve → Videz) now also changes the layout, following the mockup:
+  - search bar on the map (peaks, huts, trailheads, towns and villages) with a profile button;
+  - phone: the peak list peeks from the bottom as a sheet (count, %, progress ring), the red button sits on its edge;
+  - peak window: header with a "✓ Obiskan" badge, 4 big actions (Poti, 360°, V načrt, Kamere), warning when the normal route is
+    above your limit, then visit info, weather, cameras as chips, GPS, admin, LiDAR line;
+  - routes: sort switch (fastest / least ascent / easiest), the selected route as a card with big numbers, its profile and
+    buttons ("Šel sem po tej poti" as the main one), the others as short rows (time, ascent, T);
+  - Karta in sloji: base maps as picture tiles, layers as switches;
+  - computer: icon rail on the left (peaks, map, settings, profile, draw, planner, leaderboard, friends, groups, admin, guide);
+    the peak list and the map panel open next to it, one at a time; no more side tabs or red button.
+  Off = the site exactly as before.
+
 ## web-v0.69 — 2026-11-09
 - Experimental "Nov videz" (off by default): Nastavitve → Videz → Nov videz (preizkus), or ?v2=1 / ?v2=0 on the address.
   Inter font, one accent colour (alpine red #B42318) + neutrals, selection blue for routes, 10 / 14 / 20 px corners, two shadows,
