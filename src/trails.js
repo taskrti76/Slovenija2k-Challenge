@@ -556,6 +556,10 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
   else if(kind==='park'){ rr(6,6,36,36,7); c.fillStyle='#1f5fbf'; c.fill(); c.stroke(); c.fillStyle='#fff'; c.font='bold 28px system-ui,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('P',24,26); }
   else if(kind==='th'){ c.beginPath(); c.arc(24,24,18,0,7); c.fillStyle='#2e7d32'; c.fill(); c.stroke(); c.fillStyle='#fff'; c.beginPath(); c.moveTo(24,13); c.lineTo(34,32); c.lineTo(14,32); c.closePath(); c.fill(); }
   else if(kind==='spring'){ c.beginPath(); c.moveTo(24,6); c.bezierCurveTo(36,22,38,28,38,31); c.arc(24,31,14,0,Math.PI); c.bezierCurveTo(10,28,12,22,24,6); c.fillStyle='#1e88e5'; c.fill(); c.stroke(); }
+  else if(kind==='ferr'&&window.V2){ rr(4,4,40,40,10); c.fillStyle='#C2410C'; c.fill(); c.stroke();   // new look: carabiner + Y-lanyard clipped into the steel cable
+    c.save(); c.translate(7.2,6.8); c.scale(1.4,1.4); c.strokeStyle='#fff'; c.lineWidth=1.9; c.lineCap='round'; c.lineJoin='round';
+    for(const d of ['M2 6.5 22 3.5','M15 6.2v5.3a3 3 0 0 1-6 0V6.9a3 3 0 0 1 6-.7Z','M17.6 4.1a1.5 1.5 0 0 1 3 0v2a1.5 1.5 0 0 1-3 0Z','M12 14.5c0 2 .9 3.4 2.6 4.6M19.1 7.6c.2 5-1.2 9.2-3.9 11.6','M13.4 20a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1.4a1 1 0 0 1-1 1h-1.2a1 1 0 0 1-1-1Z']) c.stroke(new Path2D(d));
+    c.restore(); }
   else if(kind==='ferr'){ rr(5,5,38,38,9); c.fillStyle='#e65100'; c.fill(); c.stroke(); // via ferrata: cable + rungs
     c.strokeStyle='#fff'; c.lineWidth=3.2; c.beginPath(); c.moveTo(14,36); c.lineTo(34,12); c.stroke(); c.lineWidth=2.6;
     for(const f of [.25,.5,.75]){ const x=14+20*f, y=36-24*f; c.beginPath(); c.moveTo(x-5,y-4); c.lineTo(x+5,y+4); c.stroke(); } }
@@ -880,7 +884,7 @@ function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'Feat
   if(g) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true},geometry:{type:'LineString',coordinates:r.coords.slice(-2)}}); return f; })}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start
 window.peakRoutesUI = async function(id){
-  const p=byId[id]; if(!p) return; if(popup) popup.remove();
+  const p=byId[id]; if(!p) return; if(popup) popup.remove(); window.gpsHint&&gpsHint();
   const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
   if(!inG(p.lat,p.lon,0.17)){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
     if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }

@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.69 — 2026-11-09
+- Experimental "Nov videz" (off by default): Nastavitve → Videz → Nov videz (preizkus), or ?v2=1 / ?v2=0 on the address.
+  Inter font, one accent colour (alpine red #B42318) + neutrals, selection blue for routes, 10 / 14 / 20 px corners, two shadows,
+  pill chips, segmented switches, line icons in the red-button menu, calm white side tabs on PC, new ferrata sign (carabiner and
+  Y-lanyard clipped into the steel cable). Everything is scoped to html.v2 (src/design.js) - with it off nothing changes.
+- GPS summits: the pill shows the nearest summit and your distance ("📍 Uršlja gora · 120 m · ±8 m"); a summit counts within 80 m
+  when the fix is ±25 m or better (50 m otherwise, as the server allows); peak window in the app: "📍 Potrdi vrh z GPS" takes one
+  fresh fix now (also without tracking) and says why it does not count (too far / not precise / height); opening routes in the
+  app while tracking is off reminds once a day where to switch it on.
+
 ## web-v0.68 — 2026-11-08
 - Guide: new step 2 "Nastavi se" - walking speed (with an example time), hardest grade, via ferratas, winter experience, text size,
   set right there. Steps about menu items open the red button's menu and light up that bubble (✏️ Riši pot, 👤 Moj profil,

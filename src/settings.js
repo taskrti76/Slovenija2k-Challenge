@@ -49,6 +49,9 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="chips" data-k="maxT">${[2,3,4,5,6].map(v => `<button data-v="${v}">T${v}</button>`).join('')}</div>
   <div class="chips" data-k="ferrata" style="margin-top:6px"><button data-v="1">${L('ferate: da','via ferratas: yes')}</button><button data-v="0">${L('ferate: ne','via ferratas: no')}</button></div>
   <div class="hint">${L('Težje poti in vrhovi dobijo oznako »⚠ nad tvojo mejo«. T2 planinska, T3 zahtevna planinska, T4 alpska, T5 zahtevna alpska, T6 težka alpska pot.','Harder routes and peaks get "⚠ above your limit". T2 mountain, T3 demanding mountain, T4 alpine, T5 demanding alpine, T6 difficult alpine.')}</div>
+  <h4>${L('Videz','Look')}</h4>
+  <label style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox" id="setV2" ${window.V2 ? 'checked' : ''}> ${L('Nov videz (preizkus)','New look (preview)')}</label>
+  <div class="hint">${L('Nove barve, pisava Inter, ikone namesto emojijev. Stran se ponovno naloži.','New colours, Inter font, icons instead of emoji. The page reloads.')}</div>
   <h4>${L('Napredno','Advanced')}</h4><div class="advbox" id="setAdv"></div></div>`;
 document.body.append(win);
 const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k = c.dataset.k, v = k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k];
@@ -56,6 +59,7 @@ const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k =
 win.querySelectorAll('.chips').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = c.dataset.k, v = +b.dataset.v;
   P[k] = k === 'ferrata' ? v === 1 : v; paintChips(); save(); });
 paintChips();
+$s('setV2').onchange = e => { try{ localStorage.setItem('dvat3d_v2', e.target.checked ? '1' : '0'); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
 const close = () => win.classList.remove('on');

@@ -137,17 +137,46 @@ const capPlugin = (name, cbMethods = []) => { const C = window.Capacitor; if (!C
   return new Proxy({}, {get: (_, m) => (opts, cb) => cbMethods.includes(m) ? Promise.resolve(C.nativeCallback(name, m, opts || {}, cb)) : C.nativePromise(name, m, opts || {})}); };
 const BGL = CAPN ? capPlugin('BackgroundGeolocation', ['addWatcher']) : null, LNO = CAPN ? capPlugin('LocalNotifications') : null;
 const hav = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(x)); };
-function gpsFix(l){ gAcc = l.accuracy; gpsUI(); if (!(l.accuracy <= 50)) return;
-  let best = null, bd = 50; for (const p of PEAKS){ if (p.lat == null || p.coord_status !== 'ok' || Math.abs(p.lat - l.latitude) > .002) continue;
-    const d = hav(l.latitude, l.longitude, p.lat, p.lon); if (d <= bd){ bd = d; best = p; } }
-  if (!best || VER[best.id]) return;
-  if (l.altitude != null && Math.abs(l.altitude - best.elev) > 150) return;   // GPS height is rough (and above the ellipsoid, ~+47 m here)
+// the summit counts within 50 m - or 80 m when the fix is ±25 m or better (the server, 07_verify.sql, allows 80 m and ±60 m)
+let gNear = null;   // nearest summit to the last fix: {p, d}
+const nearestPeak = (la, lo) => { let best = null, bd = 1e9; for (const p of PEAKS){ if (p.lat == null || Math.abs(p.lat - la) > .05 || Math.abs(p.lon - lo) > .07) continue;
+    const d = hav(la, lo, p.lat, p.lon); if (d < bd){ bd = d; best = p; } } return best ? {p: best, d: bd} : null; };
+function gpsConfirm(best, l){
+  if (VER[best.id]) return false;
   const at = new Date(l.time || Date.now()).toISOString();
   VER[best.id] = at; put(VERK, VER); VQ.push({pid: best.id, lat: l.latitude, lon: l.longitude, acc: Math.round(l.accuracy), at}); put(VQK, VQ);
   if (!visited.has(best.id)) toggleV(best.id, true);
   VINFO.set(best.id, Object.assign({}, VI[best.id] || {}, {d: (VI[best.id] && VI[best.id].d) || at.slice(0, 10)}));
   toast(`📍 ${best.name} — ${L('vrh potrjen z GPS!','summit confirmed by GPS!')}`); if (S) schedule(500);
-  if (LNO && document.hidden) LNO.schedule({notifications: [{id: Math.floor(Date.now() / 1000) % 2e9, title: `📍 ${best.name}`, body: L('Vrh potrjen z GPS! ✓', 'Summit confirmed by GPS! ✓')}]}).catch(() => {}); }
+  if (LNO && document.hidden) LNO.schedule({notifications: [{id: Math.floor(Date.now() / 1000) % 2e9, title: `📍 ${best.name}`, body: L('Vrh potrjen z GPS! ✓', 'Summit confirmed by GPS! ✓')}]}).catch(() => {});
+  return true; }
+// why a fix did not count (or null if it counts)
+function gpsWhyNot(n, l){
+  if (!n) return L('ni vrha v bližini', 'no summit nearby');
+  if (!(l.accuracy <= 50)) return L(`GPS še ni dovolj natančen (±${Math.round(l.accuracy)} m, rabim ±50 m) — počakaj na prostem`, `GPS not precise enough yet (±${Math.round(l.accuracy)} m, needs ±50 m) — wait outdoors`);
+  const lim = l.accuracy <= 25 ? 80 : 50;
+  if (n.d > lim) return L(`${Math.round(n.d)} m do vrha ${n.p.name} — pojdi do ${lim} m`, `${Math.round(n.d)} m to ${n.p.name} — get within ${lim} m`);
+  if (n.p.coord_status !== 'ok') return L('lega tega vrha je le približna — ga ne morem potrditi', 'this summit\'s position is only approximate - cannot confirm it');
+  if (l.altitude != null && Math.abs(l.altitude - n.p.elev) > 150) return L('višina GPS se ne ujema z vrhom', 'GPS height does not match the summit');
+  return null; }
+function gpsFix(l){ gAcc = l.accuracy; gNear = nearestPeak(l.latitude, l.longitude); gpsUI();
+  if (gNear && !gpsWhyNot(gNear, l)) gpsConfirm(gNear.p, l); }
+// peak window (app): "Potrdi z GPS" - one fresh fix now, even when tracking is off; says how far you are if it does not count
+window.gpsPeakBtn = p => { if (!IN_APP || p.lat == null) return null; const b = document.createElement('button'); b.className = 'pplan gpsb';
+  b.textContent = VER[p.id] ? '✓ ' + L('Potrjeno z GPS', 'Confirmed by GPS') : '📍 ' + L('Potrdi vrh z GPS', 'Confirm summit by GPS'); if (VER[p.id]){ b.disabled = true; return b; }
+  b.onclick = () => { if (!navigator.geolocation){ toastErr(L('Lokacija ni na voljo.', 'Location not available.')); return; }
+    b.disabled = true; b.textContent = L('Iščem lokacijo …', 'Getting your location …');
+    navigator.geolocation.getCurrentPosition(pos => { const c = pos.coords, l = {latitude: c.latitude, longitude: c.longitude, accuracy: c.accuracy, altitude: c.altitude, time: pos.timestamp};
+      const n = {p, d: hav(l.latitude, l.longitude, p.lat, p.lon)}, why = gpsWhyNot(n, l); b.disabled = false;
+      if (!why && gpsConfirm(p, l)){ b.textContent = '✓ ' + L('Potrjeno z GPS', 'Confirmed by GPS'); b.disabled = true; return; }
+      b.textContent = '📍 ' + L('Poskusi znova', 'Try again'); toastErr(why || L('Ta vrh je že potrjen.', 'Already confirmed.')); },
+      e => { b.disabled = false; b.textContent = '📍 ' + L('Potrdi vrh z GPS', 'Confirm summit by GPS');
+        toastErr(e.code === 1 ? L('Dovoli dostop do lokacije (nastavitve telefona → aplikacije → 2000-čaki).', 'Allow location access (phone settings → apps → 2000-čaki).') : L('Lokacije ni bilo mogoče dobiti — poskusi na prostem.', 'Could not get a location — try outdoors.')); },
+      {enableHighAccuracy: true, timeout: 25000, maximumAge: 0}); };
+  return b; };
+// opening a peak's routes in the app while tracking is off: once a day, a hint where to switch it on
+window.gpsHint = () => { if (!IN_APP || gWatch || get('dvat3d_gpshint') === today()) return; put('dvat3d_gpshint', today());
+  setTimeout(() => toast(L('Na turi? Rdeči gumb → 📍 GPS vrhovi — vrh se na vrhu potrdi sam.', 'On a hike? Red button → 📍 GPS summits — the summit is confirmed when you are on top.')), 1500); };
 async function flushVQ(){ if (!VQ.length) return; const keep = [];
   for (const q of VQ){ try{ await rpc('verify_ascent', q, true); }
     catch(e){ const m = String(e.message || ''); if (/too far|inaccurate|unknown peak|bad time/.test(m)){ delete VER[q.pid]; continue; }   // the server says no
@@ -167,7 +196,8 @@ async function gpsStop(){ const id = gWatch; gWatch = null; gAcc = null; put(GTK
 const gPill = document.createElement('button'); gPill.id = 'gpsPill'; document.body.append(gPill);
 gPill.onclick = () => { if (gWatch && confirmTwice(gPill)) gpsStop(); };
 function gpsUI(){ document.body.classList.toggle('gpson', !!gWatch);
-  gPill.innerHTML = gWatch ? `📍 ${L('Spremljam vrhove','Watching summits')}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}` : ''; }
+  gPill.innerHTML = !gWatch ? '' : gNear && gNear.d < 5000 ? `📍 ${esc(gNear.p.name.split(' (')[0])} · ${VER[gNear.p.id] ? '✓' : gNear.d < 1000 ? Math.round(gNear.d) + ' m' : (gNear.d / 1000).toFixed(1) + ' km'}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}`
+    : `📍 ${L('Spremljam vrhove','Watching summits')}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}`; }
 if (BGL && get(GTK)) setTimeout(gpsStart, 1500);
 // app updates: the page inside the app is always the newest website; the app shell itself (APK) is checked once a day against the
 // latest GitHub release and, if newer, a bar offers the download (Android then asks once to install it over the old one - an app
@@ -491,7 +521,8 @@ function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accFor
 const fab = document.createElement('div'); fab.id = 'fab';
 const PHN = () => PHONE_UI();
 const fabFace = () => { const b = fab.querySelector('.fb'); if (!b) return; const n = b.querySelector('.bdg');
-  b.innerHTML = PHN() ? `<span class="fi">☰</span><span class="fl">${L('Meni','Menu')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
+  const mi = window.V2 && window.V2I ? V2I['☰'] : '☰';
+  b.innerHTML = PHN() ? `<span class="fi">${mi}</span><span class="fl">${L('Meni','Menu')}</span><span class="fx">✕</span>` : `<span class="fi">${mi}</span><span class="fx">✕</span>`; if (n) b.append(n);
   b.title = PHN() ? L('Tapni = meni · povleci gor = seznam vrhov','Tap = menu · swipe up = peak list') : L('Meni','Menu'); };
 fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"></button>`;
 document.body.append(fab); fabFace(); addEventListener('resize', fabFace);
@@ -549,7 +580,7 @@ function fabOpen(it0){ const it = Array.isArray(it0) ? it0 : fabItems(), P = fab
   fab.querySelectorAll('.fo').forEach(o => o.remove());
   it.forEach(([ic, lab, fn, b], k) => { const o = document.createElement('button');
     o.dataset.k = ic; o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(P[k][0]) + 'px'); o.style.setProperty('--y', Math.round(P[k][1]) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
-    o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
+    o.innerHTML = `<span class="oi">${window.V2 && window.V2I && V2I[ic] ? V2I[ic] : ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
     o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
   fabBg.classList.add('on'); document.body.classList.add('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
 let fabY = null, fabSw = false;
@@ -558,7 +589,7 @@ fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null
 addEventListener('pointerup', () => { fabY = null; });
 fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
-window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.__fabOpen = fabOpen; window.__fabPos = fabPos;
+window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.fabFace = fabFace; window.__fabOpen = fabOpen; window.__fabPos = fabPos;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
   if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 

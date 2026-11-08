@@ -343,7 +343,9 @@
 #boot.out{opacity:0;pointer-events:none}#boot img{width:min(176px,42vw);height:auto;border-radius:36px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
 #boot i{width:170px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
-<script>window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
+<script>/* experimental new look: ?v2=1 / ?v2=0 switches it (remembered); html.v2 scopes all of it (design.js) */
+try{ var q2=new URLSearchParams(location.search).get('v2'); if(q2!==null) localStorage.setItem('dvat3d_v2',q2==='1'?'1':'0'); window.V2=localStorage.getItem('dvat3d_v2')==='1'; }catch(e){ window.V2=false; } if(window.V2) document.documentElement.classList.add('v2');
+window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
 window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
   try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:250}).catch(function(){}); }catch(e){} };
 setTimeout(window.bootOut,12000);</script>
@@ -1324,6 +1326,7 @@ function openPeak(id,fly){
   if(window.camsNear&&$id('cams')&&$id('cams').checked){ const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
     d.innerHTML='📷 '+cn.map((x,i)=>`<a data-k="${i}">${x.c.name.replace(/[<>&"]/g,'')}</a> <small>${(x.d/1000).toFixed(0)} km</small>`).join(' · ');
     d.querySelectorAll('a').forEach(a=>a.onclick=()=>window.camOpen(cn[+a.dataset.k].c.key)); box.append(d); } }
+  if(window.gpsPeakBtn){ const gb=gpsPeakBtn(p); if(gb) box.append(gb); }   // app: confirm this summit with a fresh GPS fix
   if(window.adminPeakBox&&window.ADMIN) box.append(adminPeakBox(p));   // admin: correct position / height / name
   if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();

@@ -343,7 +343,9 @@
 #boot.out{opacity:0;pointer-events:none}#boot img{width:min(176px,42vw);height:auto;border-radius:36px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
 #boot i{width:170px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
-<script>window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
+<script>/* experimental new look: ?v2=1 / ?v2=0 switches it (remembered); html.v2 scopes all of it (design.js) */
+try{ var q2=new URLSearchParams(location.search).get('v2'); if(q2!==null) localStorage.setItem('dvat3d_v2',q2==='1'?'1':'0'); window.V2=localStorage.getItem('dvat3d_v2')==='1'; }catch(e){ window.V2=false; } if(window.V2) document.documentElement.classList.add('v2');
+window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
 window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
   try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:250}).catch(function(){}); }catch(e){} };
 setTimeout(window.bootOut,12000);</script>
@@ -1324,6 +1326,7 @@ function openPeak(id,fly){
   if(window.camsNear&&$id('cams')&&$id('cams').checked){ const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
     d.innerHTML='📷 '+cn.map((x,i)=>`<a data-k="${i}">${x.c.name.replace(/[<>&"]/g,'')}</a> <small>${(x.d/1000).toFixed(0)} km</small>`).join(' · ');
     d.querySelectorAll('a').forEach(a=>a.onclick=()=>window.camOpen(cn[+a.dataset.k].c.key)); box.append(d); } }
+  if(window.gpsPeakBtn){ const gb=gpsPeakBtn(p); if(gb) box.append(gb); }   // app: confirm this summit with a fresh GPS fix
   if(window.adminPeakBox&&window.ADMIN) box.append(adminPeakBox(p));   // admin: correct position / height / name
   if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
   if(popup) popup.remove();
@@ -2048,6 +2051,10 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
   else if(kind==='park'){ rr(6,6,36,36,7); c.fillStyle='#1f5fbf'; c.fill(); c.stroke(); c.fillStyle='#fff'; c.font='bold 28px system-ui,sans-serif'; c.textAlign='center'; c.textBaseline='middle'; c.fillText('P',24,26); }
   else if(kind==='th'){ c.beginPath(); c.arc(24,24,18,0,7); c.fillStyle='#2e7d32'; c.fill(); c.stroke(); c.fillStyle='#fff'; c.beginPath(); c.moveTo(24,13); c.lineTo(34,32); c.lineTo(14,32); c.closePath(); c.fill(); }
   else if(kind==='spring'){ c.beginPath(); c.moveTo(24,6); c.bezierCurveTo(36,22,38,28,38,31); c.arc(24,31,14,0,Math.PI); c.bezierCurveTo(10,28,12,22,24,6); c.fillStyle='#1e88e5'; c.fill(); c.stroke(); }
+  else if(kind==='ferr'&&window.V2){ rr(4,4,40,40,10); c.fillStyle='#C2410C'; c.fill(); c.stroke();   // new look: carabiner + Y-lanyard clipped into the steel cable
+    c.save(); c.translate(7.2,6.8); c.scale(1.4,1.4); c.strokeStyle='#fff'; c.lineWidth=1.9; c.lineCap='round'; c.lineJoin='round';
+    for(const d of ['M2 6.5 22 3.5','M15 6.2v5.3a3 3 0 0 1-6 0V6.9a3 3 0 0 1 6-.7Z','M17.6 4.1a1.5 1.5 0 0 1 3 0v2a1.5 1.5 0 0 1-3 0Z','M12 14.5c0 2 .9 3.4 2.6 4.6M19.1 7.6c.2 5-1.2 9.2-3.9 11.6','M13.4 20a1 1 0 0 1 1-1h1.2a1 1 0 0 1 1 1v1.4a1 1 0 0 1-1 1h-1.2a1 1 0 0 1-1-1Z']) c.stroke(new Path2D(d));
+    c.restore(); }
   else if(kind==='ferr'){ rr(5,5,38,38,9); c.fillStyle='#e65100'; c.fill(); c.stroke(); // via ferrata: cable + rungs
     c.strokeStyle='#fff'; c.lineWidth=3.2; c.beginPath(); c.moveTo(14,36); c.lineTo(34,12); c.stroke(); c.lineWidth=2.6;
     for(const f of [.25,.5,.75]){ const x=14+20*f, y=36-24*f; c.beginPath(); c.moveTo(x-5,y-4); c.lineTo(x+5,y+4); c.stroke(); } }
@@ -2372,7 +2379,7 @@ function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'Feat
   if(g) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true},geometry:{type:'LineString',coordinates:r.coords.slice(-2)}}); return f; })}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start
 window.peakRoutesUI = async function(id){
-  const p=byId[id]; if(!p) return; if(popup) popup.remove();
+  const p=byId[id]; if(!p) return; if(popup) popup.remove(); window.gpsHint&&gpsHint();
   const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
   if(!inG(p.lat,p.lon,0.17)){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
     if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }
@@ -4119,6 +4126,9 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="chips" data-k="maxT">${[2,3,4,5,6].map(v => `<button data-v="${v}">T${v}</button>`).join('')}</div>
   <div class="chips" data-k="ferrata" style="margin-top:6px"><button data-v="1">${L('ferate: da','via ferratas: yes')}</button><button data-v="0">${L('ferate: ne','via ferratas: no')}</button></div>
   <div class="hint">${L('Težje poti in vrhovi dobijo oznako »⚠ nad tvojo mejo«. T2 planinska, T3 zahtevna planinska, T4 alpska, T5 zahtevna alpska, T6 težka alpska pot.','Harder routes and peaks get "⚠ above your limit". T2 mountain, T3 demanding mountain, T4 alpine, T5 demanding alpine, T6 difficult alpine.')}</div>
+  <h4>${L('Videz','Look')}</h4>
+  <label style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox" id="setV2" ${window.V2 ? 'checked' : ''}> ${L('Nov videz (preizkus)','New look (preview)')}</label>
+  <div class="hint">${L('Nove barve, pisava Inter, ikone namesto emojijev. Stran se ponovno naloži.','New colours, Inter font, icons instead of emoji. The page reloads.')}</div>
   <h4>${L('Napredno','Advanced')}</h4><div class="advbox" id="setAdv"></div></div>`;
 document.body.append(win);
 const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k = c.dataset.k, v = k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k];
@@ -4126,6 +4136,7 @@ const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k =
 win.querySelectorAll('.chips').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = c.dataset.k, v = +b.dataset.v;
   P[k] = k === 'ferrata' ? v === 1 : v; paintChips(); save(); });
 paintChips();
+$s('setV2').onchange = e => { try{ localStorage.setItem('dvat3d_v2', e.target.checked ? '1' : '0'); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
 const close = () => win.classList.remove('on');
@@ -4283,17 +4294,46 @@ const capPlugin = (name, cbMethods = []) => { const C = window.Capacitor; if (!C
   return new Proxy({}, {get: (_, m) => (opts, cb) => cbMethods.includes(m) ? Promise.resolve(C.nativeCallback(name, m, opts || {}, cb)) : C.nativePromise(name, m, opts || {})}); };
 const BGL = CAPN ? capPlugin('BackgroundGeolocation', ['addWatcher']) : null, LNO = CAPN ? capPlugin('LocalNotifications') : null;
 const hav = (a, b, c, d) => { const r = Math.PI / 180, x = Math.sin((c - a) * r / 2) ** 2 + Math.cos(a * r) * Math.cos(c * r) * Math.sin((d - b) * r / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(x)); };
-function gpsFix(l){ gAcc = l.accuracy; gpsUI(); if (!(l.accuracy <= 50)) return;
-  let best = null, bd = 50; for (const p of PEAKS){ if (p.lat == null || p.coord_status !== 'ok' || Math.abs(p.lat - l.latitude) > .002) continue;
-    const d = hav(l.latitude, l.longitude, p.lat, p.lon); if (d <= bd){ bd = d; best = p; } }
-  if (!best || VER[best.id]) return;
-  if (l.altitude != null && Math.abs(l.altitude - best.elev) > 150) return;   // GPS height is rough (and above the ellipsoid, ~+47 m here)
+// the summit counts within 50 m - or 80 m when the fix is ±25 m or better (the server, 07_verify.sql, allows 80 m and ±60 m)
+let gNear = null;   // nearest summit to the last fix: {p, d}
+const nearestPeak = (la, lo) => { let best = null, bd = 1e9; for (const p of PEAKS){ if (p.lat == null || Math.abs(p.lat - la) > .05 || Math.abs(p.lon - lo) > .07) continue;
+    const d = hav(la, lo, p.lat, p.lon); if (d < bd){ bd = d; best = p; } } return best ? {p: best, d: bd} : null; };
+function gpsConfirm(best, l){
+  if (VER[best.id]) return false;
   const at = new Date(l.time || Date.now()).toISOString();
   VER[best.id] = at; put(VERK, VER); VQ.push({pid: best.id, lat: l.latitude, lon: l.longitude, acc: Math.round(l.accuracy), at}); put(VQK, VQ);
   if (!visited.has(best.id)) toggleV(best.id, true);
   VINFO.set(best.id, Object.assign({}, VI[best.id] || {}, {d: (VI[best.id] && VI[best.id].d) || at.slice(0, 10)}));
   toast(`📍 ${best.name} — ${L('vrh potrjen z GPS!','summit confirmed by GPS!')}`); if (S) schedule(500);
-  if (LNO && document.hidden) LNO.schedule({notifications: [{id: Math.floor(Date.now() / 1000) % 2e9, title: `📍 ${best.name}`, body: L('Vrh potrjen z GPS! ✓', 'Summit confirmed by GPS! ✓')}]}).catch(() => {}); }
+  if (LNO && document.hidden) LNO.schedule({notifications: [{id: Math.floor(Date.now() / 1000) % 2e9, title: `📍 ${best.name}`, body: L('Vrh potrjen z GPS! ✓', 'Summit confirmed by GPS! ✓')}]}).catch(() => {});
+  return true; }
+// why a fix did not count (or null if it counts)
+function gpsWhyNot(n, l){
+  if (!n) return L('ni vrha v bližini', 'no summit nearby');
+  if (!(l.accuracy <= 50)) return L(`GPS še ni dovolj natančen (±${Math.round(l.accuracy)} m, rabim ±50 m) — počakaj na prostem`, `GPS not precise enough yet (±${Math.round(l.accuracy)} m, needs ±50 m) — wait outdoors`);
+  const lim = l.accuracy <= 25 ? 80 : 50;
+  if (n.d > lim) return L(`${Math.round(n.d)} m do vrha ${n.p.name} — pojdi do ${lim} m`, `${Math.round(n.d)} m to ${n.p.name} — get within ${lim} m`);
+  if (n.p.coord_status !== 'ok') return L('lega tega vrha je le približna — ga ne morem potrditi', 'this summit\'s position is only approximate - cannot confirm it');
+  if (l.altitude != null && Math.abs(l.altitude - n.p.elev) > 150) return L('višina GPS se ne ujema z vrhom', 'GPS height does not match the summit');
+  return null; }
+function gpsFix(l){ gAcc = l.accuracy; gNear = nearestPeak(l.latitude, l.longitude); gpsUI();
+  if (gNear && !gpsWhyNot(gNear, l)) gpsConfirm(gNear.p, l); }
+// peak window (app): "Potrdi z GPS" - one fresh fix now, even when tracking is off; says how far you are if it does not count
+window.gpsPeakBtn = p => { if (!IN_APP || p.lat == null) return null; const b = document.createElement('button'); b.className = 'pplan gpsb';
+  b.textContent = VER[p.id] ? '✓ ' + L('Potrjeno z GPS', 'Confirmed by GPS') : '📍 ' + L('Potrdi vrh z GPS', 'Confirm summit by GPS'); if (VER[p.id]){ b.disabled = true; return b; }
+  b.onclick = () => { if (!navigator.geolocation){ toastErr(L('Lokacija ni na voljo.', 'Location not available.')); return; }
+    b.disabled = true; b.textContent = L('Iščem lokacijo …', 'Getting your location …');
+    navigator.geolocation.getCurrentPosition(pos => { const c = pos.coords, l = {latitude: c.latitude, longitude: c.longitude, accuracy: c.accuracy, altitude: c.altitude, time: pos.timestamp};
+      const n = {p, d: hav(l.latitude, l.longitude, p.lat, p.lon)}, why = gpsWhyNot(n, l); b.disabled = false;
+      if (!why && gpsConfirm(p, l)){ b.textContent = '✓ ' + L('Potrjeno z GPS', 'Confirmed by GPS'); b.disabled = true; return; }
+      b.textContent = '📍 ' + L('Poskusi znova', 'Try again'); toastErr(why || L('Ta vrh je že potrjen.', 'Already confirmed.')); },
+      e => { b.disabled = false; b.textContent = '📍 ' + L('Potrdi vrh z GPS', 'Confirm summit by GPS');
+        toastErr(e.code === 1 ? L('Dovoli dostop do lokacije (nastavitve telefona → aplikacije → 2000-čaki).', 'Allow location access (phone settings → apps → 2000-čaki).') : L('Lokacije ni bilo mogoče dobiti — poskusi na prostem.', 'Could not get a location — try outdoors.')); },
+      {enableHighAccuracy: true, timeout: 25000, maximumAge: 0}); };
+  return b; };
+// opening a peak's routes in the app while tracking is off: once a day, a hint where to switch it on
+window.gpsHint = () => { if (!IN_APP || gWatch || get('dvat3d_gpshint') === today()) return; put('dvat3d_gpshint', today());
+  setTimeout(() => toast(L('Na turi? Rdeči gumb → 📍 GPS vrhovi — vrh se na vrhu potrdi sam.', 'On a hike? Red button → 📍 GPS summits — the summit is confirmed when you are on top.')), 1500); };
 async function flushVQ(){ if (!VQ.length) return; const keep = [];
   for (const q of VQ){ try{ await rpc('verify_ascent', q, true); }
     catch(e){ const m = String(e.message || ''); if (/too far|inaccurate|unknown peak|bad time/.test(m)){ delete VER[q.pid]; continue; }   // the server says no
@@ -4313,7 +4353,8 @@ async function gpsStop(){ const id = gWatch; gWatch = null; gAcc = null; put(GTK
 const gPill = document.createElement('button'); gPill.id = 'gpsPill'; document.body.append(gPill);
 gPill.onclick = () => { if (gWatch && confirmTwice(gPill)) gpsStop(); };
 function gpsUI(){ document.body.classList.toggle('gpson', !!gWatch);
-  gPill.innerHTML = gWatch ? `📍 ${L('Spremljam vrhove','Watching summits')}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}` : ''; }
+  gPill.innerHTML = !gWatch ? '' : gNear && gNear.d < 5000 ? `📍 ${esc(gNear.p.name.split(' (')[0])} · ${VER[gNear.p.id] ? '✓' : gNear.d < 1000 ? Math.round(gNear.d) + ' m' : (gNear.d / 1000).toFixed(1) + ' km'}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}`
+    : `📍 ${L('Spremljam vrhove','Watching summits')}${gAcc != null ? ` · ±${Math.round(gAcc)} m` : ''}`; }
 if (BGL && get(GTK)) setTimeout(gpsStart, 1500);
 // app updates: the page inside the app is always the newest website; the app shell itself (APK) is checked once a day against the
 // latest GitHub release and, if newer, a bar offers the download (Android then asks once to install it over the old one - an app
@@ -4637,7 +4678,8 @@ function paint(){ paintFoot(); socBtns(); if (box && !box.querySelector('#accFor
 const fab = document.createElement('div'); fab.id = 'fab';
 const PHN = () => PHONE_UI();
 const fabFace = () => { const b = fab.querySelector('.fb'); if (!b) return; const n = b.querySelector('.bdg');
-  b.innerHTML = PHN() ? `<span class="fi">☰</span><span class="fl">${L('Meni','Menu')}</span><span class="fx">✕</span>` : `<span class="fi">☰</span><span class="fx">✕</span>`; if (n) b.append(n);
+  const mi = window.V2 && window.V2I ? V2I['☰'] : '☰';
+  b.innerHTML = PHN() ? `<span class="fi">${mi}</span><span class="fl">${L('Meni','Menu')}</span><span class="fx">✕</span>` : `<span class="fi">${mi}</span><span class="fx">✕</span>`; if (n) b.append(n);
   b.title = PHN() ? L('Tapni = meni · povleci gor = seznam vrhov','Tap = menu · swipe up = peak list') : L('Meni','Menu'); };
 fab.innerHTML = `<button class="fb" aria-label="${L('Meni','Menu')}" aria-expanded="false"></button>`;
 document.body.append(fab); fabFace(); addEventListener('resize', fabFace);
@@ -4695,7 +4737,7 @@ function fabOpen(it0){ const it = Array.isArray(it0) ? it0 : fabItems(), P = fab
   fab.querySelectorAll('.fo').forEach(o => o.remove());
   it.forEach(([ic, lab, fn, b], k) => { const o = document.createElement('button');
     o.dataset.k = ic; o.className = 'fo' + (P[k][2] ? ' up' : ''); o.style.setProperty('--x', Math.round(P[k][0]) + 'px'); o.style.setProperty('--y', Math.round(P[k][1]) + 'px'); o.style.transitionDelay = (k * 25) + 'ms';
-    o.innerHTML = `<span class="oi">${ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
+    o.innerHTML = `<span class="oi">${window.V2 && window.V2I && V2I[ic] ? V2I[ic] : ic}</span><span class="ol">${esc(lab)}</span>${b ? `<i class="bdg">${b}</i>` : ''}`; o.title = lab;
     o.onclick = e => { e.stopPropagation(); fabClose(); fn(); }; fab.append(o); });
   fabBg.classList.add('on'); document.body.classList.add('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'true'); requestAnimationFrame(() => requestAnimationFrame(() => fab.classList.add('open'))); }
 let fabY = null, fabSw = false;
@@ -4704,7 +4746,7 @@ fab.querySelector('.fb').addEventListener('pointermove', e => { if (fabY == null
 addEventListener('pointerup', () => { fabY = null; });
 fab.querySelector('.fb').onclick = e => { e.stopPropagation(); if (fabSw){ fabSw = false; return; } fab.classList.contains('open') ? fabClose() : fabOpen(); };
 fabBg.onclick = fabClose; addEventListener('keydown', e => { if (e.key === 'Escape' && fab.classList.contains('open')) fabClose(); });
-window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.__fabOpen = fabOpen; window.__fabPos = fabPos;
+window.openMenu = () => fabOpen(); window.fabClose = fabClose; window.fabFace = fabFace; window.__fabOpen = fabOpen; window.__fabPos = fabPos;
 function socBtns(){ const n = badgeN(), b = fab.querySelector('.fb'); let i = b.querySelector('.bdg');
   if (n && !i){ i = document.createElement('i'); i.className = 'bdg'; b.append(i); } if (i){ if (n) i.textContent = n; else i.remove(); } }
 
@@ -5589,6 +5631,100 @@ draw(); paint();
 if (S){ setState('busy'); token().then(t => { if (t) sync(); else paint(); }); }
 setInterval(() => { if (S && !document.hidden) refreshBadge(); }, 600000);   // red dot: new friend requests / group invites
 })();
+
+// ===================== "Nov videz" (v2, experimental): one design system over the existing UI =====================
+// On only when html.v2 is set (Nastavitve → Nov videz, or ?v2=1 / ?v2=0 on the address; remembered). Everything here is scoped
+// to html.v2, so with it off the site looks exactly as before. Tokens: Inter; one accent (alpine red #B42318), ink #1B1F23,
+// grey #626870, stone #F5F4F0, line #E6E3DC, selection blue #1F5FAD; radius 10 (controls) / 14 (cards) / 20 (sheets) / pill;
+// two shadows (floating on the map, sheet / window); line icons instead of emoji in the round menu.
+(function(){
+if (!document.documentElement.classList.contains('v2')) return;
+const f = document.createElement('link'); f.rel = 'stylesheet';
+f.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'; document.head.append(f);
+const PC = '@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine)';
+const PH = '@media (max-width:700px),(max-height:500px) and (pointer:coarse)';
+const c = document.createElement('style'); c.id = 'v2css'; c.textContent = `
+html.v2{--acc:#B42318;--v2red:#B42318;--v2blue:#1F5FAD;--v2float:0 1px 3px rgba(16,24,32,.22);--v2sheet:0 8px 28px rgba(16,24,32,.18)}
+@media (prefers-color-scheme:light){html.v2{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--bg:#F5F4F0;--panel:#ffffff;--solid:#ffffff}}
+@media (prefers-color-scheme:dark){html.v2{--acc:#F07167;--v2blue:#6EA8F0}}
+html.v2 body,html.v2 button,html.v2 input,html.v2 select,html.v2 textarea,html.v2 .maplibregl-popup-content,html.v2 .maplibregl-ctrl{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important}
+html.v2 body{-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+
+/* panels, sheets, cards, windows */
+html.v2 .panel,html.v2 #drawer,html.v2 .card,html.v2 #plCard{backdrop-filter:none!important;border:0!important;box-shadow:var(--v2sheet)!important}
+${PC}{ html.v2 .card,html.v2 #plCard{border-radius:14px!important} }
+${PH}{ html.v2 .card,html.v2 #plCard,html.v2 #drawer,html.v2 .panel{border-radius:20px 20px 0 0!important} }
+html.v2 .maplibregl-popup-content{border-radius:14px!important;box-shadow:0 8px 28px rgba(16,24,32,.24)!important;padding:14px 14px 12px!important}
+html.v2 #setWin .setcard,html.v2 #accWin .acard{border-radius:16px!important}
+html.v2 .panel h1,html.v2 #dtitle{letter-spacing:-.015em}
+
+/* buttons: primary (red), secondary (outlined), all 10 px corners */
+html.v2 .btn,html.v2 .pbtns button,html.v2 .rb button,html.v2 .sb,html.v2 .alt,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 .tb{border-radius:10px!important;font-weight:600!important}
+html.v2 .pbtns button,html.v2 .rb button{min-height:40px;border:1px solid var(--line)!important;background:var(--solid)!important;color:var(--ink)!important}
+html.v2 .btn:not(.btn2){background:var(--ink);border-color:var(--ink)}
+html.v2 .sb.pri,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #tour .nx,html.v2 .admd .pri{background:var(--v2red)!important;border-color:var(--v2red)!important;color:#fff!important}
+html.v2 .pplan{border-radius:10px!important;border-style:solid!important;font-weight:600}
+
+/* chips (pills) and segmented switches */
+html.v2 #chips button,html.v2 .chips button,html.v2 .tchips button{border-radius:999px!important;font-weight:500}
+html.v2 #chips button.on,html.v2 .chips button.on,html.v2 .tchips button.on{background:var(--ink)!important;color:var(--panel)!important;border-color:var(--ink)!important}
+html.v2 #stchips{border:0!important;background:rgba(127,127,127,.14);border-radius:10px!important;padding:3px;gap:3px}
+html.v2 #stchips button{border:0!important;border-radius:8px!important;font-weight:500}
+html.v2 #stchips button.on{background:var(--solid)!important;color:var(--ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(16,24,32,.14)}
+
+/* peak list */
+html.v2 .rg{letter-spacing:.06em;font-weight:700}
+html.v2 .it .rk{border:0!important;background:rgba(127,127,127,.13);border-radius:6px!important;font-weight:600;color:var(--ink)}
+html.v2 .it input[type=checkbox]{accent-color:#2E7D4F}
+
+/* route card */
+html.v2 .ri{border-radius:12px!important}
+html.v2 .ri.on{border-color:var(--v2blue)!important;background:rgba(31,95,173,.07)!important}
+html.v2 .pzs{background:var(--v2red)!important;border-radius:4px!important}
+
+/* map buttons, legends, little pills on the map */
+html.v2 .maplibregl-ctrl-group{border-radius:12px!important;box-shadow:var(--v2float)!important;overflow:hidden}
+html.v2 #hleg,html.v2 #snowleg{border-radius:12px!important;box-shadow:var(--v2float)!important}
+
+/* the red button, its menu and the peaks tab */
+html.v2 #fab .fb{background:var(--v2red)!important}
+html.v2 #fab.open .fb{background:#1B1F23!important}
+html.v2 #fab .fo{width:52px!important;height:52px!important;left:5px!important;top:5px!important;box-shadow:0 4px 14px rgba(16,24,32,.24)!important}
+${PH}{ html.v2 #fab .fo{left:5px!important;top:5px!important} }
+html.v2 #fab .fb .fi svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;display:block}
+html.v2 #fab .fo .oi svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;display:block}
+html.v2 #fab .fo .ol{font:600 12px Inter,system-ui,sans-serif!important;border-radius:6px!important;padding:2px 7px!important;box-shadow:0 1px 3px rgba(16,24,32,.14)}
+html.v2 #fab.open .fo:hover,html.v2 #fab.open .fo:focus-visible,html.v2 #fab.open .fo:active{background:var(--v2red)!important;color:#fff!important;box-shadow:0 6px 18px rgba(180,35,24,.4)!important}
+html.v2 #fab .fo:hover .ol,html.v2 #fab .fo:focus-visible .ol,html.v2 #fab .fo:active .ol{background:var(--v2red)!important;color:#fff!important}
+html.v2 #fabTab{font-family:Inter,system-ui,sans-serif!important;font-weight:600!important;box-shadow:0 -4px 16px rgba(16,24,32,.16)!important}
+html.v2 #fabTab .tr{color:var(--v2red)!important}
+
+/* PC side tabs: calm white handles instead of a blue and a red bar */
+${PC}{ html.v2 #ltab,html.v2 #ptab{background:var(--solid)!important;color:var(--ink)!important;box-shadow:var(--v2float)!important;border:0!important}
+  html.v2 #ptab em,html.v2 #vcount3{color:var(--v2red)!important} }
+
+/* guide */
+html.v2 #tour .tc{border-radius:18px!important}
+html.v2 #tour h3{letter-spacing:-.01em}
+`;
+document.head.append(c);
+})();
+// line icons for the round menu (account.js uses them when html.v2 is on)
+window.V2I = (() => { const s = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`; return {
+  '◧': s('<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/>'),
+  '⚙': s('<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h12M20 18h0"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'),
+  '👤': s('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
+  '✏️': s('<path d="M4 20l4-1 11-11-3-3L5 16l-1 4Z"/><path d="m14 7 3 3"/>'),
+  '🗓': s('<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 14h2M14 14h2M8 17h2"/>'),
+  '🏆': s('<path d="M8 4h8v5a4 4 0 0 1-8 0V4Z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M10 17h4"/>'),
+  '👥': s('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5 6.5-5s5.5 1.5 6.5 5"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2 .7 3.2 2.3 3.5 5"/>'),
+  '⛰': s('<path d="m3 20 6.5-11 4 6 2.5-3.5L21 20H3Z"/><path d="M9.5 9V4l3 1.2-3 1.3"/>'),
+  '📍': s('<path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/>'),
+  '❓': s('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7M12 17h.01"/>'),
+  '🛠': s('<path d="M15 4a5 5 0 0 0-4.6 6.9L4 17.3V20h2.7l6.4-6.4A5 5 0 0 0 20 9l-3 1-2-2 1-3Z"/>'),
+  '☰': s('<path d="M4 7h16M4 12h16M4 17h16"/>')
+}; })();
+if (window.V2 && window.fabFace) fabFace();
 </script>
 </body>
 </html>
