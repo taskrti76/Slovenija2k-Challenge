@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="sl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Test panorame · Triglav</title>
+<style>
+  :root{--bg:#10161c;--ink:#e8edf2;--mute:#9aa7b3}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px system-ui,sans-serif}
+  header{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 16px}
+  header b{font-size:1.1em}header span{color:var(--mute);font-size:.9em}
+  button{border:1px solid #3a4651;background:#1b242d;color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;cursor:pointer}button.on{background:#c62828;border-color:#c62828}
+  #wrap{overflow:auto;cursor:grab;touch-action:pan-x pan-y;height:calc(100vh - 60px);background:#000}
+  #wrap.drag{cursor:grabbing}#img{display:block;height:100%;width:auto;max-width:none;user-select:none;-webkit-user-drag:none}
+</style></head><body>
+<header><b>Triglav 2864 m · test panorame</b>
+  <button data-s="poletje" class="on">Poletje</button><button data-s="zima">Zima</button>
+  <button id="zi">＋</button><button id="zo">－</button>
+  <span>Vleci za premik, kolešček / ＋ － za povečavo. Izris iz LiDAR terena (Mapterhorn), barve po višini in strmini — še brez ortofota.</span></header>
+<div id="wrap"><img id="img" alt="Panorama s Triglava"></div>
+<script>
+const img=document.getElementById('img'), wrap=document.getElementById('wrap'); let S='poletje', Z=1;
+function load(){ const full=`triglav-2864_${S}.jpg`; img.src=`triglav-2864_${S}_mali.jpg`; const im=new Image(); im.onload=()=>{ if(img.src.includes(S)) img.src=full; }; im.src=full; }
+function zoom(k,cx){ const old=Z; Z=Math.max(1,Math.min(6,Z*k)); const x=(wrap.scrollLeft+(cx??wrap.clientWidth/2))/old*Z-(cx??wrap.clientWidth/2);
+  img.style.height=(100*Z)+'%'; requestAnimationFrame(()=>wrap.scrollLeft=x); }
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{ S=b.dataset.s; document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x===b)); load(); });
+document.getElementById('zi').onclick=()=>zoom(1.5); document.getElementById('zo').onclick=()=>zoom(1/1.5);
+wrap.addEventListener('wheel',e=>{ if(Math.abs(e.deltaY)<Math.abs(e.deltaX)) return; e.preventDefault(); zoom(e.deltaY<0?1.25:0.8,e.clientX); },{passive:false});
+let dx=null; wrap.onpointerdown=e=>{ if(e.pointerType!=='mouse') return; dx=[e.clientX,e.clientY,wrap.scrollLeft,wrap.scrollTop]; wrap.classList.add('drag'); };
+addEventListener('pointermove',e=>{ if(!dx) return; wrap.scrollLeft=dx[2]-(e.clientX-dx[0]); wrap.scrollTop=dx[3]-(e.clientY-dx[1]); });
+addEventListener('pointerup',()=>{ dx=null; wrap.classList.remove('drag'); });
+load();
+</script></body></html>
