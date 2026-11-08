@@ -1,0 +1,33 @@
+name: Panorama test
+on:
+  workflow_dispatch:
+    inputs:
+      peak:
+        description: 'Peak id (data/peaks.csv)'
+        default: 'triglav-2864'
+      width:
+        description: 'Width in pixels (360°)'
+        default: '12000'
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  pano:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install numpy pillow
+      - run: python tools/pano_render.py --peak "${{ inputs.peak }}" --width "${{ inputs.width }}" --out test/pano
+      - name: Commit the panorama
+        run: |
+          git config user.name  "pano-bot"
+          git config user.email "pano-bot@users.noreply.github.com"
+          git add test/pano/*.jpg
+          git diff --cached --quiet && exit 0
+          git commit -m "panorama test: ${{ inputs.peak }}"
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
