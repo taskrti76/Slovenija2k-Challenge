@@ -1,0 +1,20 @@
+name: Badge photos
+on:
+  workflow_dispatch: {}     # run once by hand: Actions tab -> Badge photos -> Run workflow
+permissions:
+  contents: write
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/badge_photos.py
+      - name: Commit tools/badges/photos
+        run: |
+          git config user.name  "badges-bot"
+          git config user.email "badges-bot@users.noreply.github.com"
+          git add tools/badges/photos
+          git diff --cached --quiet && exit 0
+          git commit -m "badge photos (Wikimedia Commons)"
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
