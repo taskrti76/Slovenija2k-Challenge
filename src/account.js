@@ -1252,9 +1252,10 @@ const sname = p => p.name.split(' (')[0];
 const RANGE_ORDER = ['Julijske Alpe', 'Kamniško-Savinjske Alpe', 'Karavanke', 'Pohorje', 'Snežnik', 'Predalpe'];
 // one peak per badge (SIL_PK), drawn as its own emblem (SIL_ART)
 const SIL_PK = {c10: 'Mangart', c25: 'Jalovec', c50: 'Razor', c98: 'Triglav', 'Julijske Alpe*': 'Škrlatica', 'Julijske Alpe': 'Visoki Kanin',
-  'Kamniško-Savinjske Alpe*': 'Grintovec', 'Kamniško-Savinjske Alpe': 'Ojstrica', 'Karavanke*': 'Stol', 'Karavanke': 'Vrtača',
+  'Kamniško-Savinjske Alpe*': 'Grintovec', 'Kamniško-Savinjske Alpe': 'Ojstrica', 'Karavanke*': 'Stol', 'Karavanke': 'Košutnikov turn',
   'Pohorje*': 'Črni vrh', 'Pohorje': 'Rogla', 'Snežnik*': 'Veliki Snežnik', 'Snežnik': 'Travica', 'Predalpe*': 'Altemaver', 'Predalpe': 'Porezen'};
 const silPeak = (k, rng) => { const nm = SIL_PK[k], ok = p => sname(p) === nm && p.lat != null; return nm ? PEAKS.find(p => ok(p) && (!rng || p.range === rng)) || PEAKS.find(ok) || null : null; };
+const BN = n => ({'Košutnikov turn': 'Košuta'})[n] || n;   // name on the badge band
 function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = PEAKS.filter(isP2), out = [], tr = window.T || (x => x);
   const nP2 = P2.filter(p => T0.has(p.id)).length;
   for (const n of [10, 25, 50, P2.length]){ const k = 'c' + (n >= P2.length ? 98 : n), pk = silPeak(k);
@@ -1263,8 +1264,8 @@ function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = 
   for (const r of RANGE_ORDER){ const alp = PEAKS.some(p => p.range === r && p.tier !== '1500'), set = PEAKS.filter(p => p.range === r && (alp ? p.tier !== '1500' : p.tier === '1500'));
     if (!set.length) continue; const main = set.filter(alp ? isP2 : isP15), top = main.filter(p => !/^Vrh \d|^\d/.test(p.name)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 2).map(sname);
     const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555', p1 = silPeak(r + '*', r), p2 = silPeak(r, r);
-    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [sname(p1)] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
-    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [sname(p2)] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
+    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [BN(sname(p1))] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
+    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [BN(sname(p2))] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
   return out; }
 
 let BID = 0;
@@ -1293,19 +1294,24 @@ const SIL_ART = {
   Travica: {m: 'M2 72Q30 42 52 40Q74 44 98 72Z', d: [[14,67,7],[22,62,7],[80,63,7],[88,68,7]].map(t => TREE(...t)).join(''), l: 'M40 48l2-4 2 4 M50 45l2-4 2 4 M60 48l2-4 2 4'},
   Altemaver: {m: 'M2 72L16 50L26 40L64 37L78 42L86 52L98 72Z', k: 'M64 37L78 42L86 52L98 72H62Z', r: 'M20 50L26 42L30 52Z M34 48L38 41L41 50Z', x: HUT(50, 38)},   // Krekova koča
   Porezen: {m: 'M2 72Q26 44 50 38Q74 44 98 72Z', k: 'M50 38Q74 44 98 72H50Z', x: 'M48.6 38v-12l1.4-2.4 1.4 2.4v12Z'}};   // memorial
+// emblems drawn from photos like the app logo (tools/badges/emblem.py, files in badges/): [file, highest land point in the 100 box]
+const EMB = {'Škrlatica': ['skrlatica', 41.5], Mangart: ['mangart', 10.5], Jalovec: ['jalovec', 24.5], 'Visoki Kanin': ['kanin', 34], Grintovec: ['grintovec', 20.5],
+  Ojstrica: ['ojstrica', 16], Stol: ['stol', 33.5], 'Košutnikov turn': ['kosuta', 34.5], 'Veliki Snežnik': ['sneznik', 47], Porezen: ['porezen', 37], Triglav: ['triglav', 56.5]};
+const embImg = e => { const s = Math.max(1.05, 78 / (100 - e[1])), ty = 22 - s * e[1], tx = 50 - 50 * s;   // ridge top at y 22, photo fills to the bottom
+  return `<image href="badges/${e[0]}.svg" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${(100 * s).toFixed(1)}" height="${(100 * s).toFixed(1)}"/>`; };
 function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.n, C = 2 * Math.PI * 46, gold = b.ring === 'gold', rim = gold ? ['#f9e08b', '#b8860b'] : ['#f4f6f7', '#90a4ae'];
-  const A = b.pk && SIL_ART[sname(b.pk)] || SIL_ART.Grintovec, band = b.big || (b.sub || [])[0] || '', fs = b.big ? (b.big.length > 2 ? 17 : 19) : Math.min(11, 125 / Math.max(6, band.length));
-  const sky = gold ? [b.col, '#fff'] : [b.col, '#ffcc80'];   // ★ = day sky, all peaks = evening sky
+  const E = b.pk && EMB[sname(b.pk)], A = b.pk && SIL_ART[sname(b.pk)] || SIL_ART.Grintovec, band = b.big || (b.sub || [])[0] || '', fs = b.big ? (b.big.length > 2 ? 17 : 19) : Math.min(11, 125 / Math.max(6, band.length));
+  const sky = E ? ['#0e3a86', '#9cc9ec'] : gold ? [b.col, '#fff'] : [b.col, '#ffcc80'];   // ★ = day sky, all peaks = evening sky
   return `<svg viewBox="0 0 100 100" width="76" height="76" aria-hidden="true"><defs><linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${rim[0]}"/><stop offset="1" stop-color="${rim[1]}"/></linearGradient>
     <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset=".25" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}" stop-opacity=".55"/></linearGradient>
     <clipPath id="${id}c"><circle cx="50" cy="50" r="39"/></clipPath></defs>
     <g${done ? '' : ' style="filter:grayscale(1);opacity:.5"'}>
-    <circle cx="50" cy="50" r="47" fill="url(#${id}r)"/><circle cx="50" cy="50" r="39" fill="${b.col}"/><circle cx="50" cy="50" r="39" fill="url(#${id}s)"/>
+    <circle cx="50" cy="50" r="47" fill="url(#${id}r)"/><circle cx="50" cy="50" r="39" fill="${E ? '#2a73c6' : b.col}"/><circle cx="50" cy="50" r="39" fill="url(#${id}s)"/>
     <g clip-path="url(#${id}c)">${gold ? '' : `<circle cx="72" cy="30" r="6" fill="#fff3c4" opacity=".9"/>`}
-      <path d="${A.m}" fill="#eef2f4" stroke="#263238" stroke-width="1.6" stroke-linejoin="round"/>${A.k ? `<path d="${A.k}" fill="#90a4ae" opacity=".55"/>` : ''}
+      ${E ? embImg(E) : `<path d="${A.m}" fill="#eef2f4" stroke="#263238" stroke-width="1.6" stroke-linejoin="round"/>${A.k ? `<path d="${A.k}" fill="#90a4ae" opacity=".55"/>` : ''}
       ${A.w ? `<path d="${A.w}" fill="#fff"/>` : ''}${A.r ? `<path d="${A.r}" fill="#546e7a"/>` : ''}${A.d ? `<path d="${A.d}" fill="#2e5d3a"/>` : ''}
       ${A.l ? `<path d="${A.l}" fill="none" stroke="#263238" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>` : ''}${A.x ? `<path d="${A.x}" fill="#fff" stroke="#263238" stroke-width="1.2" stroke-linejoin="round"/>` : ''}
-      <path d="M0 72H100V100H0Z" fill="#263238" opacity=".22"/>
+      <path d="M0 72H100V100H0Z" fill="#263238" opacity=".22"/>`}
       ${band ? `<rect x="0" y="64" width="100" height="${b.big ? 22 : 17}" fill="rgba(0,0,0,.5)"/>` : ''}</g>
     ${band ? `<text x="50" y="${b.big ? 81 : 76.5}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="${b.big ? 900 : 700}" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(band)}</text>` : ''}
     ${gold && !b.big ? `<text x="50" y="21" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:9px" fill="#b8860b">★</text>` : ''}

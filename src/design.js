@@ -13,6 +13,8 @@ const c = document.createElement('style'); c.id = 'v2css'; c.textContent = `
 html.v2{--acc:#B42318;--v2red:#B42318;--v2blue:#1F5FAD;--v2float:0 1px 3px rgba(16,24,32,.22);--v2sheet:0 8px 28px rgba(16,24,32,.18)}
 @media (prefers-color-scheme:light){html.v2{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--bg:#F5F4F0;--panel:#ffffff;--solid:#ffffff}}
 @media (prefers-color-scheme:dark){html.v2{--acc:#F07167;--v2blue:#6EA8F0}}
+/* the peak window is always white: keep its text dark when the phone is in dark mode (buttons looked disabled) */
+html.v2 .maplibregl-popup-content{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--solid:#fff;--panel:#fff;--acc:#B42318;color:#1B1F23}
 html.v2 body,html.v2 button,html.v2 input,html.v2 select,html.v2 textarea,html.v2 .maplibregl-popup-content,html.v2 .maplibregl-ctrl{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important}
 html.v2 body{-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
 
@@ -204,6 +206,10 @@ if (bg){ bg.classList.add('v2base'); bg.querySelectorAll('label').forEach(l => {
   const tx = [...l.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (tx) tx.textContent = ' ' + tx.textContent.trim().replace(/\s*\(.*\)$/, '').replace(/^Snežna karta$/, 'Sneg'); }); }
 document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c => { const l = c.closest('label'); l.classList.add('v2sw');
   const t = document.createElement('span'); t.className = 'v2tx'; [...l.childNodes].filter(n => n !== c).forEach(n => t.append(n)); l.append(t); });
+// ---------- 360° view: name + direction top left with a close button, the controls in one white card at the bottom ----------
+{ const v = $('v360'), ex = $('v360exit');
+  if (v && ex){ ex.classList.add('v2x'); ex.setAttribute('aria-label', L('Zapri razgled','Close view')); ex.title = L('Zapri razgled','Close view');
+    ex.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'; v.append(ex); } }
 if (window.fabFace) fabFace();
 })();
 
@@ -298,4 +304,18 @@ html.v2 #tiers{display:flex;background:rgba(127,127,127,.14);border-radius:10px;
 html.v2 #tiers button{border:0!important;border-radius:8px!important;background:transparent!important;color:var(--mute)!important;font-weight:500}
 html.v2 #tiers button.on{background:var(--solid)!important;color:var(--ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(16,24,32,.14)}
 html.v2 #q{border-radius:10px!important}
+
+/* 360 view (v2) */
+html.v2 body.in360 #v2rail,html.v2 body.in360 #mkdock{display:none!important}
+html.v2 #v360 .vt{margin:calc(16px + env(safe-area-inset-top)) 16px 0 72px;width:auto;max-width:none;background:transparent!important;padding:0;border-radius:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.45);font:700 17px Inter,system-ui,sans-serif}
+html.v2 #v360dir{min-width:0;text-align:left;font:500 13px Inter,system-ui,sans-serif}
+html.v2 #v360 .v2x{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;width:44px;height:44px;border-radius:12px;border:0;background:rgba(255,255,255,.94);color:#1B1F23;display:flex;align-items:center;justify-content:center;padding:0;pointer-events:auto;cursor:pointer;box-shadow:0 1px 3px rgba(16,24,32,.25)}
+html.v2 #v360 .v2x svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+html.v2 #v360 .vb{left:12px;right:12px;transform:none;width:auto;max-width:560px;margin:0 auto;bottom:calc(16px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-radius:16px;padding:12px;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);justify-content:center}
+html.v2 #v360 .vb button{background:#F2F0EB!important;color:#1B1F23!important;backdrop-filter:none;font:600 14px Inter,system-ui,sans-serif;border-radius:999px;padding:10px 14px}
+html.v2 #v360 .vb button.on{background:#1B1F23!important;color:#fff!important}
+html.v2 #v360 .seg{background:#F2F0EB!important;backdrop-filter:none}
+html.v2 #v360 .vb .seg button{background:transparent!important;color:#626870!important}
+html.v2 #v360 .vb .seg button.on{background:#B42318!important;color:#fff!important}
+html.v2 #v360 .vh{bottom:calc(150px + env(safe-area-inset-bottom));text-shadow:0 1px 3px #000}
 `; document.head.append(st); }

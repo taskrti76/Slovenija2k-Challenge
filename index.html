@@ -338,13 +338,17 @@
 </head>
 <body>
 <!-- loading screen with the logo until the map is there (in the app it continues the native splash screen) -->
-<div id="boot"><img src="icon-512.png" alt="" width="176" height="176"><b>Slovenski 2000-čaki</b><i></i></div>
+<div id="boot"><img src="icon-512.png" alt="" width="250" height="250"><b>Slovenski 2000-čaki</b><i></i></div>
 <style>#boot{position:fixed;inset:0;z-index:1000;background:#0e3a86;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;font:700 19px system-ui,sans-serif;transition:opacity .45s}
-#boot.out{opacity:0;pointer-events:none}#boot img{width:min(176px,42vw);height:auto;border-radius:36px;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
-#boot i{width:170px;height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
+#boot.out{opacity:0;pointer-events:none}#boot img{width:min(250px,60vw);height:auto;border-radius:22%;box-shadow:0 8px 30px rgba(0,0,0,.35)}#boot b{letter-spacing:.02em}
+#boot i{width:min(220px,56vw);height:4px;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden;position:relative}#boot i::after{content:'';position:absolute;top:0;bottom:0;left:0;width:40%;background:#fff;border-radius:2px;animation:bootbar 1.1s ease-in-out infinite}
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
 <script>/* experimental new look: ?v2=1 / ?v2=0 switches it (remembered); html.v2 scopes all of it (design.js) */
-try{ var q2=new URLSearchParams(location.search).get('v2'); if(q2!==null) localStorage.setItem('dvat3d_v2',q2==='1'?'1':'0'); window.V2=localStorage.getItem('dvat3d_v2')==='1'; }catch(e){ window.V2=false; } if(window.V2) document.documentElement.classList.add('v2');
+/* looks: 0 = osnovni, 1 = nov videz, mk = markacija (nov videz + markacija skin and bottom bar) */
+try{ var q2=new URLSearchParams(location.search).get('v2'); if(q2!==null) localStorage.setItem('dvat3d_v2',q2==='mk'?'mk':q2==='1'?'1':'0'); var lv=localStorage.getItem('dvat3d_v2'); window.V2=lv==='1'||lv==='mk'; window.MK=lv==='mk'; }catch(e){ window.V2=false; window.MK=false; }
+if(window.V2) document.documentElement.classList.add('v2'); if(window.MK) document.documentElement.classList.add('mk');
+/* app: the native splash steps aside as soon as this page paints, so the loading screen with its bar is what you see */
+requestAnimationFrame(function(){ setTimeout(function(){ try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:200}).catch(function(){}); }catch(e){} },50); });
 window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };
 window.bootOut=function(){ var b=document.getElementById('boot'); if(b&&!b.classList.contains('out')){ b.classList.add('out'); setTimeout(function(){ b.remove(); },500); }
   try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:250}).catch(function(){}); }catch(e){} };
@@ -640,7 +644,7 @@ hleg.innerHTML=`<div class="lh"><b>⛰<span class="lt"> Nadmorska višina</span>
   <div class="hl"><span>0</span><span>1000</span><span>2000</span><span>2900</span></div></div>`;
 document.body.append(hleg);
 function updH(){ const b=(document.querySelector('input[name=base]:checked')||{}).value, sl=document.getElementById('snowleg');
-  hleg.style.display=b==='relief'&&!(sl&&sl.style.display==='block')?'block':'none'; }
+  hleg.style.display=b==='relief'?'block':'none'; placeLegends&&setTimeout(placeLegends,0); }   // both legends can show, stacked at the right edge (no more one hiding the other)
 document.querySelectorAll('input[name=base]').forEach(r=>r.addEventListener('change',()=>setTimeout(updH,0)));
 new MutationObserver(updH).observe(document.getElementById('snowleg'),{attributes:true,attributeFilter:['style']}); updH();
 { const x=document.getElementById('hlegx'), setMin=v=>{ hleg.classList.toggle('min',v); x.textContent=v?'▸':'–'; try{ localStorage.setItem('dvat3d_hlegmin',v?'1':'0'); }catch(_){} };
@@ -4166,7 +4170,9 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="chips" data-k="ferrata" style="margin-top:6px"><button data-v="1">${L('ferate: da','via ferratas: yes')}</button><button data-v="0">${L('ferate: ne','via ferratas: no')}</button></div>
   <div class="hint">${L('Težje poti in vrhovi dobijo oznako »⚠ nad tvojo mejo«. T2 planinska, T3 zahtevna planinska, T4 alpska, T5 zahtevna alpska, T6 težka alpska pot.','Harder routes and peaks get "⚠ above your limit". T2 mountain, T3 demanding mountain, T4 alpine, T5 demanding alpine, T6 difficult alpine.')}</div>
   <h4>${L('Videz','Look')}</h4>
-  <label style="display:flex;align-items:center;gap:8px;margin:4px 0"><input type="checkbox" id="setV2" ${window.V2 ? 'checked' : ''}> ${L('Nov videz (preizkus)','New look (preview)')}</label>
+  <div class="tchips" id="setV2" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">${[['0', L('Osnovni','Classic')], ['1', L('Nov videz','New look')], ['mk', L('Markacija','Trail blaze')]].map(([v, t]) =>
+    `<button type="button" data-v="${v}" class="${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? 'on' : ''}" style="padding:7px 12px;border-radius:16px;border:1px solid var(--line);background:${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? 'var(--accent,#1565c0)' : 'transparent'};color:${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? '#fff' : 'inherit'};font:inherit;cursor:pointer">${t}</button>`).join('')}</div>
+  <div style="font-size:.85em;color:var(--mute)">${L('Nov videz in Markacija sta preizkusa.','New look and Trail blaze are previews.')}</div>
   <div class="hint">${L('Nove barve, pisava Inter, ikone namesto emojijev. Stran se ponovno naloži.','New colours, Inter font, icons instead of emoji. The page reloads.')}</div>
   <h4>${L('Napredno','Advanced')}</h4><div class="advbox" id="setAdv"></div></div>`;
 document.body.append(win);
@@ -4175,7 +4181,7 @@ const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k =
 win.querySelectorAll('.chips').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = c.dataset.k, v = +b.dataset.v;
   P[k] = k === 'ferrata' ? v === 1 : v; paintChips(); save(); });
 paintChips();
-$s('setV2').onchange = e => { try{ localStorage.setItem('dvat3d_v2', e.target.checked ? '1' : '0'); }catch(_){} location.reload(); };
+$s('setV2').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; try{ localStorage.setItem('dvat3d_v2', b.dataset.v); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
 const close = () => win.classList.remove('on');
@@ -5448,9 +5454,10 @@ const sname = p => p.name.split(' (')[0];
 const RANGE_ORDER = ['Julijske Alpe', 'Kamniško-Savinjske Alpe', 'Karavanke', 'Pohorje', 'Snežnik', 'Predalpe'];
 // one peak per badge (SIL_PK), drawn as its own emblem (SIL_ART)
 const SIL_PK = {c10: 'Mangart', c25: 'Jalovec', c50: 'Razor', c98: 'Triglav', 'Julijske Alpe*': 'Škrlatica', 'Julijske Alpe': 'Visoki Kanin',
-  'Kamniško-Savinjske Alpe*': 'Grintovec', 'Kamniško-Savinjske Alpe': 'Ojstrica', 'Karavanke*': 'Stol', 'Karavanke': 'Vrtača',
+  'Kamniško-Savinjske Alpe*': 'Grintovec', 'Kamniško-Savinjske Alpe': 'Ojstrica', 'Karavanke*': 'Stol', 'Karavanke': 'Košutnikov turn',
   'Pohorje*': 'Črni vrh', 'Pohorje': 'Rogla', 'Snežnik*': 'Veliki Snežnik', 'Snežnik': 'Travica', 'Predalpe*': 'Altemaver', 'Predalpe': 'Porezen'};
 const silPeak = (k, rng) => { const nm = SIL_PK[k], ok = p => sname(p) === nm && p.lat != null; return nm ? PEAKS.find(p => ok(p) && (!rng || p.range === rng)) || PEAKS.find(ok) || null : null; };
+const BN = n => ({'Košutnikov turn': 'Košuta'})[n] || n;   // name on the badge band
 function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = PEAKS.filter(isP2), out = [], tr = window.T || (x => x);
   const nP2 = P2.filter(p => T0.has(p.id)).length;
   for (const n of [10, 25, 50, P2.length]){ const k = 'c' + (n >= P2.length ? 98 : n), pk = silPeak(k);
@@ -5459,8 +5466,8 @@ function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = 
   for (const r of RANGE_ORDER){ const alp = PEAKS.some(p => p.range === r && p.tier !== '1500'), set = PEAKS.filter(p => p.range === r && (alp ? p.tier !== '1500' : p.tier === '1500'));
     if (!set.length) continue; const main = set.filter(alp ? isP2 : isP15), top = main.filter(p => !/^Vrh \d|^\d/.test(p.name)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 2).map(sname);
     const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555', p1 = silPeak(r + '*', r), p2 = silPeak(r, r);
-    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [sname(p1)] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
-    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [sname(p2)] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
+    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [BN(sname(p1))] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
+    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [BN(sname(p2))] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
   return out; }
 
 let BID = 0;
@@ -5489,19 +5496,24 @@ const SIL_ART = {
   Travica: {m: 'M2 72Q30 42 52 40Q74 44 98 72Z', d: [[14,67,7],[22,62,7],[80,63,7],[88,68,7]].map(t => TREE(...t)).join(''), l: 'M40 48l2-4 2 4 M50 45l2-4 2 4 M60 48l2-4 2 4'},
   Altemaver: {m: 'M2 72L16 50L26 40L64 37L78 42L86 52L98 72Z', k: 'M64 37L78 42L86 52L98 72H62Z', r: 'M20 50L26 42L30 52Z M34 48L38 41L41 50Z', x: HUT(50, 38)},   // Krekova koča
   Porezen: {m: 'M2 72Q26 44 50 38Q74 44 98 72Z', k: 'M50 38Q74 44 98 72H50Z', x: 'M48.6 38v-12l1.4-2.4 1.4 2.4v12Z'}};   // memorial
+// emblems drawn from photos like the app logo (tools/badges/emblem.py, files in badges/): [file, highest land point in the 100 box]
+const EMB = {'Škrlatica': ['skrlatica', 41.5], Mangart: ['mangart', 10.5], Jalovec: ['jalovec', 24.5], 'Visoki Kanin': ['kanin', 34], Grintovec: ['grintovec', 20.5],
+  Ojstrica: ['ojstrica', 16], Stol: ['stol', 33.5], 'Košutnikov turn': ['kosuta', 34.5], 'Veliki Snežnik': ['sneznik', 47], Porezen: ['porezen', 37], Triglav: ['triglav', 56.5]};
+const embImg = e => { const s = Math.max(1.05, 78 / (100 - e[1])), ty = 22 - s * e[1], tx = 50 - 50 * s;   // ridge top at y 22, photo fills to the bottom
+  return `<image href="badges/${e[0]}.svg" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${(100 * s).toFixed(1)}" height="${(100 * s).toFixed(1)}"/>`; };
 function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.n, C = 2 * Math.PI * 46, gold = b.ring === 'gold', rim = gold ? ['#f9e08b', '#b8860b'] : ['#f4f6f7', '#90a4ae'];
-  const A = b.pk && SIL_ART[sname(b.pk)] || SIL_ART.Grintovec, band = b.big || (b.sub || [])[0] || '', fs = b.big ? (b.big.length > 2 ? 17 : 19) : Math.min(11, 125 / Math.max(6, band.length));
-  const sky = gold ? [b.col, '#fff'] : [b.col, '#ffcc80'];   // ★ = day sky, all peaks = evening sky
+  const E = b.pk && EMB[sname(b.pk)], A = b.pk && SIL_ART[sname(b.pk)] || SIL_ART.Grintovec, band = b.big || (b.sub || [])[0] || '', fs = b.big ? (b.big.length > 2 ? 17 : 19) : Math.min(11, 125 / Math.max(6, band.length));
+  const sky = E ? ['#0e3a86', '#9cc9ec'] : gold ? [b.col, '#fff'] : [b.col, '#ffcc80'];   // ★ = day sky, all peaks = evening sky
   return `<svg viewBox="0 0 100 100" width="76" height="76" aria-hidden="true"><defs><linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${rim[0]}"/><stop offset="1" stop-color="${rim[1]}"/></linearGradient>
     <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset=".25" stop-color="${sky[0]}"/><stop offset="1" stop-color="${sky[1]}" stop-opacity=".55"/></linearGradient>
     <clipPath id="${id}c"><circle cx="50" cy="50" r="39"/></clipPath></defs>
     <g${done ? '' : ' style="filter:grayscale(1);opacity:.5"'}>
-    <circle cx="50" cy="50" r="47" fill="url(#${id}r)"/><circle cx="50" cy="50" r="39" fill="${b.col}"/><circle cx="50" cy="50" r="39" fill="url(#${id}s)"/>
+    <circle cx="50" cy="50" r="47" fill="url(#${id}r)"/><circle cx="50" cy="50" r="39" fill="${E ? '#2a73c6' : b.col}"/><circle cx="50" cy="50" r="39" fill="url(#${id}s)"/>
     <g clip-path="url(#${id}c)">${gold ? '' : `<circle cx="72" cy="30" r="6" fill="#fff3c4" opacity=".9"/>`}
-      <path d="${A.m}" fill="#eef2f4" stroke="#263238" stroke-width="1.6" stroke-linejoin="round"/>${A.k ? `<path d="${A.k}" fill="#90a4ae" opacity=".55"/>` : ''}
+      ${E ? embImg(E) : `<path d="${A.m}" fill="#eef2f4" stroke="#263238" stroke-width="1.6" stroke-linejoin="round"/>${A.k ? `<path d="${A.k}" fill="#90a4ae" opacity=".55"/>` : ''}
       ${A.w ? `<path d="${A.w}" fill="#fff"/>` : ''}${A.r ? `<path d="${A.r}" fill="#546e7a"/>` : ''}${A.d ? `<path d="${A.d}" fill="#2e5d3a"/>` : ''}
       ${A.l ? `<path d="${A.l}" fill="none" stroke="#263238" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>` : ''}${A.x ? `<path d="${A.x}" fill="#fff" stroke="#263238" stroke-width="1.2" stroke-linejoin="round"/>` : ''}
-      <path d="M0 72H100V100H0Z" fill="#263238" opacity=".22"/>
+      <path d="M0 72H100V100H0Z" fill="#263238" opacity=".22"/>`}
       ${band ? `<rect x="0" y="64" width="100" height="${b.big ? 22 : 17}" fill="rgba(0,0,0,.5)"/>` : ''}</g>
     ${band ? `<text x="50" y="${b.big ? 81 : 76.5}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="${b.big ? 900 : 700}" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(band)}</text>` : ''}
     ${gold && !b.big ? `<text x="50" y="21" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:9px" fill="#b8860b">★</text>` : ''}
@@ -5686,6 +5698,8 @@ const c = document.createElement('style'); c.id = 'v2css'; c.textContent = `
 html.v2{--acc:#B42318;--v2red:#B42318;--v2blue:#1F5FAD;--v2float:0 1px 3px rgba(16,24,32,.22);--v2sheet:0 8px 28px rgba(16,24,32,.18)}
 @media (prefers-color-scheme:light){html.v2{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--bg:#F5F4F0;--panel:#ffffff;--solid:#ffffff}}
 @media (prefers-color-scheme:dark){html.v2{--acc:#F07167;--v2blue:#6EA8F0}}
+/* the peak window is always white: keep its text dark when the phone is in dark mode (buttons looked disabled) */
+html.v2 .maplibregl-popup-content{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--solid:#fff;--panel:#fff;--acc:#B42318;color:#1B1F23}
 html.v2 body,html.v2 button,html.v2 input,html.v2 select,html.v2 textarea,html.v2 .maplibregl-popup-content,html.v2 .maplibregl-ctrl{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important}
 html.v2 body{-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
 
@@ -5877,6 +5891,10 @@ if (bg){ bg.classList.add('v2base'); bg.querySelectorAll('label').forEach(l => {
   const tx = [...l.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (tx) tx.textContent = ' ' + tx.textContent.trim().replace(/\s*\(.*\)$/, '').replace(/^Snežna karta$/, 'Sneg'); }); }
 document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c => { const l = c.closest('label'); l.classList.add('v2sw');
   const t = document.createElement('span'); t.className = 'v2tx'; [...l.childNodes].filter(n => n !== c).forEach(n => t.append(n)); l.append(t); });
+// ---------- 360° view: name + direction top left with a close button, the controls in one white card at the bottom ----------
+{ const v = $('v360'), ex = $('v360exit');
+  if (v && ex){ ex.classList.add('v2x'); ex.setAttribute('aria-label', L('Zapri razgled','Close view')); ex.title = L('Zapri razgled','Close view');
+    ex.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'; v.append(ex); } }
 if (window.fabFace) fabFace();
 })();
 
@@ -5971,7 +5989,104 @@ html.v2 #tiers{display:flex;background:rgba(127,127,127,.14);border-radius:10px;
 html.v2 #tiers button{border:0!important;border-radius:8px!important;background:transparent!important;color:var(--mute)!important;font-weight:500}
 html.v2 #tiers button.on{background:var(--solid)!important;color:var(--ink)!important;font-weight:600;box-shadow:0 1px 2px rgba(16,24,32,.14)}
 html.v2 #q{border-radius:10px!important}
+
+/* 360 view (v2) */
+html.v2 body.in360 #v2rail,html.v2 body.in360 #mkdock{display:none!important}
+html.v2 #v360 .vt{margin:calc(16px + env(safe-area-inset-top)) 16px 0 72px;width:auto;max-width:none;background:transparent!important;padding:0;border-radius:0;display:flex;flex-direction:column;align-items:flex-start;gap:1px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.45);font:700 17px Inter,system-ui,sans-serif}
+html.v2 #v360dir{min-width:0;text-align:left;font:500 13px Inter,system-ui,sans-serif}
+html.v2 #v360 .v2x{position:absolute;top:calc(16px + env(safe-area-inset-top));left:16px;width:44px;height:44px;border-radius:12px;border:0;background:rgba(255,255,255,.94);color:#1B1F23;display:flex;align-items:center;justify-content:center;padding:0;pointer-events:auto;cursor:pointer;box-shadow:0 1px 3px rgba(16,24,32,.25)}
+html.v2 #v360 .v2x svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+html.v2 #v360 .vb{left:12px;right:12px;transform:none;width:auto;max-width:560px;margin:0 auto;bottom:calc(16px + env(safe-area-inset-bottom));background:rgba(255,255,255,.96);border-radius:16px;padding:12px;gap:8px;box-shadow:0 6px 20px rgba(0,0,0,.25);justify-content:center}
+html.v2 #v360 .vb button{background:#F2F0EB!important;color:#1B1F23!important;backdrop-filter:none;font:600 14px Inter,system-ui,sans-serif;border-radius:999px;padding:10px 14px}
+html.v2 #v360 .vb button.on{background:#1B1F23!important;color:#fff!important}
+html.v2 #v360 .seg{background:#F2F0EB!important;backdrop-filter:none}
+html.v2 #v360 .vb .seg button{background:transparent!important;color:#626870!important}
+html.v2 #v360 .vb .seg button.on{background:#B42318!important;color:#fff!important}
+html.v2 #v360 .vh{bottom:calc(150px + env(safe-area-inset-bottom));text-shadow:0 1px 3px #000}
 `; document.head.append(st); }
+
+// ===================== "Markacija" look (preview): the new look (design.js) + trail-blaze skin + a bottom bar on the phone =====================
+// On only with html.mk (Nastavitve → Videz → Markacija, or ?v2=mk). Red #C8102E and white like the Slovenian trail blaze,
+// black 2 px outlines, Barlow Condensed for headings and numbers. Phone: one 64 px bar at the bottom (Vrhovi, Karta, the menu
+// button as a blaze, Načrt, Jaz) instead of the peek sheet. Map: peaks drawn as blazes (red ring, white middle; climbed = red).
+(function(){
+if (!document.documentElement.classList.contains('mk')) return;
+const $ = id => document.getElementById(id), B = document.body, L = (sl, en) => window.LANG === 'en' ? en : sl;
+const f = document.createElement('link'); f.rel = 'stylesheet';
+f.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap'; document.head.append(f);
+const PH = '@media (max-width:700px),(max-height:500px) and (pointer:coarse)', PC = '@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine)';
+const RED = '#C8102E', INK = '#141414', CD = "'Barlow Condensed',Inter,system-ui,sans-serif";
+const st = document.createElement('style'); st.id = 'mkcss'; st.textContent = `
+html.mk{--acc:${RED};--v2red:${RED};--v2float:0 0 0 2px ${INK};--v2sheet:0 0 0 2px ${INK}}
+html.mk .maplibregl-popup-content{--acc:${RED};border:2px solid ${INK}!important;box-shadow:0 6px 0 rgba(20,20,20,.12)!important;border-radius:18px!important}
+html.mk .maplibregl-popup-tip{display:none}
+html.mk .panel h1,html.mk #dtitle,html.mk .v2p .v2n span:first-child,html.mk .rg,html.mk #tour h3,html.mk #setWin h2,html.mk #lbPage h2{font-family:${CD}!important;text-transform:uppercase;letter-spacing:.02em}
+html.mk .v2p .v2n span:first-child{font-size:30px!important;line-height:1}
+html.mk .v2ok{background:${RED}!important;color:#fff!important}
+html.mk .v2act button{background:#fff!important;border:2px solid ${INK}!important;color:${INK}!important;border-radius:14px!important}
+html.mk .v2act button.pri{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
+html.mk .v2snow{background:#fff!important;border:2px solid #1F5FAD}
+html.mk #v2s{border:2px solid ${INK};border-radius:24px!important;box-shadow:none!important}
+html.mk #v2s .av{background:${RED}!important}
+html.mk .maplibregl-ctrl-group{border:2px solid ${INK}!important;border-radius:22px!important;box-shadow:none!important}
+html.mk #hleg,html.mk #snowleg{border:2px solid ${INK}!important;box-shadow:none!important;border-radius:14px!important}
+html.mk #hleg b,html.mk #snowleg b{font-family:${CD};text-transform:uppercase;letter-spacing:.02em;font-size:1.08em}
+html.mk .btn:not(.btn2){background:${INK}!important;border-color:${INK}!important}
+html.mk .sb.pri,html.mk #accBox .go,html.mk #plCard .go,html.mk #tour .nx{background:${RED}!important;border-color:${RED}!important}
+html.mk #chips button.on,html.mk .chips button.on,html.mk .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
+html.mk #stchips button.on{background:${INK}!important;color:#fff!important}
+html.mk .it input[type=checkbox]{accent-color:${RED}}
+html.mk .ri.on{border-color:${RED}!important;background:rgba(200,16,46,.06)!important}
+html.mk #vcount3,html.mk #ptab em{color:${RED}!important;font-family:${CD}}
+html.mk #fab .fb{background:radial-gradient(circle,#fff 0 11px,${RED} 11.5px)!important;border:2px solid ${INK}!important;box-shadow:none!important}
+html.mk #fab .fb .fi{color:${RED}!important}html.mk #fab .fb .fi svg{width:16px!important;height:16px!important;stroke-width:3!important}
+html.mk #fab.open .fb{background:${INK}!important}html.mk #fab.open .fb .fx{color:#fff}
+html.mk #fab .fo{border:2px solid ${INK}!important;box-shadow:none!important}
+html.mk #fab .fo .ol{border:1.5px solid ${INK};box-shadow:none!important}
+html.mk #fab.open .fo:hover,html.mk #fab.open .fo:active{background:${RED}!important}
+html.mk #v2rail{border-right:2px solid ${INK}!important;box-shadow:none!important}
+html.mk #v2rail .rl.on{background:${RED}!important;color:#fff!important}
+html.mk #v2rail .logo{background:${RED}!important;color:#fff!important}
+html.mk #v360 .vb{border:2px solid ${INK}}html.mk #v360 .vb .seg button.on,html.mk #v360 .vb button.on{background:${RED}!important;color:#fff!important}
+html.mk #v360 .v2x{border:2px solid ${INK}}
+html.mk #mkdock{display:none}
+${PH}{
+  html.mk #fabTab{display:none!important}
+  html.mk #mkdock{display:flex;position:absolute;z-index:8;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:#fff;border:2px solid ${INK};border-radius:32px;align-items:center;padding:0 4px;box-sizing:border-box}
+  html.mk body.menu #mkdock,html.mk body.dopen #mkdock,html.mk body.in360 #mkdock,html.mk body.drawing #mkdock,html.mk body.pop #mkdock{display:none}
+  html.mk #mkdock button{flex:1;min-width:0;height:58px;border:0;background:none;color:${INK};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 11px Inter,system-ui,sans-serif;padding:0;cursor:pointer}
+  html.mk #mkdock button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  html.mk #mkdock .cnt{font:700 18px ${CD};color:${RED};line-height:22px}
+  html.mk #mkdock .gap{flex:0 0 70px}
+  html.mk #fab{bottom:calc(24px + env(safe-area-inset-bottom))!important}
+  html.mk body.dopen #fab,html.mk body.menu #fab,html.mk body.pop #fab:not(.open){display:none}
+}
+`; document.head.append(st);
+
+// ---------- phone: bottom bar ----------
+const ico = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+const dock = document.createElement('nav'); dock.id = 'mkdock'; dock.setAttribute('aria-label', L('Glavna vrstica','Main bar'));
+const item = (k) => (window.fabItemsList ? fabItemsList() : []).find(x => x[0] === k);
+dock.innerHTML = `<button data-k="peaks"><span class="cnt" id="mkcnt">0/0</span>${L('Vrhovi','Peaks')}</button>
+  <button data-k="◧">${ico('<path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/>')}${L('Karta','Map')}</button><span class="gap"></span>
+  <button data-k="🗓">${ico('<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>')}${L('Načrt','Plan')}</button>
+  <button data-k="👤">${ico('<circle cx="12" cy="8.5" r="3.8"/><path d="M5 20c1-3.8 3.8-5.5 7-5.5s6 1.7 7 5.5"/>')}${L('Jaz','Me')}</button>`;
+B.append(dock);
+dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k;
+  if (window.fabClose) fabClose();
+  if (k === 'peaks'){ if (window.DRAW_ON && window.stopDraw) stopDraw(); B.classList.remove('menu'); $('drawer').classList.add('open'); return; }
+  const x = item(k); if (x) x[2](); };
+const vc = $('vcount3'), up = () => { const m = (vc && vc.textContent || '').match(/(\d+)\s*\/\s*(\d+)/); if (m) $('mkcnt').textContent = `${m[1]}/${m[2]}`; };
+if (vc) new MutationObserver(up).observe(vc, {childList: true, characterData: true, subtree: true}); up();
+// a peak window open on the phone hides the bar (body.pop is set by the template)
+
+// ---------- map: peaks as trail blazes ----------
+const paint = () => { if (typeof map === 'undefined' || !map.getLayer || !map.getLayer('pk')) return false;
+  map.setPaintProperty('pk', 'circle-color', ['case', ['get', 'v'], RED, '#ffffff']);
+  map.setPaintProperty('pk', 'circle-stroke-color', ['case', ['get', 'v'], '#ffffff', ['get', 't15'], '#8A9199', RED]);
+  map.setPaintProperty('pk', 'circle-stroke-width', ['case', ['get', 'v'], 2, ['get', 't15'], 2, 3.6]); return true; };
+if (!paint()){ const t = setInterval(() => { if (paint()) clearInterval(t); }, 500); setTimeout(() => clearInterval(t), 30000); }
+})();
 </script>
 </body>
 </html>

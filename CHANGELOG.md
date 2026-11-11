@@ -2,6 +2,19 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.72 — 2026-11-12
+- Badges: 11 peaks redrawn from photos the same way as the app logo (photo → sky cut off → tone bands → outlines):
+  Triglav, Mangart, Jalovec, Škrlatica, Visoki Kanin, Grintovec, Ojstrica, Stol, Košuta (replaces Vrtača on the Karavanke
+  badge), Veliki Snežnik (with the hut), Porezen. Files in badges/, tool tools/badges/emblem.py.
+- Third look "Markacija" (preview): Nastavitve → Videz now has Osnovni / Nov videz / Markacija (?v2=0 / 1 / mk). Markacija =
+  the new layout with a trail-blaze skin (red–white, black outlines, condensed headings), peaks drawn as blazes, and on the
+  phone one bottom bar (Vrhovi with count, Karta, menu button, Načrt, Jaz).
+- 360 view in the new looks: name and direction top left with a close button, controls in one white card at the bottom.
+- Loading screen: bigger logo; the app's own start screen now steps aside at once so the loading bar is visible; Android 12+
+  start icon no longer cut by the circle (needs the new APK).
+- Legends: the height legend no longer hides when the snow legend appears - both stay, stacked at the right edge.
+- New look, phone in dark mode: the peak window buttons looked disabled (light text on white) - fixed.
+
 ## web-v0.71 — 2026-11-11
 - Snow legend: the hide button (–) was pushed off the edge by the date; the date now sits on its own line, the button is bigger.
 - 360 view: webcams and the snow legend are hidden.
