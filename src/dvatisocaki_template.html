@@ -206,7 +206,7 @@
   #hleg,#snowleg{top:10px;bottom:auto;right:10px;background:#fff;color:#333;border:0;border-radius:6px;box-shadow:0 0 0 2px rgba(0,0,0,.1);backdrop-filter:none}
   #hleg .lh button,#snowleg .lh button,#hleg .lh .u,#snowleg #snowlegdate,#snowleg .sl,#snowleg .sl3,#hleg .hl{color:#555}
   #hleg.min,#snowleg.min{height:29px;box-sizing:border-box;display:flex;align-items:center;padding:0 6px}#hleg.min .lh,#snowleg.min .lh{width:100%}
-  #snowleg:not(.note) .sl3{display:none}#snowleg #snowlegi{margin-left:auto;font-size:calc(13px * var(--ui,1))}#snowleg #snowlegx{margin-left:0}#snowleg.min #snowlegi{display:none}
+  #snowleg:not(.note) .sl3{display:none}#snowleg #snowlegi{margin-left:auto;font-size:calc(13px * var(--ui,1))}#snowleg #snowlegx{margin-left:0}#snowleg .lh{flex-wrap:wrap}#snowleg .lh button{flex:none}#snowleg #snowlegdate{order:9;flex-basis:100%;margin-top:-2px}#snowleg #snowlegx{font-size:calc(17px * var(--ui,1));min-width:28px;min-height:24px}#snowleg.min #snowlegi{display:none}
   #drawBtn{display:none!important}   /* drawing is in the round ☰ menu (PC) and the tab bar (phone) */
   .ri.rhid{opacity:.5}.rnote2{font-size:.88em;color:#8a5a00;margin-top:2px}
   .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
@@ -216,7 +216,7 @@
   svg.pfx text{paint-order:stroke;stroke:var(--panel,#fff);stroke-width:2px}svg.pfx .pfh text{stroke:none}
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
-  body.in360 #hleg{display:none!important}
+  body.in360 #hleg,body.in360 #snowleg{display:none!important}
   @media (max-width:700px),(max-height:500px) and (pointer:coarse){body.pop #hleg,body.pop #snowleg{display:none!important}}
   /* 360 view */
   #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
@@ -824,7 +824,7 @@ map.on('click',e=>{
     let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)) cm=satAt2(cm,lat,lng,H[py*S+px],T,true,day);
     return Math.round(cm); };
   const tip=document.createElement('div'); tip.id='snowtip'; document.body.append(tip);
-  const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:30;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
+  const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:60;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
   document.head.append(tipCss);
   const showTip=(e)=>{ lastE=e; const v=snowHere(e.lngLat.lng,e.lngLat.lat); if(!v){ tip.style.display='none'; return; }
     const r=map.getContainer().getBoundingClientRect(); tip.style.left=(r.left+e.point.x)+'px'; tip.style.top=(r.top+e.point.y)+'px';

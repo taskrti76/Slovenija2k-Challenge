@@ -125,6 +125,8 @@ window.v2PeakBox = (box, p, o) => {
   if (camN) btn(ICON.cam, `${L('Kamere','Webcams')} · ${camN}`, () => { const c = box.querySelector('.v2cams'); if (c) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   box.append(a);
   if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
+  { const sb = $('snow'), cm = window.snowAt && sb && sb.checked ? snowAt(p.lat, p.lon) : null;   // snow on the summit (snow layer on)
+    if (cm != null){ const d = document.createElement('div'); d.className = 'v2snow'; d.textContent = `❄ ${L('Sneg','Snow')} (${L('model','model')}, ${snowDay()}): ~${cm} cm`; box.append(d); } }
   for (const n of rest) if (n !== wish && n !== plan && n !== cams && !n.classList.contains('pbtns')) box.append(n);   // visited, visit info, weather, GPS, admin
   if (cams){ const c2 = document.createElement('div'); c2.className = 'v2cams';
     cams.querySelectorAll('a').forEach(a0 => { const sm = a0.nextElementSibling, ch = document.createElement('button');
@@ -262,6 +264,7 @@ html.v2 .v2p>label{display:flex;align-items:center;gap:8px;margin-top:8px!import
 html.v2 .v2cams{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 html.v2 .v2cams button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--solid);color:var(--ink);font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer}
 html.v2 .v2cams svg{width:16px;height:16px}html.v2 .v2cams small{color:var(--mute);font-weight:500}
+html.v2 .v2snow{font-size:13px;font-weight:600;color:#1F5FAD;background:#EEF4FB;border-radius:10px;padding:6px 10px;margin:8px 0 0}
 html.v2 .v2meta{font-size:12px;color:var(--mute);margin-top:8px}
 /* routes */
 html.v2 .v2sort{display:flex;background:rgba(127,127,127,.14);border-radius:10px;padding:3px;gap:3px;margin:6px 0 10px}

@@ -632,11 +632,13 @@ function poiApply(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!
 // Windy's key is meant to live in the page (it only works from this site's domain).
 const WINDY_KEY='VEnkEnRvHPr9DEogeHFm8ofbW81dYsX6';
 const camOn=()=>{ try{ return localStorage.getItem('dvat3d_cams')!=='0'; }catch(_){ return true; } };
-let CAMS=null, camLoading=false;
+let CAMS=null, camLoading=false; const CAM_KM=8;
+// 360 view: cameras are not shown (they sat on the horizon as icons)
+new MutationObserver(()=>{ if(map.getLayer('cam')) map.setLayoutProperty('cam','visibility',camOn()&&!document.body.classList.contains('in360')?'visible':'none'); }).observe(document.body,{attributes:true,attributeFilter:['class']});
 async function camsLoad(){ if(CAMS||camLoading||!location.protocol.startsWith('http')) return; camLoading=true;
   try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''}));
-      // only cameras within 20 km of a peak (2000 m or 1500-2000 m list) - town and motorway cameras far from the mountains are left out
-      const PK=(typeof PEAKS!=='undefined'?PEAKS:[]).filter(q=>q.lat!=null); if(PK.length) CAMS=CAMS.filter(c=>PK.some(q=>Math.abs(q.lat-c.lat)<0.19&&Math.abs(q.lon-c.lon)<0.27&&hav(q.lat,q.lon,c.lat,c.lon)<20000)); } }catch(_){}
+      // only cameras within 8 km of a peak (2000 m or 1500-2000 m list) - valley-town and motorway cameras are left out
+      const PK=(typeof PEAKS!=='undefined'?PEAKS:[]).filter(q=>q.lat!=null); if(PK.length) CAMS=CAMS.filter(c=>PK.some(q=>Math.abs(q.lat-c.lat)<0.08&&Math.abs(q.lon-c.lon)<0.11&&hav(q.lat,q.lon,c.lat,c.lon)<CAM_KM*1000)); } }catch(_){}
   camLoading=false; camApply(); }
 function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN;
   const L=(CAMS||[]).filter(c=>!(F[c.key]&&F[c.key].hide&&!A)).map(c=>{ const x=F[c.key]; return x?{...c,name:x.name||c.name,lat:x.lat!=null?+x.lat:c.lat,lon:x.lon!=null?+x.lon:c.lon,hid:x.hide?1:0}:c; })
@@ -644,7 +646,7 @@ function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&w
   window.CAMLIST=L;
   map.getSource('cams').setData({type:'FeatureCollection',features:L.map(c=>({type:'Feature',properties:{key:c.key,name:c.name,hid:c.hid||0},geometry:{type:'Point',coordinates:[c.lon,c.lat]}}))}); }
 // cameras near a peak (peak window: "📷 Kamere v bližini")
-window.camsNear=(la,lo,km=15)=>(window.CAMLIST||[]).map(c=>({c,d:hav(la,lo,c.lat,c.lon)})).filter(x=>x.d<km*1000).sort((a,b)=>a.d-b.d);
+window.camsNear=(la,lo,km=CAM_KM)=>(window.CAMLIST||[]).map(c=>({c,d:hav(la,lo,c.lat,c.lon)})).filter(x=>x.d<km*1000).sort((a,b)=>a.d-b.d);
 window.camOpen=async key=>{ const c=(window.CAMLIST||[]).find(x=>x.key===key); if(!c) return; let o=el('camWin'); if(o) o.remove();
   o=document.createElement('div'); o.id='camWin'; o.className='dlg on';
   o.innerHTML=`<div class="camc"><div class="camh"><b>📷 ${esc(c.name)}</b><button class="x" aria-label="Zapri">×</button></div><div class="camb">Nalagam sliko …</div></div>`;

@@ -206,7 +206,7 @@
   #hleg,#snowleg{top:10px;bottom:auto;right:10px;background:#fff;color:#333;border:0;border-radius:6px;box-shadow:0 0 0 2px rgba(0,0,0,.1);backdrop-filter:none}
   #hleg .lh button,#snowleg .lh button,#hleg .lh .u,#snowleg #snowlegdate,#snowleg .sl,#snowleg .sl3,#hleg .hl{color:#555}
   #hleg.min,#snowleg.min{height:29px;box-sizing:border-box;display:flex;align-items:center;padding:0 6px}#hleg.min .lh,#snowleg.min .lh{width:100%}
-  #snowleg:not(.note) .sl3{display:none}#snowleg #snowlegi{margin-left:auto;font-size:calc(13px * var(--ui,1))}#snowleg #snowlegx{margin-left:0}#snowleg.min #snowlegi{display:none}
+  #snowleg:not(.note) .sl3{display:none}#snowleg #snowlegi{margin-left:auto;font-size:calc(13px * var(--ui,1))}#snowleg #snowlegx{margin-left:0}#snowleg .lh{flex-wrap:wrap}#snowleg .lh button{flex:none}#snowleg #snowlegdate{order:9;flex-basis:100%;margin-top:-2px}#snowleg #snowlegx{font-size:calc(17px * var(--ui,1));min-width:28px;min-height:24px}#snowleg.min #snowlegi{display:none}
   #drawBtn{display:none!important}   /* drawing is in the round ☰ menu (PC) and the tab bar (phone) */
   .ri.rhid{opacity:.5}.rnote2{font-size:.88em;color:#8a5a00;margin-top:2px}
   .pplan{display:block;width:100%;margin-top:6px;border:1px dashed var(--line);background:transparent;color:inherit;border-radius:8px;padding:5px;font:inherit;font-size:.92em;cursor:pointer}
@@ -216,7 +216,7 @@
   svg.pfx text{paint-order:stroke;stroke:var(--panel,#fff);stroke-width:2px}svg.pfx .pfh text{stroke:none}
   #hleg .hb{height:10px;border-radius:5px;margin:6px 0 2px;border:1px solid var(--line)}
   #hleg .hl{display:flex;justify-content:space-between;font-size:calc(10.5px * var(--ui,1));color:var(--mute);font-variant-numeric:tabular-nums}
-  body.in360 #hleg{display:none!important}
+  body.in360 #hleg,body.in360 #snowleg{display:none!important}
   @media (max-width:700px),(max-height:500px) and (pointer:coarse){body.pop #hleg,body.pop #snowleg{display:none!important}}
   /* 360 view */
   #v360{display:none;position:absolute;left:0;right:0;top:0;pointer-events:none;z-index:9}
@@ -824,7 +824,7 @@ map.on('click',e=>{
     let cm=spDepth(lat,lng,H[py*S+px],day,T); if(satDayOK(day)) cm=satAt2(cm,lat,lng,H[py*S+px],T,true,day);
     return Math.round(cm); };
   const tip=document.createElement('div'); tip.id='snowtip'; document.body.append(tip);
-  const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:30;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
+  const tipCss=document.createElement('style'); tipCss.textContent='#snowtip{position:fixed;z-index:60;pointer-events:none;background:rgba(20,24,40,.88);color:#fff;border-radius:8px;padding:4px 8px;font-size:calc(12.5px*var(--ui,1));line-height:1.35;display:none;white-space:nowrap;transform:translate(14px,-50%)}#snowtip b{font-size:1.15em}';
   document.head.append(tipCss);
   const showTip=(e)=>{ lastE=e; const v=snowHere(e.lngLat.lng,e.lngLat.lat); if(!v){ tip.style.display='none'; return; }
     const r=map.getContainer().getBoundingClientRect(); tip.style.left=(r.left+e.point.x)+'px'; tip.style.top=(r.top+e.point.y)+'px';
@@ -2129,11 +2129,13 @@ function poiApply(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!
 // Windy's key is meant to live in the page (it only works from this site's domain).
 const WINDY_KEY='VEnkEnRvHPr9DEogeHFm8ofbW81dYsX6';
 const camOn=()=>{ try{ return localStorage.getItem('dvat3d_cams')!=='0'; }catch(_){ return true; } };
-let CAMS=null, camLoading=false;
+let CAMS=null, camLoading=false; const CAM_KM=8;
+// 360 view: cameras are not shown (they sat on the horizon as icons)
+new MutationObserver(()=>{ if(map.getLayer('cam')) map.setLayoutProperty('cam','visibility',camOn()&&!document.body.classList.contains('in360')?'visible':'none'); }).observe(document.body,{attributes:true,attributeFilter:['class']});
 async function camsLoad(){ if(CAMS||camLoading||!location.protocol.startsWith('http')) return; camLoading=true;
   try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''}));
-      // only cameras within 20 km of a peak (2000 m or 1500-2000 m list) - town and motorway cameras far from the mountains are left out
-      const PK=(typeof PEAKS!=='undefined'?PEAKS:[]).filter(q=>q.lat!=null); if(PK.length) CAMS=CAMS.filter(c=>PK.some(q=>Math.abs(q.lat-c.lat)<0.19&&Math.abs(q.lon-c.lon)<0.27&&hav(q.lat,q.lon,c.lat,c.lon)<20000)); } }catch(_){}
+      // only cameras within 8 km of a peak (2000 m or 1500-2000 m list) - valley-town and motorway cameras are left out
+      const PK=(typeof PEAKS!=='undefined'?PEAKS:[]).filter(q=>q.lat!=null); if(PK.length) CAMS=CAMS.filter(c=>PK.some(q=>Math.abs(q.lat-c.lat)<0.08&&Math.abs(q.lon-c.lon)<0.11&&hav(q.lat,q.lon,c.lat,c.lon)<CAM_KM*1000)); } }catch(_){}
   camLoading=false; camApply(); }
 function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN;
   const L=(CAMS||[]).filter(c=>!(F[c.key]&&F[c.key].hide&&!A)).map(c=>{ const x=F[c.key]; return x?{...c,name:x.name||c.name,lat:x.lat!=null?+x.lat:c.lat,lon:x.lon!=null?+x.lon:c.lon,hid:x.hide?1:0}:c; })
@@ -2141,7 +2143,7 @@ function camApply(){ if(!map.getSource('cams')) return; const F=(window.FIXES&&w
   window.CAMLIST=L;
   map.getSource('cams').setData({type:'FeatureCollection',features:L.map(c=>({type:'Feature',properties:{key:c.key,name:c.name,hid:c.hid||0},geometry:{type:'Point',coordinates:[c.lon,c.lat]}}))}); }
 // cameras near a peak (peak window: "📷 Kamere v bližini")
-window.camsNear=(la,lo,km=15)=>(window.CAMLIST||[]).map(c=>({c,d:hav(la,lo,c.lat,c.lon)})).filter(x=>x.d<km*1000).sort((a,b)=>a.d-b.d);
+window.camsNear=(la,lo,km=CAM_KM)=>(window.CAMLIST||[]).map(c=>({c,d:hav(la,lo,c.lat,c.lon)})).filter(x=>x.d<km*1000).sort((a,b)=>a.d-b.d);
 window.camOpen=async key=>{ const c=(window.CAMLIST||[]).find(x=>x.key===key); if(!c) return; let o=el('camWin'); if(o) o.remove();
   o=document.createElement('div'); o.id='camWin'; o.className='dlg on';
   o.innerHTML=`<div class="camc"><div class="camh"><b>📷 ${esc(c.name)}</b><button class="x" aria-label="Zapri">×</button></div><div class="camb">Nalagam sliko …</div></div>`;
@@ -5796,6 +5798,8 @@ window.v2PeakBox = (box, p, o) => {
   if (camN) btn(ICON.cam, `${L('Kamere','Webcams')} · ${camN}`, () => { const c = box.querySelector('.v2cams'); if (c) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   box.append(a);
   if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
+  { const sb = $('snow'), cm = window.snowAt && sb && sb.checked ? snowAt(p.lat, p.lon) : null;   // snow on the summit (snow layer on)
+    if (cm != null){ const d = document.createElement('div'); d.className = 'v2snow'; d.textContent = `❄ ${L('Sneg','Snow')} (${L('model','model')}, ${snowDay()}): ~${cm} cm`; box.append(d); } }
   for (const n of rest) if (n !== wish && n !== plan && n !== cams && !n.classList.contains('pbtns')) box.append(n);   // visited, visit info, weather, GPS, admin
   if (cams){ const c2 = document.createElement('div'); c2.className = 'v2cams';
     cams.querySelectorAll('a').forEach(a0 => { const sm = a0.nextElementSibling, ch = document.createElement('button');
@@ -5933,6 +5937,7 @@ html.v2 .v2p>label{display:flex;align-items:center;gap:8px;margin-top:8px!import
 html.v2 .v2cams{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 html.v2 .v2cams button{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--solid);color:var(--ink);font:600 12.5px Inter,system-ui,sans-serif;cursor:pointer}
 html.v2 .v2cams svg{width:16px;height:16px}html.v2 .v2cams small{color:var(--mute);font-weight:500}
+html.v2 .v2snow{font-size:13px;font-weight:600;color:#1F5FAD;background:#EEF4FB;border-radius:10px;padding:6px 10px;margin:8px 0 0}
 html.v2 .v2meta{font-size:12px;color:var(--mute);margin-top:8px}
 /* routes */
 html.v2 .v2sort{display:flex;background:rgba(127,127,127,.14);border-radius:10px;padding:3px;gap:3px;margin:6px 0 10px}

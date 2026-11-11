@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.71 — 2026-11-11
+- Snow legend: the hide button (–) was pushed off the edge by the date; the date now sits on its own line, the button is bigger.
+- 360 view: webcams and the snow legend are hidden.
+- Webcams: only those within 8 km of a peak (was 20 km); the peak window lists cameras within 8 km.
+- Nov videz: the snow depth on the summit is back in the peak window (when the snow layer is on).
+- Android app: held sideways, the map now fills the whole screen incl. the strip next to the front camera (system bars hidden,
+  swipe from the edge to show them). Needs the new APK.
+
 ## web-v0.70 — 2026-11-09
 - "Nov videz" (still opt-in, ?v2=1 or Nastavitve → Videz) now also changes the layout, following the mockup:
   - search bar on the map (peaks, huts, trailheads, towns and villages) with a profile button;
