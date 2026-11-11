@@ -73,19 +73,34 @@ jobs:
           p = sys.argv[1]; s = open(p).read()
           pkg = re.search(r'^package [^;]+;', s, re.M).group(0)
           open(p, 'w').write(pkg + '''
+          import android.content.res.Configuration;
           import android.os.Build;
           import android.os.Bundle;
+          import android.view.Window;
           import android.view.WindowManager;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
           import com.getcapacitor.BridgeActivity;
           public class MainActivity extends BridgeActivity {
-            @Override public void onCreate(Bundle b) {
-              super.onCreate(b);
+            // sideways: the map fills the whole screen, incl. the strip next to the front camera (bars come back with a swipe);
+            // upright: normal status bar. The window must not "fit system windows", otherwise Android keeps the camera strip empty.
+            private void bars() {
+              Window w = getWindow();
               if (Build.VERSION.SDK_INT >= 28) {
-                WindowManager.LayoutParams lp = getWindow().getAttributes();
-                lp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-                getWindow().setAttributes(lp);
+                WindowManager.LayoutParams lp = w.getAttributes();
+                lp.layoutInDisplayCutoutMode = Build.VERSION.SDK_INT >= 30 ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+                w.setAttributes(lp);
               }
+              boolean land = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+              WindowCompat.setDecorFitsSystemWindows(w, !land);
+              WindowInsetsControllerCompat c = WindowCompat.getInsetsController(w, w.getDecorView());
+              if (land) { c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE); c.hide(WindowInsetsCompat.Type.systemBars()); }
+              else c.show(WindowInsetsCompat.Type.systemBars());
             }
+            @Override public void onCreate(Bundle b) { super.onCreate(b); bars(); }
+            @Override public void onConfigurationChanged(Configuration n) { super.onConfigurationChanged(n); bars(); }
+            @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) bars(); }
           }
           ''')
           PY
