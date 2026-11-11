@@ -61,7 +61,10 @@ jobs:
           # the page hides it as soon as the map is there (SplashScreen.hide, account / template), at the latest after 12 s
           for f in $(find $A/src/main/res -name splash.png); do W=$(identify -format %w $f); H=$(identify -format %h $f); S=$(( (W<H?W:H)*52/100 ))
             convert -size ${W}x${H} xc:'#0e3a86' \( ../icon-512.png -resize ${S}x${S} \) -gravity center -composite $f; done
-          sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">#0e3a86</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_round</item>\n        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>|' $A/src/main/res/values/styles.xml
+          # Android 12+ cuts the splash icon to a circle: the whole rounded logo goes inside it (47 % of the icon box), sharp at xxxhdpi
+          mkdir -p $A/src/main/res/drawable-nodpi
+          convert -size 960x960 xc:none \( ../icon-512.png -resize 450x450 \) -gravity center -composite $A/src/main/res/drawable-nodpi/splash_logo.png
+          sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@drawable/splash</item>\n        <item name="windowSplashScreenBackground">#0e3a86</item>\n        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_logo</item>\n        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>|' $A/src/main/res/values/styles.xml
           grep -n "Splash" $A/src/main/res/values/styles.xml
           # the map also fills the strip next to the front camera (phone held sideways); the page keeps its buttons clear (safe-area insets)
           sed -i 's|<resources>|<resources xmlns:tools="http://schemas.android.com/tools">|; s|<item name="windowNoTitle">true</item>|<item name="windowNoTitle">true</item>\n        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>|' $A/src/main/res/values/styles.xml
