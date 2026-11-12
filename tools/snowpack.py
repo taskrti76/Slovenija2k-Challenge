@@ -15,8 +15,10 @@ Steps every hour (standard methods from snow hydrology):
      lets through only 45–100 % of the sun (v3, Nov 2026: summits and forests kept too little snow)
   6. liquid water held in the snow (10 %), refreezing at night, the rest runs off
   7. settling: density relaxes towards 300 kg/m³ (cold) / 500 kg/m³ (wet) with a 200 h time scale (Essery 2015, FSM)
-  8. satellite check (once a day, before the new day): Copernicus Sentinel-2 snowsat.png + DEM heights/aspects -> where a band of
-     a cell is seen bare (<10 % snow) the snow there is removed; where it is seen white (>60 %) but the model has none, 10 cm are added
+  8. satellite check (once a day, before the new day): Copernicus Sentinel-2 snowsat.png + DEM heights/aspects -> per cell, band and
+     surface (flat / north / south): seen bare (<10 % snow) -> above 1700 m on open, non-north ground the snow is cleared (<4 %) or
+     cut to 35 %; below the tree line or on north slopes only cut to 60 % (the satellite misses snow under trees and in gullies);
+     seen white (>60 %) but the model has none -> 10 cm are added
   9. station measurements (ARSO, ~20 mountain stations; newest reading of each, in time order; runs 4× a day): Kalman-filter update at the time of the reading -
      every point keeps an error variance that grows each day and shrinks near stations; the increment spreads with distance and
      height (see analysis())
@@ -207,7 +209,7 @@ def satellite_check(pts, S, today, ls=None):
         i = idx.get((int(a), int(b), int(c)))
         if i is None: continue
         if sdate - int(ag) <= LS[i]: old += 1; continue        # the satellite saw it before the last snowfall there: the model knows better
-        for vv in ({0, int(v)}):
+        for vv in ({int(v)}):   # each pixel counts only for its own surface (flat = gentle or east/west slopes)
             k = (i, vv); t = cnt.get(k)
             if t is None: cnt[k] = t = [0, 0]
             t[0] += 1; t[1] += sn == 2
@@ -215,7 +217,13 @@ def satellite_check(pts, S, today, ls=None):
     for (i, v), (nn, ns) in cnt.items():
         if nn < 30: continue
         f = ns / nn; st = S[i][v]
-        if f < 0.10 and st['m'] > 0: st.update(new_state()); bare += 1
+        # "bare" from 40-80 m pixels is weak evidence: snow under the forest canopy, in gullies and patches is not seen. Below the
+        # tree line (1700 m) and on shady slopes the snow is only thinned; open ground above it is cleared only when clearly bare
+        e = pts[i][2]
+        if f < 0.10 and st['m'] > 0:
+            if e >= 1700 and v != 1 and f < 0.04: st.update(new_state())
+            else: k = 0.6 if (e < 1700 or v == 1) else 0.35; st['m'] *= k; st['l'] *= k
+            bare += 1
         elif f > 0.60 and st['m'] < 10: st.update({'m': 15.0, 'l': 0.0, 'r': 150.0, 'a': 0.8}); add += 1
     print(f'satellite check ({m["date"]}): {len(cnt)} point-surfaces seen, {bare} set bare, {add} given snow; {old} pixels older than the last snowfall ignored')
 

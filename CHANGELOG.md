@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.78 — 2026-11-12
+- Profile / friends background: three pictures drawn from photos, a different one on every visit: the view from Triglav, the Julian Alps
+  panorama and the Špik group from the valley (?bg=0/a/b shows one now). Above them the contour lines lie on a gradient from the
+  page colour at the top to sky blue down at the ridges.
+- Snow model: the satellite no longer wipes all snow from a whole height band when it looks bare - it judges flat, north and
+  south slopes separately, below 1700 m and on north slopes it only thins the snow (snow under trees and in gullies is not seen
+  from space), and clears open ground above 1700 m only when clearly bare (<4 % snow).
+
 ## web-v0.77 — 2026-11-12
 - Markacija: the page dots of the bottom bar are now in the white middle of the blaze (they were hidden behind it).
 - Snow map: steepness takes snow away much later - full snow up to 45°, thinning to 70°, only walls steeper than that hold
