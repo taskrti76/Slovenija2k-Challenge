@@ -1,0 +1,41 @@
+name: OSM pack (trails, roads, huts)
+# rebuilds dvat-osm.json.gz from OpenStreetMap: trails, roads (incl. village streets), huts, parkings, springs within 20 km
+# of the peaks. Monthly + by hand (Actions tab -> OSM pack -> Run workflow). Takes ~1-2 h (101 areas from Overpass).
+on:
+  schedule:
+    - cron: '17 2 5 * *'   # monthly, 5th day ~03:17 Slovenian winter time
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Download + build
+        run: |
+          mkdir -p work && cd work
+          for i in 1 2 3; do python ../tools/dvat_fetch.py && break; echo "retry $i"; sleep 60; done   # resumes the missing areas
+          ls -la dvat-osm.json.gz
+          python - <<'PY'
+          import gzip, json, os
+          j = json.load(gzip.open('dvat-osm.json.gz'))
+          n = sum(len(v) if isinstance(v, list) else 0 for v in (j.values() if isinstance(j, dict) else []))
+          print('items', n, 'size', os.path.getsize('dvat-osm.json.gz'))
+          assert os.path.getsize('dvat-osm.json.gz') > 3_000_000, 'pack too small - not replacing'
+          PY
+          cp dvat-osm.json.gz ../dvat-osm.json.gz
+      - name: Commit dvat-osm.json.gz
+        run: |
+          git config user.name  "osm-bot"
+          git config user.email "osm-bot@users.noreply.github.com"
+          git add dvat-osm.json.gz
+          git diff --cached --quiet && exit 0
+          git commit -m "osm pack: $(date -u +%F)"
+          for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
