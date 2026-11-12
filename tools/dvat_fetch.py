@@ -24,7 +24,7 @@ SERVERS = [
 CACHE = "osm_boxes"
 OUT = "dvat-osm.json.gz"
 
-ROADQ = '["highway"~"^(primary|secondary|tertiary|unclassified|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"]'
+ROADQ = '["highway"~"^(primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|trunk|trunk_link|unclassified|residential|living_street|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"]'
 def query(b):
     b = ",".join(str(x) for x in b)
     return (f'[out:json][timeout:240];(way["highway"~"^(path|track|via_ferrata|bridleway|footway)$"]({b});way{ROADQ}({b}););out tags geom qt;'
@@ -70,7 +70,7 @@ def fetch_box(i):
 
 # ---------- pack encoder (same format as pack.js in the map) ----------
 PK_SAC = ['', 'hiking', 'mountain_hiking', 'demanding_mountain_hiking', 'alpine_hiking', 'demanding_alpine_hiking', 'difficult_alpine_hiking']
-ROADRE = re.compile(r'^(primary|secondary|tertiary|unclassified|residential|living_street|service|road)')
+ROADRE = re.compile(r'^(primary|secondary|tertiary|trunk|unclassified|residential|living_street|service|road)')
 TRAILRE = re.compile(r'^(path|track|via_ferrata|bridleway|footway)$')
 def jsround(x):  # JavaScript Math.round
     return math.floor(x + 0.5)
@@ -97,7 +97,7 @@ def encode(ways, poi, marked, rels=()):
         t = w.get("tags") or {}
         h = t.get("highway", "")
         if ROADRE.match(h):
-            k = 'R' if re.match(r'^(primary|secondary)', h) else 'T' if h.startswith('tertiary') else 's' if h in ('service', 'residential', 'living_street') else 'r'
+            k = 'R' if re.match(r'^(trunk|primary|secondary)', h) else 'T' if h.startswith('tertiary') else 's' if h in ('service', 'residential', 'living_street') else 'r'
         elif h == 'via_ferrata': k = 'f'
         elif h == 'track': k = 't'
         elif w["id"] in marked: k = 'm'

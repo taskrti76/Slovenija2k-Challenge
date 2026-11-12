@@ -36,6 +36,8 @@ document.head.append(css);
 
 const win = document.createElement('div'); win.id = 'setWin';
 win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri','Close')}">×</button><h3>⚙ ${L('Nastavitve','Settings')}</h3>
+  <h4>${L('Jezik','Language')}</h4>
+  <div class="chips" id="setLang"><button data-l="sl" class="${window.LANG === 'en' ? '' : 'on'}">Slovenščina</button><button data-l="en" class="${window.LANG === 'en' ? 'on' : ''}">English</button></div>
   <h4>${L('Račun','Account')}</h4><div id="accBox"></div>
   <h4>${L('Moj profil','My profile')}</h4>
   <div class="hint">${L('Vpliva na oceno vremena, čase hoje in opozorila pri poteh. Shranjeno v tem brskalniku (in v računu, če si prijavljen).','Affects the weather rating, walking times and route warnings. Saved in this browser (and in your account when signed in).')}</div>
@@ -56,11 +58,12 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="hint">${L('Nove barve, pisava Inter, ikone namesto emojijev. Stran se ponovno naloži.','New colours, Inter font, icons instead of emoji. The page reloads.')}</div>
   <h4>${L('Napredno','Advanced')}</h4><div class="advbox" id="setAdv"></div></div>`;
 document.body.append(win);
-const paintChips = () => win.querySelectorAll('.chips').forEach(c => { const k = c.dataset.k, v = k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k];
+const paintChips = () => win.querySelectorAll('.chips[data-k]').forEach(c => { const k = c.dataset.k, v = k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k];
   c.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.v === v)); });
-win.querySelectorAll('.chips').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = c.dataset.k, v = +b.dataset.v;
+win.querySelectorAll('.chips[data-k]').forEach(c => c.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = c.dataset.k, v = +b.dataset.v;
   P[k] = k === 'ferrata' ? v === 1 : v; paintChips(); save(); });
 paintChips();
+$s('setLang').onclick = e => { const b = e.target.closest('button[data-l]'); if (!b || b.classList.contains('on')) return; try{ localStorage.setItem('dvat3d_lang', b.dataset.l); }catch(_){} location.reload(); };
 $s('setV2').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; try{ localStorage.setItem('dvat3d_v2', b.dataset.v); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
@@ -73,9 +76,7 @@ addEventListener('keydown', e => { if (e.key === 'Escape' && win.classList.conta
 const adv = document.querySelector('details.adv');
 if (adv){
   [...adv.children].forEach(ch => { if (ch.tagName !== 'SUMMARY') $s('setAdv').append(ch); });
-  const b = document.createElement('button'); b.className = 'btn btn2'; b.style.cssText = 'width:100%;margin-top:12px';
-  b.textContent = '⚙ ' + L('Nastavitve in napredno', 'Settings & advanced'); b.onclick = open;
-  adv.replaceWith(b);
+  adv.remove();   // the map panel keeps only map things; settings open from the menu
 }
 // opened from the round menu (◉, account.js) - no separate ⚙ button / tab any more
 })();

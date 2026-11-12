@@ -56,6 +56,8 @@ ${PH}{
   html.mk #mkdock .cnt{font:700 18px ${CD};color:${RED};line-height:22px}
   html.mk #mkdock .gap{flex:0 0 70px}
   html.mk #fab:not(.open) .fb .fi{display:none!important}
+  html.mk body.gpson #fab:not(.open) .fb{box-shadow:0 0 0 4px rgba(46,125,79,.85),0 0 16px 4px rgba(46,125,79,.55)!important;animation:mkgps 1.6s ease-in-out infinite}
+  @keyframes mkgps{50%{box-shadow:0 0 0 7px rgba(46,125,79,.5),0 0 22px 8px rgba(46,125,79,.35)}}
   html.mk #mkdock .dots{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);display:flex;gap:4px}
   html.mk #mkdock .dots i{width:5px;height:5px;border-radius:50%;background:#C9C4BA}html.mk #mkdock .dots i.on{background:${RED}}
   html.mk #fab{bottom:calc(24px + env(safe-area-inset-bottom))!important}
@@ -95,22 +97,29 @@ function build(){ const it = items(), first = ['◧', '🗓', '👤'], rest = it
     return `<button data-k="${x[0]}">${(window.V2I && V2I[x[0]]) || IC[x[0]] || x[0]}<span class="lb">${SHORT[x[0]] || x[1]}</span>${x[3] ? `<i class="bdg">${x[3]}</i>` : ''}</button>`; };
   trk.innerHTML = PAGES.map(p => `<div class="pg">${btn(p[0])}${btn(p[1])}<span class="gap"></span>${btn(p[2])}${btn(p[3])}</div>`).join('');
   dots.innerHTML = PAGES.map((_, i) => `<i class="${i === PG ? 'on' : ''}"></i>`).join(''); if (PG >= PAGES.length) PG = 0; go(PG, true); up(); }
-function go(i, inst){ PG = (i + PAGES.length) % PAGES.length; trk.style.transition = inst ? 'none' : ''; trk.style.transform = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches ? `translateY(${-PG * 100}%)` : `translateX(${-PG * 100}%)`;
+function go(i, inst){ setTimeout(() => window.mkCentre && mkCentre(), inst ? 0 : 320); PG = (i + PAGES.length) % PAGES.length; trk.style.transition = inst ? 'none' : ''; trk.style.transform = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches ? `translateY(${-PG * 100}%)` : `translateX(${-PG * 100}%)`;
   dots.querySelectorAll('i').forEach((d, j) => d.classList.toggle('on', j === PG)); }
 dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k;
   if (window.fabClose) fabClose();
   if (k === 'peaks'){ if (window.DRAW_ON && window.stopDraw) stopDraw(); B.classList.remove('menu'); $('drawer').classList.add('open'); return; }
   const x = items().find(y => y[0] === k); if (x) x[2](); setTimeout(() => { sig = ''; build(); }, 300); };
-{ let x0 = null; dock.addEventListener('pointerdown', e => { x0 = e.clientX; });
-  dock.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) go(PG + (e.clientX < x0 ? 1 : -1)); x0 = null; });
+{ let x0 = null, y0 = 0; dock.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
+  dock.addEventListener('pointerup', e => { if (x0 == null) return; const vert = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches;
+    const d = vert ? e.clientY - y0 : e.clientX - x0; if (Math.abs(d) > 40) go(PG + (d < 0 ? 1 : -1)); x0 = null; });
   addEventListener('resize', () => go(PG, true)); }
-// the blaze: tap = next set of buttons, hold = the full round menu
+// the blaze: tap = GPS summit check on/off (it glows while on), hold = the full round menu; the buttons change by swiping the bar
 const fab = $('fab'), fb = fab && fab.querySelector('.fb'); let hold = null, held = false;
 if (fb){
   fb.addEventListener('pointerdown', () => { held = false; clearTimeout(hold); hold = setTimeout(() => { if (!window.PHONE_UI || !PHONE_UI()) return; held = true; window.__fabOpen && __fabOpen(); }, 550); });
   addEventListener('pointerup', () => clearTimeout(hold));
   fab.addEventListener('click', e => { if (!window.PHONE_UI || !PHONE_UI() || fab.classList.contains('open') || B.classList.contains('touring')) return;
-    if (!e.target.closest('.fb')) return; e.stopPropagation(); e.preventDefault(); if (held){ held = false; return; } go(PG + 1); }, true); }
+    if (!e.target.closest('.fb')) return; e.stopPropagation(); e.preventDefault(); if (held){ held = false; return; } window.gpsToggle && gpsToggle(); }, true);
+  // keep the blaze exactly in the middle of the bar's gap (phone upright or sideways, any safe-area)
+  const centre = () => { const g = trk.querySelectorAll('.gap')[PG]; if (!g || !PHONE_UI() || !dock.offsetWidth){ fab.style.removeProperty('left'); fab.style.removeProperty('top'); fab.style.removeProperty('bottom'); fab.style.removeProperty('right'); return; }
+    const r = g.getBoundingClientRect(), w = fab.offsetWidth || 58, h = fab.offsetHeight || 58; if (!r.width && !r.height) return;
+    fab.style.setProperty('left', (r.left + r.width / 2 - w / 2).toFixed(1) + 'px', 'important'); fab.style.setProperty('top', (r.top + r.height / 2 - h / 2).toFixed(1) + 'px', 'important');
+    fab.style.setProperty('bottom', 'auto', 'important'); fab.style.setProperty('right', 'auto', 'important'); fab.style.setProperty('margin', '0', 'important'); };
+  window.mkCentre = centre; addEventListener('resize', () => setTimeout(centre, 80)); new ResizeObserver(() => centre()).observe(dock); setTimeout(centre, 300); setInterval(centre, 2000); }
 const vc = $('vcount3'), up = () => { const m = (vc && vc.textContent || '').match(/(\d+)\s*\/\s*(\d+)/), c = $('mkcnt'); if (m && c) c.textContent = `${m[1]}/${m[2]}`; };
 if (vc) new MutationObserver(up).observe(vc, {childList: true, characterData: true, subtree: true});
 build(); setInterval(build, 3000);

@@ -11,7 +11,8 @@ Steps every hour (standard methods from snow hydrology):
   3. albedo: fresh snow 0.85, ageing towards 0.5 (faster when melting), reset by new snow (ECMWF-style)
   4. sun on each surface: solar position every hour, direct beam on the 30° N / S slope + diffuse + reflected light
   5. melt: enhanced temperature-index model (Pellicciotti et al. 2005): M = TF·T + SRF·(1−albedo)·radiation when T > 1 °C,
-     plus heat from rain
+     plus heat from rain; no direct sun below ~12° sun height (ridges around), and below the tree line (1400–1750 m) the forest
+     lets through only 45–100 % of the sun (v3, Nov 2026: summits and forests kept too little snow)
   6. liquid water held in the snow (10 %), refreezing at night, the rest runs off
   7. settling: density relaxes towards 300 kg/m³ (cold) / 500 kg/m³ (wet) with a 200 h time scale (Essery 2015, FSM)
   8. satellite check (once a day, before the new day): Copernicus Sentinel-2 snowsat.png + DEM heights/aspects -> where a band of
@@ -30,11 +31,14 @@ STATE = os.path.join(R, 'data', 'snowpack_state.json'); OUT = os.path.join(R, 's
 API = 'https://api.open-meteo.com/v1/forecast'
 UA = {'User-Agent': 'dvatisocaki-snowpack/2.0 (+https://taskrti76.github.io/Slovenija2k-Challenge/)'}
 FUT = 5                     # forecast days fetched (today + 4) - covers the 4 days of the weather rating
-VER = 2; DLA, DLO = 0.04, 0.055; STEP = 250; LOW = 750; SEASON_START = (10, 1)
+VER = 3; DLA, DLO = 0.04, 0.055; STEP = 250; LOW = 750; SEASON_START = (10, 1)
 PK = 1.0                    # precipitation (snowfall) multiplier - learned from the ARSO stations day by day (see CAL_*), kept in the state
 CAL_RATE, CAL_MIN, CAL_MAX = 0.15, 0.6, 1.8   # per day: PK *= exp(0.15 × mean log((station+5)/(model+5))) over today's readings with snow
 INNOV = []                  # today's log((station+5)/(model+5)) before each Kalman update
 TF, SRF, TT = 0.05, 0.0094, 1.0          # ETI melt: mm/h/°C, mm/h per W/m², threshold °C
+HOR_CZ = 0.208                           # surrounding ridges: no direct sun below ~12° sun height (late autumn / winter days in the valleys)
+def canopy(e):                           # forest below the tree line lets through only part of the sun (snow lasts in the forest)
+    return 0.45 if e <= 1400 else 1.0 if e >= 1750 else 0.45 + 0.55 * (e - 1400) / 350
 SLOPE = 30.0; VARIANTS = (None, 0.0, 180.0)   # flat, north-facing, south-facing (aspect from north, clockwise)
 BASE = ['temperature_2m', 'relative_humidity_2m', 'precipitation']
 EXTRA = ['snowfall_height', 'direct_radiation', 'diffuse_radiation', 'wind_speed_10m']
@@ -100,8 +104,9 @@ def sun(ts, lat, lon):  # NOAA low-precision solar position -> (cos zenith, azim
 def radiation(gdir, gdif, cz, az, aspect, alb):
     """Shortwave on the surface (W/m²): horizontal for aspect None, else a 30° slope facing `aspect`."""
     gdir = gdir or 0.0; gdif = gdif or 0.0
+    if cz <= HOR_CZ: gdir = 0.0                                          # sun behind the surrounding ridges
     if aspect is None: return gdir + gdif
-    if cz <= 0.06: dni = 0.0
+    if cz <= HOR_CZ: dni = 0.0
     else: dni = min(1100.0, gdir / cz)
     b = math.radians(SLOPE); sz = math.sqrt(max(0.0, 1 - cz * cz))
     cos_i = cz * math.cos(b) + sz * math.sin(b) * math.cos(math.radians(az - aspect))
@@ -129,7 +134,7 @@ def hour(s, T, RH, P, zs, gdir, gdif, U, cz, az, e, aspect):
     if rain > 0: s['l'] += rain
     melting = T > TT
     if melting:
-        Q = radiation(gdir, gdif, cz, az, aspect, s['a'])
+        Q = radiation(gdir, gdif, cz, az, aspect, s['a']) * canopy(e)
         M = max(0.0, TF * T + SRF * (1 - s['a']) * Q) + rain * 4.18 * max(T, 0) / 334
         M = min(M, s['m']); s['m'] -= M; s['l'] += M
         s['a'] = (s['a'] - 0.5) * math.exp(-0.24 / 24) + 0.5
@@ -139,8 +144,8 @@ def hour(s, T, RH, P, zs, gdir, gdif, U, cz, az, e, aspect):
         # (shady slopes keep their snow) - half strength, fading out at -4 °C, so the effect shows without dominating
         Mr = 0.0
         if T > -4 and (gdir or 0) > 50:
-            Q = radiation(gdir, gdif, cz, az, aspect, s['a'])
-            Mr = min(s['m'], 0.5 * SRF * (1 - s['a']) * Q * (T + 4) / (TT + 4))
+            Q = radiation(gdir, gdif, cz, az, aspect, s['a']) * canopy(e)
+            Mr = min(s['m'], 0.35 * SRF * (1 - s['a']) * Q * (T + 4) / (TT + 4))
             if Mr > 0: s['m'] -= Mr; s['l'] += Mr
         if T < 0 and s['l'] > 0 and Mr <= 0:
             fr = min(s['l'], 0.05 * -T); s['l'] -= fr; s['m'] += fr
@@ -335,12 +340,13 @@ def analysis(pts, cur, PV, obs):
 def main():
     pts = points(); today = datetime.datetime.now(datetime.timezone.utc).date()
     st = json.load(open(STATE)) if os.path.exists(STATE) else None
+    pk_keep = st.get('pk') if st else None                                   # the learned snowfall multiplier survives a new model version
     if st and (st.get('ver') != VER or st.get('pts') != pts): print('new model version / points -> new season state'); st = None
     if st is None:
         y = today.year if (today.month, today.day) >= SEASON_START else today.year - 1
         start = max(datetime.date(y, *SEASON_START), today - datetime.timedelta(days=90))
         st = {'ver': VER, 'pts': pts, 'done': (start - datetime.timedelta(days=1)).isoformat(),
-              's': [[new_state() for _ in VARIANTS] for _ in pts], 'hist': {}}
+              's': [[new_state() for _ in VARIANTS] for _ in pts], 'hist': {}, 'pk': pk_keep or 1.0}
     done = datetime.date.fromisoformat(st['done']); S = st['s']
     PV = st.get('pv') or [100.0] * len(pts)                                  # error variance (cm²) per point, flat surface
     # two runs a day (morning: today's ARSO reading; evening: + the new satellite map). The saved state is "end of today" with a

@@ -8,7 +8,7 @@ const FIX = (typeof window!=='undefined'&&window.DATA_FIX)||{starts:[],ferratas:
 const isClosed = (t, g) => !!t.name && (FIX.closed||[]).some(c => c.name===t.name && g.length && Math.abs(g[0].lat-c.lat)*111e3<c.r && Math.abs(g[0].lon-c.lon)*77e3<c.r);
 const hav = (a,b,c,d) => { const R=6371000, r=Math.PI/180, x=(d-b)*r*Math.cos((a+c)/2*r), y=(c-a)*r; return R*Math.hypot(x,y); };
 
-const ROADRE = /^(primary|secondary|tertiary|unclassified|residential|living_street|service|road|primary_link|secondary_link|tertiary_link)$/;
+const ROADRE = /^(trunk|trunk_link|primary|secondary|tertiary|unclassified|residential|living_street|service|road|primary_link|secondary_link|tertiary_link)$/;
 function wayKind(t, marked){
   if (ROADRE.test(t.highway||'')) return 'r';
   if (t.highway === 'via_ferrata' || t.sac_scale === 'difficult_alpine_hiking' && /ferrata/i.test(t.name||'')) return 'f';
@@ -16,7 +16,7 @@ function wayKind(t, marked){
   return marked ? 'm' : 'p';
 }
 function wayFactor(t, kind){
-  if (kind==='r') return /^(primary|secondary)/.test(t.highway) ? 2.4 : /^tertiary/.test(t.highway) ? 2.0 : 1.7; // walkable, but paths preferred
+  if (kind==='r') return /^(trunk|primary|secondary)/.test(t.highway) ? 2.4 : /^tertiary/.test(t.highway) ? 2.0 : 1.7; // walkable, but paths preferred
   let f = kind==='m' ? 1.0 : kind==='t' ? 1.05 : kind==='f' ? 1.25 : 1.3;
   const s = SACN[t.sac_scale] || 0;
   if (s >= 6) f *= 1.6; else if (s === 5) f *= 1.3; else if (s === 4) f *= 1.1;
@@ -300,7 +300,7 @@ window.decodeTerrarium = async (blob, S) => { let b; try{ b=await createImageBit
 const bb = TB.join(',');
 const Q_POI = `[out:json][timeout:120];(nwr["tourism"~"^(alpine_hut|wilderness_hut)$"](${bb});nwr["amenity"="shelter"]["shelter_type"~"^(basic_hut|lean_to|rock_shelter)$"](${bb});nwr["amenity"="parking"](${bb});node["highway"="trailhead"](${bb});node["natural"="spring"](${bb});node["place"~"^(village|hamlet|isolated_dwelling|locality)$"](${bb}););out center tags;rel["route"="hiking"](${bb});out body;`;
 const Q_TRAILS = `[out:json][timeout:240][maxsize:536870912];way["highway"~"^(path|track|via_ferrata|bridleway|footway)$"](${bb});out tags geom qt;`;
-const Q_ROADS = `[out:json][timeout:240][maxsize:536870912];way["highway"~"^(primary|secondary|tertiary|unclassified|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"](${bb});out tags geom qt;`;
+const Q_ROADS = `[out:json][timeout:240][maxsize:536870912];way["highway"~"^(primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|trunk|trunk_link|unclassified|residential|living_street|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"](${bb});out tags geom qt;`;
 const OVP = ['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
 
 // IndexedDB cache
@@ -326,7 +326,7 @@ async function fetchRoads(force, onProg){
   for(let k=0;k<todo.length;k++){ const i=todo[k]; if(window.__extRunning) break;
     onProg&&onProg(k+1, todo.length);
     const b=ROAD_BOXES[i].join(',');
-    const q=`[out:json][timeout:120];way["highway"~"^(primary|secondary|tertiary|unclassified|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"](${b});out tags geom qt;`;
+    const q=`[out:json][timeout:120];way["highway"~"^(primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|trunk|trunk_link|unclassified|residential|living_street|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"](${b});out tags geom qt;`;
     let d=null;
     for(let a=0;a<5&&!d;a++){ const u=OVP[a%2]; // main server first, then mirror; patient waits when busy
       try{ const r=await fetch(u,{method:'POST',body:'data='+encodeURIComponent(q)});
@@ -346,7 +346,7 @@ let ROADS_FAILED=0;
 const EXT_BOXES = [[45.96, 13.5, 46.08, 13.68], [45.96, 13.68, 46.08, 13.86], [46.08, 13.14, 46.2, 13.32], [46.08, 13.32, 46.2, 13.5], [46.08, 13.5, 46.2, 13.68], [46.08, 13.68, 46.2, 13.86], [46.08, 13.86, 46.2, 14.04], [46.08, 14.22, 46.2, 14.4], [46.08, 14.4, 46.2, 14.58], [46.08, 14.58, 46.2, 14.76], [46.08, 14.76, 46.2, 14.94], [46.2, 13.14, 46.32, 13.32], [46.2, 13.32, 46.32, 13.5], [46.2, 13.5, 46.32, 13.68], [46.2, 13.68, 46.32, 13.86], [46.2, 13.86, 46.32, 14.04], [46.2, 14.04, 46.32, 14.22], [46.2, 14.22, 46.32, 14.4], [46.2, 14.4, 46.32, 14.58], [46.2, 14.58, 46.32, 14.76], [46.2, 14.76, 46.32, 14.94], [46.2, 14.94, 46.32, 15.12], [46.32, 13.14, 46.44, 13.32], [46.32, 13.32, 46.44, 13.5], [46.32, 13.5, 46.44, 13.68], [46.32, 13.68, 46.44, 13.86], [46.32, 13.86, 46.44, 14.04], [46.32, 14.04, 46.44, 14.22], [46.32, 14.22, 46.44, 14.4], [46.32, 14.4, 46.44, 14.58], [46.32, 14.58, 46.44, 14.76], [46.32, 14.76, 46.44, 14.94], [46.32, 14.94, 46.44, 15.12], [46.44, 13.14, 46.56, 13.32], [46.44, 13.32, 46.56, 13.5], [46.44, 13.5, 46.56, 13.68], [46.44, 13.68, 46.56, 13.86], [46.44, 13.86, 46.56, 14.04], [46.44, 14.04, 46.56, 14.22], [46.44, 14.22, 46.56, 14.4], [46.44, 14.4, 46.56, 14.58], [46.44, 14.58, 46.56, 14.76], [46.44, 14.76, 46.56, 14.94], [46.44, 14.94, 46.56, 15.12], [46.56, 13.32, 46.68, 13.5], [46.56, 13.5, 46.68, 13.68], [46.56, 13.68, 46.68, 13.86], [46.56, 13.86, 46.68, 14.04], [46.56, 14.04, 46.68, 14.22], [46.56, 14.22, 46.68, 14.4], [46.56, 14.4, 46.68, 14.58], [46.56, 14.58, 46.68, 14.76], [46.56, 14.76, 46.68, 14.94], [46.56, 14.94, 46.68, 15.12], [46.68, 13.86, 46.8, 14.04], [46.68, 14.58, 46.8, 14.76], [46.68, 14.76, 46.8, 14.94]];
 let EXT_DONE=false;
 const TRAILRE=/^(path|track|via_ferrata|bridleway|footway)$/;
-const ROADQ='["highway"~"^(primary|secondary|tertiary|unclassified|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"]';
+const ROADQ='["highway"~"^(primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|trunk|trunk_link|unclassified|residential|living_street|service|road)$"]["service"!~"parking_aisle|driveway|drive-through|alley"]["access"!~"^(no|private)$"]';
 function extQuery(b,roadsOnly){ if(roadsOnly) return `[out:json][timeout:120];way${ROADQ}(${b});out tags geom qt;`;
   return `[out:json][timeout:180];(way["highway"~"^(path|track|via_ferrata|bridleway|footway)$"](${b});way${ROADQ}(${b}););out tags geom qt;`+
   `(nwr["tourism"~"^(alpine_hut|wilderness_hut)$"](${b});nwr["amenity"="shelter"]["shelter_type"~"^(basic_hut|lean_to|rock_shelter)$"](${b});nwr["amenity"="parking"](${b});node["highway"="trailhead"](${b});node["natural"="spring"](${b});node["place"~"^(village|hamlet|isolated_dwelling|locality)$"](${b}););out center tags;`+
@@ -804,7 +804,7 @@ async function build(poi,tr,src){
   const feats=[];
   for(const w of ways){ const g=(w.geometry||[]).filter(Boolean); if(g.length<2) continue; const t=w.tags||{}, k=wayKind(t,marked.has(w.id));
     if(t.highway==='footway'&&k!=='m') continue; // urban footways: graph only
-    const h=k!=='r'?0:/^(primary|secondary|tertiary)/.test(t.highway)?3:/^(service|residential|living_street)$/.test(t.highway)?1:2;
+    const h=k!=='r'?0:/^(trunk|primary|secondary|tertiary)/.test(t.highway)?3:/^(service|residential|living_street)$/.test(t.highway)?1:2;
     feats.push({type:'Feature',properties:{k,h,s:SACN[t.sac_scale]||0,v:/^(bad|horrible|no)$/.test(t.trail_visibility||'')?1:0},geometry:{type:'LineString',coordinates:g.map(p=>[p.lon,p.lat])}}); }
   map.getSource('trails-v').setData({type:'FeatureCollection',features:feats});
   // via ferrata signs: one per named ferrata (way name, else its hiking route), with difficulty (OSM via_ferrata_scale 1-6 = A-F) and SAC grade

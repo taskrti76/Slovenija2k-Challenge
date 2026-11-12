@@ -17,7 +17,7 @@ const DEM_URL = (z,x,y) => `https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`;
 // [zoom, from km, to km] - tile zoom the 360 view asks for at each distance (one zoom level per doubling of distance;
 // satellite measured at Visoka: z11–z18 within ~70 km, height tiles z12 near … z8 at 100+ km)
 const RING = {
-  sat: [[18,0,0.5],[17,0.5,1],[16,1,2],[15,2,4],[14,4,8],[13,8,16],[12,16,32],[11,32,64],[10,64,100]],
+  sat: [[19,0,0.12],[18,0.12,0.5],[17,0.5,1],[16,1,2],[15,2,4],[14,4,8],[13,8,16],[12,16,32],[11,32,64],[10,64,100]],
   dem: [[12,0,8],[11,8,16],[10,16,40],[9,40,90]] };
 function ringTiles(p, kind, maxZ, minZ){ const out=[], n=z=>2**z, X=(lon,z)=>(lon+180)/360*n(z), Y=(lat,z)=>{ const r=lat*D2R; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n(z); };
   for (const [z,a,b] of RING[kind]){ if (z>maxZ || z<minZ) continue; const kx=111.32*Math.cos(p.lat*D2R), dl=b/kx, dt=b/111.32;
@@ -92,11 +92,9 @@ function buildLabels(){
     const major = q.rank!=null || q.is_sub==='no'; if (!major && d>5000) continue;
     const el = Math.atan2(topH(q)-S.eye, d);
     const div=document.createElement('div'); div.className='pl'+(q.rank&&q.rank<=25?' big':'');
-    div.innerHTML = window.V2 ? `<span class="t">${q.name} ${Math.round(q.elev)}</span><i class="ln"></i>`
-      : `${q.name}<small>${Math.round(q.elev)} m · ${d<10000?(d/1000).toFixed(1):Math.round(d/1000)} km</small>`;
-    if (window.V2) div.title = `${q.name} · ${Math.round(q.elev)} m · ${d<10000?(d/1000).toFixed(1):Math.round(d/1000)} km`;
+    div.innerHTML=`${q.name}<small>${Math.round(q.elev)} m · ${d<10000?(d/1000).toFixed(1):Math.round(d/1000)} km</small>`;
     div.style.display='none'; div.onclick=()=>window.enter360(q.id); LBL.append(div);
-    LB.push({q,az,el,d,div,vis:true,w:Math.max(q.name.length*7.2,70)+8,th:(q.name.length+5)*7.4+8,pri:(q.rank||400)+d/2000}); }
+    LB.push({q,az,el,d,div,vis:true,w:Math.max(q.name.length*7.2,70)+8,pri:(q.rank||400)+d/2000}); }
   LB.sort((a,b)=>a.pri-b.pri);
   occlusion(S.p);
 }
@@ -106,7 +104,7 @@ function placeLabels(){
   const F=[Math.cos(Lk)*Math.sin(B), Math.cos(Lk)*Math.cos(B), Math.sin(Lk)], Rt=[Math.cos(B), -Math.sin(B), 0], U=[-Math.sin(Lk)*Math.sin(B), -Math.sin(Lk)*Math.cos(B), Math.cos(Lk)];
   // the 360 controls (name, quality buttons, hint, loading note) count as taken space - no peak name on top of them
   const L0=LBL.getBoundingClientRect(), boxes=[];
-  for (const el of document.querySelectorAll('#v360 .vt, #v360 .vb, #v360 .vh, #v360load')){ const r=el.getBoundingClientRect(); if (!r.width || !r.height) continue;
+  for (const el of document.querySelectorAll('#v360 .vt, #v360 .vb, #v360 .vh, #v360load, #v360cmp')){ const r=el.getBoundingClientRect(); if (!r.width || !r.height) continue;
     boxes.push([r.left-L0.left-6, r.top-L0.top-6, r.right-L0.left+6, r.bottom-L0.top+6]); }
   for (const o of LB){
     const v=[Math.cos(o.el)*Math.sin(o.az), Math.cos(o.el)*Math.cos(o.az), Math.sin(o.el)];
@@ -114,32 +112,20 @@ function placeLabels(){
     let x=0,y=0;
     if (show){ x=W/2+(v[0]*Rt[0]+v[1]*Rt[1])/zc*f; y=H/2-(v[0]*U[0]+v[1]*U[1]+v[2]*U[2])/zc*f;
       if (x<-60||x>W+60||y<40||y>H+20) show=false; }
-    if (show && window.V2){ let ok=false;
-      for (const ln of [24, 64, 110, 160, 220]){ const b=[x-11, y-ln-o.th, x+11, y-ln+4]; if (b[1] < 70) break;
-        if (!boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1])){ boxes.push(b, [x-2, y-ln, x+2, y]); o.div.style.setProperty('--ln', ln+'px'); ok=true; break; } }
-      show=ok; }
-    else if (show){ const b=[x-o.w/2, y-46, x+o.w/2, y]; if (boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1])) show=false; else boxes.push(b); }
+    if (show){ const b=[x-o.w/2, y-46, x+o.w/2, y]; if (boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1])) show=false; else boxes.push(b); }
     if (show){ o.div.style.display=''; o.div.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`; }
     else o.div.style.display='none';
   }
 }
 // ---------- new looks: compass strip along the top (S, SV, V ... and a tick every 15°) + "Vidni vrhovi · N" ----------
 let CMP = null;
+let cmpK = '';
 function placeCompass(){ if (!CMP){ CMP = document.createElement('div'); CMP.id = 'v360cmp'; $$('v360').append(CMP); }
-  const W = LBL.clientWidth || innerWidth, H = LBL.clientHeight || innerHeight, f = (H/2)/Math.tan(S.fov*D2R/2), out = [];
+  const W = LBL.clientWidth || innerWidth, H = LBL.clientHeight || innerHeight, k = `${S.brg.toFixed(1)}|${S.fov.toFixed(1)}|${W}|${H}`; if (k === cmpK) return; cmpK = k;
+  const f = (H/2)/Math.tan(S.fov*D2R/2), out = [];
   for (let a = 0; a < 360; a += 15){ let d = ((a - S.brg + 540) % 360) - 180; if (Math.abs(d) > 80) continue; const x = W/2 + Math.tan(d*D2R)*f; if (x < 8 || x > W-8) continue;
     out.push(a % 45 ? `<i style="left:${x.toFixed(0)}px"></i>` : `<b style="left:${x.toFixed(0)}px">${DIRS[a/45]}</b>`); }
-  CMP.innerHTML = out.join('');
-  const n = LB.filter(o => o.vis).length, vb = $$('v360vis'); if (vb) vb.querySelector('span').textContent = n; }
-function visList(){ let w = $$('v360list'); if (w){ w.remove(); return; }
-  w = document.createElement('div'); w.id = 'v360list';
-  const L = LB.filter(o => o.vis).sort((a, b) => a.d - b.d);
-  w.innerHTML = `<div class="h"><b>${window.LANG==='en'?'Visible peaks':'Vidni vrhovi'} · ${L.length}</b><button aria-label="Zapri">×</button></div>` +
-    L.map((o, i) => `<button data-i="${i}"><span>${o.q.name}</span><small>${Math.round(o.q.elev)} m · ${o.d<10000?(o.d/1000).toFixed(1):Math.round(o.d/1000)} km · ${DIRS[Math.round(((o.az/D2R)+360)%360/45)%8]}</small></button>`).join('');
-  $$('v360').append(w); w.querySelector('.h button').onclick = () => w.remove();
-  w.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const o = L[+b.dataset.i]; S.brg = ((o.az/D2R)+360)%360; S.look = 0; w.remove(); apply(); }); }
-if (window.V2){ const vb = document.createElement('button'); vb.id = 'v360vis'; vb.innerHTML = `${window.LANG==='en'?'Visible peaks':'Vidni vrhovi'} · <span>0</span>`; vb.onclick = visList;
-  const bar = document.querySelector('#v360 .vb'); if (bar) bar.prepend(vb); }
+  CMP.innerHTML = out.join(''); }
 // line-of-sight check on the DEM (z10 ≈ 50 m) so peaks hidden behind ridges get no label
 const TS=512, TZ=10, dtiles=new Map();
 const tx=lon=>(lon+180)/360*2**TZ*TS, ty=lat=>{const r=lat*D2R;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**TZ*TS;};
@@ -158,7 +144,7 @@ async function occlusion(p0){
       const lon=p0.lon+(o.q.lon-p0.lon)*f, lat=p0.lat+(o.q.lat-p0.lat)*f, h=hAt(lon,lat); if (h==null) continue;
       if (h > S.eye+(topH(o.q)-S.eye)*f + 12){ vis=false; break; } }
     o.vis=vis; }
-  if (S.on && S.p===p0){ placeLabels(); if (window.V2) placeCompass(); }
+  if (S.on && S.p===p0) placeLabels();
 }
 addEventListener('resize', ()=>{ if (S.on){ fitFov(); schedule(); } });
 function fitFov(){ const c=map.getContainer(); const portrait=c.clientHeight>c.clientWidth;
@@ -209,7 +195,7 @@ function enter360_(id){
   applyQuality();
   // satellite near you: up to z18 (0.6 m) on PC, z17 (1.2 m) on phone; z19 (0.3 m) was ~100 extra requests per view; from 5 m above you only
   // see that ground at grazing angles, where 1 m tiles look the same
-  { const ss = map.getSource('sat'); if (ss){ S.satMax = ss.maxzoom; ss.maxzoom = window.IS_PHONE ? 17 : 18; } }
+  { const ss = map.getSource('sat'); if (ss){ S.satMax = ss.maxzoom; ss.maxzoom = satZ(); } }
   S.maxZoom = map.getMaxZoom(); map.setMaxZoom(24); S.bounds = map.getMaxBounds(); map.setMaxBounds(null);
   map.setMaxPitch(150); if (map.setCenterClampedToGround) map.setCenterClampedToGround(false);
   map.getCanvasContainer().style.touchAction='none';
@@ -283,7 +269,9 @@ let movingPR=false;
 const PX_BUDGET = window.IS_PHONE ? 1.5e6 : 6e6;
 function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.clientHeight); pr=Math.min(pr, Math.sqrt(PX_BUDGET/css));
   if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
-function applyQuality(){ const q=Q[qi];
+// sharpest satellite next to where you stand: z19 (~0.3 m) within ~100 m on Visoka (computer), z18 on a phone
+const satZ = () => window.IS_PHONE ? (qi===2 ? 18 : 17) : (qi===2 ? 19 : 18);
+function applyQuality(){ const q=Q[qi]; { const ss = S.on && map.getSource('sat'); if (ss) ss.maxzoom = satZ(); }
   window.TERRAIN_DELTA = S.on ? (qi===2 ? 0 : qi===1 ? 1 : 2) : null; window.applyTerrainLOD && window.applyTerrainLOD();
   rttOn(S.on);
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
@@ -313,7 +301,7 @@ applyQuality.restore = ()=>{};
 // 3) at most a few texture repaints per frame (oldest first); the others show their previous picture a few frames longer
 function rttOn(on){
   const rt = map.painter && map.painter.renderToTexture, tm = map.terrain && map.terrain.tileManager; if (!rt || !tm) return;
-  const cap = on ? (window.IS_PHONE ? 14 : 15) : 22;
+  const cap = on ? (window.IS_PHONE ? 14 : qi===2 ? 16 : 15) : 22;   // Visoka on a computer: finer terrain textures next to you
   if (tm.maxzoom !== cap){ tm.maxzoom = cap; try{ tm.freeRtt(); }catch(_){} map.triggerRepaint(); }
   // repaint budget + pool size live in the page (rttPatch); 360 is a bit stricter, PC may grow the pool to 36
   window.SKIRT_MIN = on ? 800 : 0; map.triggerRepaint();   // 360: 800 m skirts (MapLibre gave ~2 m at the 360 zoom -> sky through cracks)

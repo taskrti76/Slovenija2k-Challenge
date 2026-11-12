@@ -83,7 +83,7 @@ if (LANG === 'en'){
 }
 // language switch (top of the side panel + inside the guide)
 const panelH = document.querySelector('.panel h1');
-if (panelH){ const b = document.createElement('div'); b.id = 'langsw';
+if (false && panelH){ const b = document.createElement('div'); b.id = 'langsw';   // language is in ⚙ Nastavitve now
   b.innerHTML = `<button data-l="sl" class="${LANG==='sl'?'on':''}">SL</button><button data-l="en" class="${LANG==='en'?'on':''}">EN</button>`;
   b.onclick = e => { const l = e.target.closest('button'); if (l) setLang(l.dataset.l); }; panelH.append(b); }
 function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.reload(); }

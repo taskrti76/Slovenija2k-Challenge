@@ -1231,12 +1231,12 @@ async function loadFalls(){ if(fallsBusy) return; fallsBusy=true;
 map.on('load',()=>{ try{
   const k=window.MAPK?window.MAPK():1, before=map.getLayer('border-casing')?'border-casing':undefined, on=$id('water')?$id('water').checked:true, v=on?'visible':'none';
   map.addSource('ofm',{type:'vector',url:'https://tiles.openfreemap.org/planet',attribution:'<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> © OpenMapTiles'});
-  map.addLayer({id:'water-line',type:'line',source:'ofm','source-layer':'waterway',minzoom:9,filter:['!=',['get','brunnel'],'tunnel'],
+  map.addLayer({id:'water-line',type:'line',source:'ofm','source-layer':'waterway',minzoom:7,filter:['all',['!=',['get','brunnel'],'tunnel'],['any',['>=',['zoom'],9],['==',['get','class'],'river']]],   // zoomed far out (phone): rivers only
     layout:{visibility:v,'line-join':'round','line-cap':'round'},
     paint:{'line-color':'#3d8fd1','line-opacity':['case',['==',['get','intermittent'],1],0.55,0.9],
       'line-width':['interpolate',['linear'],['zoom'],9,['match',['get','class'],'river',1.2,0.4],13,['match',['get','class'],'river',2.4,'stream',1,0.7],16,['match',['get','class'],'river',5,'stream',2,1.2]]}},before);
   // lakes drawn over the river lines, opaque - a river line no longer runs through the lake
-  map.addLayer({id:'water-fill',type:'fill',source:'ofm','source-layer':'water',minzoom:8,layout:{visibility:v},
+  map.addLayer({id:'water-fill',type:'fill',source:'ofm','source-layer':'water',minzoom:6,layout:{visibility:v},
     paint:{'fill-color':'#93c8ea','fill-outline-color':'#6aa9d6'}},before);
   map.addLayer({id:'water-lbl',type:'symbol',source:'ofm','source-layer':'waterway',minzoom:12,filter:['has','name'],
     layout:{visibility:v,'symbol-placement':'line','text-field':['get','name'],'text-font':['Noto Sans Bold'],'text-size':10.5*k,'symbol-spacing':350,'text-letter-spacing':0.04},

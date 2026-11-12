@@ -2,6 +2,25 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.76 — 2026-11-12
+- Markacija: the blaze is the GPS summit check - tap to start / stop (it glows green while on), hold = the full menu; the bar's
+  buttons change only by swiping (sideways: up/down); the blaze sits exactly in the middle of the bar. On the website (not only
+  the app) the check now works too, while the page is open.
+- GPS test summit: ?gpstest=1 puts a test summit at Hudovernikova 4, Ljubljana (?gpstest=lat,lon anywhere, ?gpstest=0 off);
+  reaching it says "TEST ✓" - nothing is saved.
+- Badges: Razor (50), Rogla, Črni vrh and Altemaver drawn from photos; Triglav zoomed out; new gold badge "10 najvišjih"
+  (the 10 highest peaks, prominent or not).
+- 360: back to the earlier peak names (with distance); only the compass strip along the top stays. Visoka on a computer: sharper
+  satellite (z19) and terrain textures next to where you stand.
+- Map panel: "Nastavitve in napredno" removed (all of it is in ⚙ Nastavitve), SL/EN moved to ⚙ Nastavitve → Jezik.
+- Phone: swipe down from the top of the open peak list closes it; rivers and lakes stay visible zoomed far out.
+- Shrunk legends: centred symbols; base map pictures no longer cut off; snow picture's purple on the summit.
+- Profile / friends page background: the view from Triglav drawn from a photo.
+- Roads: village streets (residential, living streets), link roads and trunk roads were missing from the data - included now;
+  new Action "OSM pack" rebuilds the trails/roads/huts file monthly (or by hand).
+- Snow model v3 (snowpack.py): no direct sun below ~12° sun height (ridges), forest below 1400–1750 m lets through 45–100 % of the
+  sun, weaker sub-zero sun melt - more snow on summits and in forests. The season is recomputed from 1 October on the next run.
+
 ## web-v0.75 — 2026-11-12
 - Phone held sideways (new looks): search is a round button (opens wide when tapped); Markacija's bar is a column on the
   right edge with the blaze in its middle (pages scroll up/down); new look: peak tab bottom left, menu button bottom right.
