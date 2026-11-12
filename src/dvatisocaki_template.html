@@ -40,7 +40,9 @@
   .admd{background:#fff4e5;color:#3b2a00;border:1px solid #f0c48a;border-radius:9px;padding:7px 9px;margin:6px 0;font-size:.88em;line-height:1.35}.admd b{color:#3b2a00}.admd .rb{margin-top:6px;display:flex;gap:6px}.admd .rb button{background:#fff;color:#3b2a00;border:1px solid #d9b87a;border-radius:8px;padding:5px 10px;font:inherit;cursor:pointer}.admd .rb .pri{background:#c62828;color:#fff;border-color:#c62828}.admd .aerr{color:#b3261e;margin-top:4px}
   .maplibregl-ctrl-top-right,.maplibregl-ctrl-bottom-right{right:env(safe-area-inset-right,0px)}.maplibregl-ctrl-top-left,.maplibregl-ctrl-bottom-left{left:env(safe-area-inset-left,0px)}
   .pcams{margin-top:6px;font-size:.9em;line-height:1.5}.pcams a{color:#1565c0;cursor:pointer;text-decoration:underline}.pcams small{color:var(--mute)}
-  #tour{position:fixed;inset:0;z-index:50}
+  #tour{position:fixed;inset:0;z-index:50;pointer-events:none}#tour .tc,#tour .tb{pointer-events:auto}#tour .tb{position:fixed;inset:0}
+  #tour .tsw{display:none;position:fixed;width:44px;height:80px;pointer-events:none}#tour .tsw i{position:absolute;left:8px;top:0;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.85);border:2px solid #ffb300;box-shadow:0 2px 8px rgba(0,0,0,.35);animation:tswipe 1.6s ease-in-out infinite}
+  @keyframes tswipe{0%{transform:translateY(52px);opacity:0}15%{opacity:1}70%{transform:translateY(0);opacity:1}100%{transform:translateY(0);opacity:0}}
   #tour .tacc{display:flex;gap:8px;margin:0 0 12px}#tour .tacc button{flex:1;border:0;border-radius:9px;background:#1565c0;color:#fff;font:600 1em system-ui,sans-serif;padding:9px;cursor:pointer}#tour .tacc button+button{background:transparent;color:var(--ink);border:1px solid var(--line)}
   #tour .th{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(10,14,13,.62);transition:all .25s;pointer-events:none;outline:2px solid #ffb300}
   #tour .tc{position:fixed;box-sizing:border-box;max-height:calc(100dvh - 24px);overflow:auto;background:var(--panel);color:var(--ink);border-radius:14px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.4);font-size:calc(14px * var(--ui,1));backdrop-filter:blur(8px)}
@@ -48,7 +50,7 @@
   #tour .tbtns{display:flex;gap:8px;align-items:center}#tour .tbtns span{flex:1}
   #tour button{font:inherit;font-weight:600;border-radius:9px;padding:8px 14px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
   #tour .nx{background:#c62828;border-color:#c62828;color:#fff}#tour .sk{border:0;color:var(--mute);padding-left:0}
-  @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #tour .tc{font-size:13px;padding:11px 13px} #tour p{margin:0 0 9px;line-height:1.38} #tour h3{font-size:1.08em;margin:1px 0 4px} #tour button{padding:7px 12px} }
+  @media (max-width:700px),(max-height:500px) and (pointer:coarse){ #tour .tc{font-size:calc(13px * var(--ui,1));padding:11px 13px} #tour p{margin:0 0 9px;line-height:1.38} #tour h3{font-size:1.08em;margin:1px 0 4px} #tour button{padding:7px 12px} }
   #tour .tset{margin:0 0 10px}#tour .tset .q{font-weight:600;margin:8px 0 4px;font-size:.92em}#tour .tchips{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 4px}
   #tour .tchips button{padding:4px 10px;border-radius:16px;font-weight:500;font-size:.88em}#tour .tchips button.on{background:var(--ink);color:var(--panel);border-color:var(--ink)}
   #tour .tex{font-size:.85em;color:var(--mute)}#tour #tsT{width:100%}
@@ -450,7 +452,7 @@ setTimeout(window.bootOut,12000);</script>
 
 <div id="toast"></div>
 <div id="litebar"><span>Naprava je videti počasna. Vklopim varčni način?</span><button class="p" id="liteYes">Vklopi</button><button id="liteNo">Ne</button></div>
-<div id="snowleg"><div class="lh"><b>❄<span class="lt"> Višina snega</span></b> <span id="snowlegdate"></span><button id="snowlegi" title="O podatkih">ⓘ</button><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
+<div id="snowleg" style="display:none"><div class="lh"><b>❄<span class="lt"> Višina snega</span></b> <span id="snowlegdate"></span><button id="snowlegi" title="O podatkih">ⓘ</button><button id="snowlegx" title="Skrij / pokaži legendo">–</button></div>
   <div class="lb"><div id="snowlegbar"></div><div class="sl" id="snowlegsl"></div>
   <div class="sl3" id="snowlegnote"></div></div></div>
 <script>
@@ -458,7 +460,9 @@ const $id=id=>document.getElementById(id);
 // visible error reporting (helps debugging on devices without dev tools)
 window.toastOk=msg=>{ const t=document.getElementById('toast'); if(!t) return; t.textContent='✓ '+msg; t.classList.add('on','ok'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on','ok'),4000); };
 window.toastErr=msg=>{ const t=document.getElementById('toast'); if(!t) return; t.classList.remove('ok'); t.textContent='⚠ '+msg; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),9000); };
-addEventListener('error',e=>toastErr((e.message||'napaka')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')));
+// MapLibre's own hiccup when the map is asked what is under the finger while a tile is being rebuilt
+// ("Out of bounds ... _numberToString"): harmless - the next move/tap works - so it is not shown
+addEventListener('error',e=>{ if(/_numberToString|Out of bounds\. Index requested/.test(e.message||'')) return; toastErr((e.message||'napaka')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')); });
 addEventListener('unhandledrejection',e=>toastErr(String(e.reason&&e.reason.message||e.reason)));
 const PEAKS = __PEAKS__;
 const ID_MOVED = __IDMOVES__;   // merged duplicate peaks: old id -> kept id (data/id_moves.json)

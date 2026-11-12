@@ -99,10 +99,10 @@ const FS = k => { const m = fabMode();
   return k ? `#fab .fo[data-k="${k}"]` : '#fab'; };
 const STEPS = [
   {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 16 korakih — lahko ga kadarkoli preskočiš.', lang:true},
-  {t:'Nastavi se', setup:true, d:'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):'},
-  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).', sel:()=>'#drawer', open:'peaks'},
-  {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'#map', center:true, open:'map'},
-  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', open:'map'},
+  {t:'Osebne nastavitve', setup:true, d:'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):'},
+  {t:'Seznam vrhov', d:'98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).', sel:()=>'#drawer', scroll:true, open:'peaks'},
+  {t:'Klikni vrh na karti', d:'Okno pokaže višino, prominenco, težavnost normalne poti (lahka / zahtevna / zelo zahtevna) in vreme za danes. Od tu odpreš poti na vrh ali 360° razgled.', sel:()=>'.maplibregl-popup-content', demo:'peak', scroll:true, open:'map'},
+  {t:'Poti na vrh', d:'Poti z izhodišč (parkirišč): PZS oznaka in ime poti, koče na poti, T-lestvica, ferate, čas hoje po tvoji kondiciji in višinski profil. »⛰ Od strani« zasuka karto na pobočje poti, »GPX« jo prenese. »⚠ nad tvojo mejo« pomeni težje od tvojega profila.', sel:()=>'#rcard', demo:'routes', scroll:true, open:'map'},
   {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
   {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>'#wxChk', open:'layers'},
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
@@ -118,7 +118,7 @@ const STEPS = [
 Object.assign(EN, {
   'Dobrodošli na Dvatisočakih':'Welcome to Slovenian 2000ers',
   '3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 16 korakih — lahko ga kadarkoli preskočiš.':'A 3D map of all Slovenian peaks above 2000 m (and 1500–2000 m) on LiDAR terrain: routes, weather, snow and a 360° view. A short 16-step guide — skip it any time.',
-  'Nastavi se':'Set it up for you', 'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):':'So walking times, warnings and text fit you (change it later in ⚙ Settings):',
+  'Osebne nastavitve':'Personal settings', 'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):':'So walking times, warnings and text fit you (change it later in ⚙ Settings):',
   'Seznam vrhov':'Peak list',
   '98 prominentnih dvatisočakov (ali vsi vrhovi). Odkljukaj, kar si že osvojil — napredek se shrani v tem brskalniku (Izvozi / Uvozi za prenos). Iskanje, gorstva in filtri obiskani / neobiskani. Na telefonu ga odpre jeziček »︿ Vrhovi« pod rdečim gumbom (tapni ali povleci gor).':'The 98 prominent 2000 m peaks (or all peaks). Tick the ones you have climbed — progress is saved in this browser (Export / Import to move it). Search, ranges and visited / not visited filters. On a phone the »︿ Peaks« tab under the red button opens it (tap or swipe up).',
   'Klikni vrh na karti':'Click a peak on the map',
@@ -173,7 +173,7 @@ function uiSet(o){ const d = DR(); if (!o) return false; const was = [B().contai
   else { B().toggle('lclosed', o !== 'layers'); if (d) d.classList.toggle('open', o === 'peaks'); }   // only what the step talks about
   const now = [B().contains('lclosed'), B().contains('menu'), !!(d && d.classList.contains('open'))]; return now.some((v, i) => v !== was[i]); }
 function uiRestore(){ if (!ui0) return; const d = DR(); B().toggle('lclosed', ui0[0]); B().toggle('menu', ui0[1]); if (d) d.classList.toggle('open', ui0[2]); ui0 = null; }
-function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="th"></div><div class="tc"></div>'; document.body.append(ov); }
+function tour(start){ step = start || 0; const d0 = DR(); ui0 = [B().contains('lclosed'), B().contains('menu'), !!(d0 && d0.classList.contains('open'))]; const sw = document.getElementById('setWin'); if (sw) sw.classList.remove('on'); if (!ov){ ov = document.createElement('div'); ov.id = 'tour'; ov.innerHTML = '<div class="tb"></div><div class="th"></div><div class="tsw"><i></i></div><div class="tc"></div>'; document.body.append(ov); }
   document.body.classList.remove('menu'); document.body.classList.add('touring'); clearUI(); placeStep.sc = -1; placeStep.pan = -1; showStep();
   // the lit spot follows its target while the map flies or a window slides in
   clearInterval(tour.iv); tour.iv = setInterval(() => { if (ov) placeStep(); else clearInterval(tour.iv); }, 300); }
@@ -188,11 +188,14 @@ function endTour(){ clearInterval(tour.iv); if (window.fabClose) fabClose(); doc
 let curDemo = null; const TRI = 'triglav-2864';
 const popClose = () => document.querySelectorAll('.maplibregl-popup .maplibregl-popup-close-button').forEach(b => b.click());
 function demo(d){ if (d === curDemo) return false;
-  if (curDemo === 'routes' && window.closeRoutes) closeRoutes(); if (curDemo === 'p360') popClose(); curDemo = d;
+  if (curDemo === 'routes' && window.closeRoutes) closeRoutes(); if ((curDemo === 'p360' || curDemo === 'peak') && d !== 'p360' && d !== 'peak') popClose(); curDemo = d;
   const P = typeof byId !== 'undefined' && byId[TRI]; if (!d || !P) return false;
-  if (d === 'routes'){ popClose(); map.flyTo({center:[P.lon, P.lat], zoom:12.5, pitch:50, bearing:-15, duration:1400});
-    Promise.resolve(window.peakRoutesUI && peakRoutesUI(TRI)).then(() => setTimeout(() => ov && curDemo === 'routes' && placeStep(), 1000)); setTimeout(() => ov && placeStep(), 1600); return true; }
-  if (d === 'p360'){ if (window.openPeak) openPeak(TRI, true); setTimeout(() => ov && curDemo === 'p360' && placeStep(), 1900); return true; }
+  // the same Triglav window for "click a peak" and "360": opened at once on a flat map (no flying, never hidden behind a ridge)
+  const win = () => { if (!document.querySelector('.maplibregl-popup')){ map.jumpTo({center:[P.lon, P.lat], zoom:12.3, pitch:0, bearing:0}); if (window.openPeak) openPeak(TRI, false); }
+    setTimeout(() => ov && placeStep(), 120); setTimeout(() => ov && placeStep(), 700); };
+  if (d === 'peak' || d === 'p360'){ win(); return true; }
+  if (d === 'routes'){ popClose(); map.jumpTo({center:[P.lon, P.lat], zoom:12.5, pitch:45, bearing:-15});
+    Promise.resolve(window.peakRoutesUI && peakRoutesUI(TRI)).then(() => setTimeout(() => ov && curDemo === 'routes' && placeStep(), 300)); setTimeout(() => ov && placeStep(), 900); return true; }
   return false; }
 let stT = 0;
 function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S.open() : S.open;
@@ -214,6 +217,10 @@ function placeStep(){ if (!ov) return;
   // phone: a window that fills most of the screen (peak list, route sheet) - only its top part is lit, the card gets the rest
   if (r && !S.center && PHONE() && r.height > innerHeight * 0.5){ const top = Math.max(r.top, 0); r = {left:r.left, top, width:r.width, height:Math.max(130, innerHeight * 0.4 - top)}; }
   if (r){ hole.style.cssText = `display:block;left:${r.left-6}px;top:${r.top-6}px;width:${r.width+12}px;height:${r.height+12}px`; } else hole.style.cssText = 'display:block;left:50%;top:40%;width:0;height:0';
+  // the lit thing is live (tap, scroll, open); everything around it is blocked
+  const tb = ov.querySelector('.tb'), L0 = r ? r.left - 6 : 0, T0 = r ? r.top - 6 : 0, R0 = r ? r.left + r.width + 6 : 0, B0 = r ? r.top + r.height + 6 : 0;
+  tb.style.clipPath = r && !S.center ? `polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,${L0}px ${T0}px,${L0}px ${B0}px,${R0}px ${B0}px,${R0}px ${T0}px,${L0}px ${T0}px)` : 'none';
+  const sw = ov.querySelector('.tsw'); if (S.scroll && r){ sw.style.cssText = `display:block;left:${r.left + r.width / 2 - 22}px;top:${r.top + Math.min(r.height, innerHeight - r.top) * .45 - 40}px`; } else sw.style.display = 'none';
   if (card.dataset.step !== String(step)){ card.dataset.step = step;   // same step again (sheet slid in, routes loaded): only move it
   card.innerHTML = `<div class="ts">${step+1} / ${STEPS.length}</div><h3>${T(S.t)}</h3><p>${T(S.d)}</p>`+
       (S.lang ? `<div class="tl"><button data-l="sl" class="${LANG==='sl'?'on':''}">Slovenščina</button><button data-l="en" class="${LANG==='en'?'on':''}">English</button></div>` : '')+
@@ -228,7 +235,7 @@ function placeStep(){ if (!ov) return;
   // place the card next to the highlighted element, never over it: beside it on a computer, else in the larger free band above or
   // below it (the card scrolls inside if the band is short); map steps: in the middle of the lit map
   const cw = Math.min(S.wide ? 560 : 360, innerWidth-24); card.style.width = cw+'px'; card.style.maxHeight = '';
-  let x = innerWidth/2-cw/2, y = innerHeight/2-120, ch = card.offsetHeight;
+  let ch = card.offsetHeight, x = innerWidth/2-cw/2, y = Math.max(12, (innerHeight-ch)/2);
   if (r && !S.center){ const right = r.left+r.width+16, left = r.left-cw-16, fitY = () => Math.max(12, Math.min(innerHeight-12-ch, r.top));
     if (!PHONE() && right+cw < innerWidth-8){ x = right; y = fitY(); }
     else if (!PHONE() && left > 8){ x = left; y = fitY(); }

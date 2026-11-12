@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.74 — 2026-11-12
+- Guide: the Triglav window opens at once on a flat map for "click a peak" and "360°" (no flying, never hidden behind a
+  ridge - 360° now works on a computer too); routes open at once; the lit part is live (tap, scroll, open things) while the
+  rest is blocked; a moving finger shows where to scroll (peak list, peak window, routes); steps without a target sit in the
+  middle of the screen; "Nastavi se" is now "Osebne nastavitve"; on the phone the guide text follows the text size.
+- Snow legend no longer shows at first load when it had been shrunk before (a shrunk legend's style showed it).
+- New looks: map buttons and shrunk legends grow with the text size, but only half as much (about 30-40 px).
+- New looks: better base-map pictures (relief, satellite, topo, snow); two more versions on the design canvas.
+
+## web-v0.73.1 — 2026-11-12
+- The harmless MapLibre message "Out of bounds ... _numberToString" is no longer shown as an error.
+
 ## web-v0.73 — 2026-11-12
 - Markacija, phone: the bottom bar has pages. The blaze in the middle stays; tap it (or swipe the bar) and the four buttons
   change (1: Vrhovi, Karta, Načrt, Jaz; 2+: Nastavitve, Riši, Lestvica, Vodič, Prijatelji, GPS, Admin ...). Hold the blaze =
