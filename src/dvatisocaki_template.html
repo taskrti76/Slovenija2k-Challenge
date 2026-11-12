@@ -648,7 +648,7 @@ function updH(){ const b=(document.querySelector('input[name=base]:checked')||{}
 document.querySelectorAll('input[name=base]').forEach(r=>r.addEventListener('change',()=>setTimeout(updH,0)));
 new MutationObserver(updH).observe(document.getElementById('snowleg'),{attributes:true,attributeFilter:['style']}); updH();
 { const x=document.getElementById('hlegx'), setMin=v=>{ hleg.classList.toggle('min',v); x.textContent=v?'▸':'–'; try{ localStorage.setItem('dvat3d_hlegmin',v?'1':'0'); }catch(_){} };
-  try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; }
+  try{ setMin(localStorage.getItem('dvat3d_hlegmin')==='1'); }catch(_){} x.onclick=e=>{ e.stopPropagation(); setMin(!hleg.classList.contains('min')); }; hleg.addEventListener('click',()=>{ if(hleg.classList.contains('min')) setMin(false); }); }
 // legends (snow, height): fixed at the right edge under the map buttons (2D, location ...), not movable - only – / ▸ to shrink
 function placeLegends(){ const c=map.getContainer().querySelector('.maplibregl-ctrl-top-right'), cr=c?c.getBoundingClientRect():null;
   let top=cr&&cr.height?cr.bottom+8:10; const right=cr&&cr.width?Math.max(6,innerWidth-cr.right):10;
@@ -1166,6 +1166,7 @@ map.on('click',e=>{
   const lx=$id('snowlegx'), setMin=v=>{ leg.classList.toggle('min',v); lx.textContent=v?'▸':'–'; lx.title=v?'Pokaži legendo':'Skrij legendo'; try{ localStorage.setItem('dvat3d_snowlegmin',v?'1':'0'); }catch(_){} };
   try{ setMin(localStorage.getItem('dvat3d_snowlegmin')==='1'); }catch(_){}
   lx.onclick=e=>{ e.stopPropagation(); setMin(!leg.classList.contains('min')); };
+  leg.addEventListener('click',()=>{ if(leg.classList.contains('min')) setMin(false); });   // a shrunk legend opens with a tap anywhere on it
   $id('snowlegi').onclick=e=>{ e.stopPropagation(); leg.classList.toggle('note'); };
 })();
 

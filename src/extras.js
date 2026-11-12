@@ -90,6 +90,13 @@ function setLang(l){ if (l === LANG) return; LS('dvat3d_lang', l); location.relo
 
 // ---------- 2) first-use guide ----------
 const PHONE = () => PHONE_UI();
+// where the menu items are: the red button's bubbles (classic, new look on the phone), the left rail (new looks on a computer)
+// or the bottom bar (Markacija on the phone, switched to the page that holds the item)
+const fabMode = () => window.V2 && !PHONE() ? 'rail' : window.MK && PHONE() ? 'dock' : 'fab';
+const FS = k => { const m = fabMode();
+  if (m === 'rail') return k ? `#v2rail .rl[data-e="${k}"]` : '#v2rail';
+  if (m === 'dock'){ if (k && window.mkDockPage){ const b = document.querySelector(`#mkdock button[data-k="${k}"]`), pg = b && b.closest('.pg'); if (pg) mkDockPage([...pg.parentNode.children].indexOf(pg)); } return k ? `#mkdock button[data-k="${k}"]` : '#mkdock'; }
+  return k ? `#fab .fo[data-k="${k}"]` : '#fab'; };
 const STEPS = [
   {t:'Dobrodošli na Dvatisočakih', d:'3D karta vseh slovenskih vrhov nad 2000 m (in 1500–2000 m) na LiDAR terenu: poti, vreme, sneg in 360° razgled. Kratek vodič v 16 korakih — lahko ga kadarkoli preskočiš.', lang:true},
   {t:'Nastavi se', setup:true, d:'Da bodo časi hoje, opozorila in besedilo prav zate (kasneje v ⚙ Nastavitvah):'},
@@ -99,11 +106,11 @@ const STEPS = [
   {t:'360° razgled z vrha', d:'Postavi te na vrh: vleci za obračanje, klik na ime skoči na drug vrh. »☀ Dan« pokaže sončni vzhod in zahod — sonce se skrije za grebeni, kot v resnici.', sel:()=>'.maplibregl-popup .p360', demo:'p360', open:'map'},
   {t:'Vreme na vrhovih', d:'Ocena dneva 0–100 za vsak vrh (07–17 h): nevihte, veter, padavine, oblaki, nov sneg in mraz na vrhu. Težji vrh = strožja ocena. Na karti zelena / oranžna / rdeča; ⤢ odpre velik pregled po urah za 4 dni.', sel:()=>'#wxChk', open:'layers'},
   {t:'Snežna karta', d:'Koliko snega je kje: satelit Sentinel-2 pove, kje sneg leži, naš model (vsak dan, popravljen z meritvami ARSO) pa koliko ga je — danes in 4 dni naprej. Z miško (ali dotikom) prebereš globino.', sel:()=>'input[name=base][value=snow]', open:'layers'},
-  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri rdeči gumb → 🗓 Načrtovalnik.', sel:()=>'#fab .fo[data-k="✏️"]', fab:true, open:'map'},
+  {t:'Riši svojo pot', d:'Klikaj točke — pot sama sledi potem in cestam. Točke lahko premikaš in brišeš; izvoz v GPX. Višinski profil pokaže strmino, vrsto poti in čas; za večdnevno turo s prenočitvami odpri rdeči gumb → 🗓 Načrtovalnik.', sel:()=>FS('✏️'), fab:true, open:'map'},
   {t:'Podlage in sloji', d:'Relief, satelit, OpenTopoMap ali snežna karta; sloji za poti, koče, parkirišča, ferate, sneg in vreme; velikost besedila. Na računalniku se plošča skrije z modrim jezičkom ob levem robu. Na telefonu: rdeči gumb → ◧ Karta in sloji.', sel:()=>'.panel .grp', open:'layers'},
-  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.', sel:()=>'#fab', fabAll:true, fab:true, open:'map'},
-  {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>'#fab .fo[data-k="👤"]', fab:true, open:'map'},
-  {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija z rdečim gumbom → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>'#fab .fo[data-k="⚙"]', fab:true, open:'map'},
+  {t:'Rdeči gumb in nastavitve', d:'Rdeči gumb spodaj na sredini odpre meni v krogih: ◧ Karta in sloji, 👤 Moj profil, ⚙ Nastavitve, ✏️ Riši pot, 🗓 Načrtovalnik, 🏆 Lestvica, prijatelji, skupine, 📍 GPS vrhovi. Jeziček »︿ Vrhovi« pod njim odpre seznam vrhov. V ⚙ Nastavitvah: izkušnje z zimo, kondicija in najtežja pot, ki ti je še prijetna (vpliva na oceno vremena in opozorila), račun, obvestila, zemljevidi brez signala in ta vodič.', sel:()=>FS(null), fabAll:true, fab:true, open:'map'},
+  {t:'👤 Moj profil', d:'Vse tvoje na enem mestu: števci, ⭐ seznam želja (☆ v oknu vrha), tvoji vzponi z datumi, narisane poti (na karto ali GPX), prijatelji, skupine in značke. Deluje tudi brez računa.', sel:()=>FS('👤'), fab:true, open:'map'},
+  {t:'🗺 Brez signala in aplikacija', d:'⚙ Nastavitve → Zemljevidi brez signala: shrani trenutni pogled ali celo pogorje (teren, 3D, plastnice, vode, imena krajev — poti, koče, vrhovi in zadnja napoved se shranijo sami). Seznam pokaže velikost, območja posodobiš ali izbrišeš. 📱 Android aplikacija z rdečim gumbom → 📍 GPS vrhovi sama potrdi vrh, ko stojiš na njem (✓).', sel:()=>FS('⚙'), fab:true, open:'map'},
   {t:'Namigi', wide:true, d:'• <b>Legende</b> (višina, sneg): na računalniku jih primeš za naslov in premakneš, dvoklik na naslov jih vrne na mesto; – jih skrči v majhen gumb.<br>• <b>Nagib in sever</b>: desni gumb miške ali dva prsta nagneta karto, kompas jo obrne proti severu, 2D/3D preklopi pogled.<br>• <b>Moji vrhovi</b>: klik na ime v seznamu te odpelje do vrha; pod »Obiskal sem« dodaš datum (☐ danes), pot in opombo; »✓ Šel sem po tej poti« v kartici poti odkljuka vrh s to potjo.<br>• <b>Deljenje</b>: ✎ Riši → Moje poti → ⤴ (povezava ali javno). 🏆 Lestvica je ob tvojem napredku v seznamu vrhov in v meniju (rdeči gumb).<br>• Okna poti in profila na računalniku prav tako premikaš za naslov.'},
   {t:'Srečno na poti!', d:'Podatki so samodejni (OSM, LiDAR, vremenski model, satelit, model snega) — pred turo vedno preveri razmere. Stran se sama posodobi. Vodič ponoviš v ⚙ Nastavitvah (na telefonu tudi rdeči gumb → ❓ Vodič).'},
   {t:'Račun (neobvezno)', d:'Z računom (uporabniško ime + geslo) imaš osvojene vrhove, datume in poti, svoje narisane poti in nastavitve na telefonu in računalniku, poti lahko deliš s povezavo, se pridružiš lestvici ter dodaš prijatelje in skupine (skupni načrti tur). Brez računa vse deluje in se shrani v tem brskalniku. Račun urediš v ⚙ Nastavitve.', acc:true}
@@ -189,12 +196,12 @@ function demo(d){ if (d === curDemo) return false;
   return false; }
 let stT = 0;
 function showStep(){ const S = STEPS[step], o = typeof S.open === 'function' ? S.open() : S.open;
-  if (S.fab){ if (!document.querySelector('#fab.open') && window.openMenu) openMenu(); } else if (window.fabClose) fabClose();
+  if (S.fab && fabMode() === 'fab'){ if (!document.querySelector('#fab.open') && window.openMenu) openMenu(); } else if (window.fabClose) fabClose();
   clearTimeout(stT); const dm = demo(S.demo || null); if (uiSet(o) || dm){ placeStep(); ov.querySelector('.th').style.display = 'none'; stT = setTimeout(placeStep, 320); } else placeStep(); }   // wait for the sheet to slide in
 function placeStep(){ if (!ov) return;
   const S = STEPS[step], hole = ov.querySelector('.th'), card = ov.querySelector('.tc');
   let r = null;
-  if (S.fabAll){ const R = [...document.querySelectorAll('#fab .fo, #fab .fb')].map(e => e.getBoundingClientRect()).filter(b => b.width);
+  if (S.fabAll && fabMode() === 'fab'){ const R = [...document.querySelectorAll('#fab .fo, #fab .fb')].map(e => e.getBoundingClientRect()).filter(b => b.width);
     if (R.length){ const l = Math.min(...R.map(b => b.left)), t = Math.min(...R.map(b => b.top)) - 18, rr = Math.max(...R.map(b => b.right)), bb = Math.max(...R.map(b => b.bottom)); r = {left:l, top:t, width:rr - l, height:bb - t}; } }
   else if (S.sel){ let el = document.querySelector(S.sel());
     if (el && el.closest('.maplibregl-popup') && placeStep.pan !== step){ const b = el.getBoundingClientRect();

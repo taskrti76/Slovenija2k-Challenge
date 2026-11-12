@@ -53,6 +53,12 @@ html.v2 .pzs{background:var(--v2red)!important;border-radius:4px!important}
 /* map buttons, legends, little pills on the map */
 html.v2 .maplibregl-ctrl-group{border-radius:12px!important;box-shadow:var(--v2float)!important;overflow:hidden}
 html.v2 #hleg,html.v2 #snowleg{border-radius:12px!important;box-shadow:var(--v2float)!important}
+/* a shrunk legend = a small round button like the map buttons above it (tap opens it) */
+html.v2 #hleg.min,html.v2 #snowleg.min{width:34px!important;height:34px!important;min-width:0!important;padding:0!important;border-radius:50%!important;justify-content:center;cursor:pointer}
+html.v2 #hleg.min .lh,html.v2 #snowleg.min .lh{justify-content:center}html.v2 #hleg.min .lh>*:not(b),html.v2 #snowleg.min .lh>*:not(b){display:none!important}
+html.v2 #hleg.min .lh b,html.v2 #snowleg.min .lh b{font:400 15px/1 system-ui,sans-serif!important;text-transform:none!important}
+html.v2 .maplibregl-ctrl-group:empty{display:none}
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){html.v2 .maplibregl-ctrl-group:has(.maplibregl-ctrl-fullscreen){display:none}}
 
 /* the red button, its menu and the peaks tab */
 html.v2 #fab .fb{background:var(--v2red)!important}
@@ -122,7 +128,7 @@ window.v2PeakBox = (box, p, o) => {
   if (wish) h.append(wish); box.append(h);
   const a = document.createElement('div'); a.className = 'v2act';
   const btn = (ic, t, fn, pri) => { const b = document.createElement('button'); b.className = pri ? 'pri' : ''; b.innerHTML = ic + `<span>${t}</span>`; b.onclick = fn; a.append(b); };
-  btn(ICON.route, L('Poti','Routes'), o.rb.onclick, true); btn(ICON.pano, '360°', o.vb.onclick);
+  btn(ICON.route, L('Poti','Routes'), o.rb.onclick, true); btn(ICON.pano, '360°', o.vb.onclick); a.lastChild.classList.add('p360');   // p360: the guide's 360 step points at it
   if (plan) btn(I('🗓'), L('V načrt','Plan'), plan.onclick);
   if (camN) btn(ICON.cam, `${L('Kamere','Webcams')} · ${camN}`, () => { const c = box.querySelector('.v2cams'); if (c) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   box.append(a);
@@ -156,9 +162,9 @@ function railRender(){ const items = window.fabItemsList ? fabItemsList().filter
   const sig = items.map(x => x[1] + (x[3] || '')).join('|') + (B.classList.contains('lclosed') ? 0 : 1) + ($('drawer').classList.contains('open') ? 1 : 0);
   if (sig === railSig) return; railSig = sig;
   const dOpen = $('drawer').classList.contains('open'), lOpen = !B.classList.contains('lclosed');
-  const it = (ic, t, on, k, badge) => `<button class="rl${on ? ' on' : ''}" data-k="${k}" title="${t}">${ic}<span>${t}</span>${badge ? `<i class="bdg">${badge}</i>` : ''}</button>`;
+  const it = (ic, t, on, k, badge, e) => `<button class="rl${on ? ' on' : ''}" data-k="${k}"${e ? ` data-e="${e}"` : ''} title="${t}">${ic}<span>${t}</span>${badge ? `<i class="bdg">${badge}</i>` : ''}</button>`;
   rail.innerHTML = `<span class="logo">${ICON.peaks}</span>` + it(ICON.peaks, L('Vrhovi','Peaks'), dOpen, 'peaks') + it(I('◧'), L('Karta','Map'), lOpen, 'layers')
-    + items.map((x, i) => it(I(x[0]) || x[0], x[1], false, 'i' + i, x[3])).join('') + '<span class="sp"></span>' + it(I('❓'), L('Vodič','Guide'), false, 'guide');
+    + items.map((x, i) => it(I(x[0]) || x[0], x[1], false, 'i' + i, x[3], x[0])).join('') + '<span class="sp"></span>' + it(I('❓'), L('Vodič','Guide'), false, 'guide');
   rail.querySelectorAll('.rl').forEach(b => b.onclick = () => { const k = b.dataset.k, dr = $('drawer');
     if (k === 'peaks'){ const o = !dr.classList.contains('open'); dr.classList.toggle('open', o); if (o) B.classList.add('lclosed'); }
     else if (k === 'layers'){ const o = B.classList.contains('lclosed'); B.classList.toggle('lclosed', !o); if (o) dr.classList.remove('open'); try{ localStorage.setItem('dvat3d_lclosed', o ? '0' : '1'); }catch(_){} }
@@ -199,11 +205,15 @@ if (tab){ tab.innerHTML = `<span class="g"></span><div class="tx"><b>${L('Moji v
   if (vc) new MutationObserver(up).observe(vc, {childList: true, characterData: true, subtree: true}); up(); }
 
 // ---------- Karta in sloji: base maps as picture tiles, layers as switches ----------
-const SW = {relief: 'linear-gradient(135deg,#A7C08A 0%,#D9CF9C 40%,#C9A97C 65%,#EEEDEA 100%)', sat: 'linear-gradient(160deg,#5E6B4E 0%,#8C8F78 35%,#B8B3A6 60%,#E9E8E4 100%)',
-  topo: 'repeating-linear-gradient(170deg,#F3EEDF 0 6px,#E1D6B9 6px 7px)', snow: 'linear-gradient(135deg,#E2F3FF 0%,#56A8F5 45%,#6B3CCF 75%,#6E0B35 100%)'};
+const sv = b => `<svg viewBox="0 0 80 56" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${b}</svg>`;
+const SW = {   // little map pictures for the base maps
+  relief: sv('<rect width="80" height="56" fill="#A9C38C"/><path d="M0 56V40l14-8 10 4 16-20 9 8 7-6 24 22v16Z" fill="#D8CB97"/><path d="M24 36l16-20 9 8 7-6 12 11-14-3-8 4-9-7Z" fill="#C3A27A"/><path d="M34 24l6-8 5 4-4 2Z" fill="#F1EFEA"/><path d="M40 16l9 8 7-6 24 22v16H52L48 30Z" fill="#000" opacity=".12"/>'),
+  sat: sv('<rect width="80" height="56" fill="#55663F"/><path d="M0 34l18-6 14 10 20-8 28 6v20H0Z" fill="#6F7F4B"/><path d="M6 8h18v12H6ZM46 6l20 3-3 12-19-3Z" fill="#9AA36A"/><path d="M30 0l14 22 10-6 26 10V0Z" fill="#8F8C82"/><path d="M44 0l8 12 6-4 4 6" fill="none" stroke="#C9C5BC" stroke-width="2"/><path d="M0 46c20-6 40 4 80-6" fill="none" stroke="#DCD6C8" stroke-width="2"/><circle cx="16" cy="40" r="6" fill="#3E4F31"/><circle cx="62" cy="44" r="7" fill="#3E4F31"/>'),
+  topo: sv('<rect width="80" height="56" fill="#F4EFDF"/><g fill="none" stroke="#C9B48B" stroke-width="1"><path d="M10 50c4-14 18-26 32-28s26 8 30 22"/><path d="M18 50c3-10 14-19 25-20s19 6 22 16"/><path d="M27 48c3-7 9-11 16-11s12 4 14 10"/><path d="M36 44c2-3 5-5 8-5s5 2 6 5"/></g><path d="M8 54C20 44 30 46 40 36s14-12 22-24" fill="none" stroke="#C62828" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M60 10l4 6h-8Z" fill="#5A4A3A"/><path d="M0 18c14 2 20-6 34-4" fill="none" stroke="#6FA8D6" stroke-width="1.6"/>'),
+  snow: sv('<rect width="80" height="56" fill="#CFE3F4"/><path d="M0 56V38l18-12 12 6 14-22 12 12 8-5 16 14v25Z" fill="#7C8FA6"/><path d="M30 32l14-22 12 12 8-5 16 14-14-4-8 4-9-6-9 6Z" fill="#fff"/><path d="M18 26l12 6-10 2-12-1Z" fill="#fff"/><rect y="48" width="80" height="8" fill="url(#sg)"/><defs><linearGradient id="sg"><stop offset="0" stop-color="#E2F3FF"/><stop offset=".45" stop-color="#56A8F5"/><stop offset=".75" stop-color="#6B3CCF"/><stop offset="1" stop-color="#6E0B35"/></linearGradient></defs>')};
 const base = document.querySelector('.panel .grp input[name=base]'), bg = base && base.closest('.grp');
-if (bg){ bg.classList.add('v2base'); bg.querySelectorAll('label').forEach(l => { const v = l.querySelector('input').value, th = document.createElement('span'); th.className = 'th'; th.style.background = SW[v] || '#ddd'; l.prepend(th);
-  const tx = [...l.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (tx) tx.textContent = ' ' + tx.textContent.trim().replace(/\s*\(.*\)$/, '').replace(/^Snežna karta$/, 'Sneg'); }); }
+if (bg){ bg.classList.add('v2base'); bg.querySelectorAll('label').forEach(l => { const v = l.querySelector('input').value, th = document.createElement('span'); th.className = 'th'; th.innerHTML = SW[v] || ''; l.prepend(th);
+  const tx = [...l.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (tx) tx.textContent = ' ' + tx.textContent.trim().replace(/\s*\(.*\)$/, '').replace(/^Snežna karta$/, 'Sneg').replace(/^OpenTopoMap$/, 'Topo'); }); }
 document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c => { const l = c.closest('label'); l.classList.add('v2sw');
   const t = document.createElement('span'); t.className = 'v2tx'; [...l.childNodes].filter(n => n !== c).forEach(n => t.append(n)); l.append(t); });
 // ---------- 360° view: name + direction top left with a close button, the controls in one white card at the bottom ----------
@@ -293,7 +303,7 @@ html.v2 .v2base{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8
 html.v2 .v2base label{display:flex!important;flex-direction:column;gap:5px;font-size:12px!important;font-weight:600;text-align:center;cursor:pointer;margin:0!important;position:relative;line-height:1.2}
 html.v2 .v2base label input{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
 html.v2 .v2base .th{display:block;width:100%;height:52px;box-sizing:border-box;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);border:2px solid transparent}
-html.v2 .v2base label:has(input:checked) .th{border-color:#B42318}
+html.v2 .v2base label:has(input:checked) .th{border-color:#B42318}html.v2 .v2base .th{overflow:hidden;padding:0}html.v2 .v2base .th svg{display:block;width:100%;height:100%}
 html.v2 label.v2sw{display:flex!important;align-items:center;justify-content:space-between;gap:10px;min-height:36px}html.v2 label.v2sw input{order:2}html.v2 label.v2sw .v2tx{flex:1;min-width:0}
 html.v2 label.v2sw input{appearance:none;-webkit-appearance:none;width:40px!important;height:24px!important;border-radius:12px;background:#CFCBC2;position:relative;margin:0!important;flex:none;cursor:pointer;transition:background .15s}
 html.v2 label.v2sw input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}

@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.73 — 2026-11-12
+- Markacija, phone: the bottom bar has pages. The blaze in the middle stays; tap it (or swipe the bar) and the four buttons
+  change (1: Vrhovi, Karta, Načrt, Jaz; 2+: Nastavitve, Riši, Lestvica, Vodič, Prijatelji, GPS, Admin ...). Hold the blaze =
+  the old round menu. Dots under the blaze show the page.
+- Markacija: peak dots in their range's colour again (ring = not yet, filled = climbed).
+- New looks: base maps (Podloga) as little map pictures (relief, satellite, topo, snow) instead of colour swatches; "Topo".
+- New looks: a shrunk legend is a small round button like the map buttons (tap opens it); stray dot under the compass gone.
+- Profile badges: wider grid, more space, long names wrap instead of running into each other.
+- Profile / leaderboard / friends page: the mountains at the bottom are Škrlatica drawn from a photo (contours kept above).
+- Guide in the new looks: menu steps point at the left rail (computer) or the bottom bar (Markacija phone, on the right page);
+  the 360 step finds the 360° button in the new peak window.
+
 ## web-v0.72 — 2026-11-12
 - Badges: 11 peaks redrawn from photos the same way as the app logo (photo → sky cut off → tone bands → outlines):
   Triglav, Mangart, Jalovec, Škrlatica, Visoki Kanin, Grintovec, Ojstrica, Stol, Košuta (replaces Vrtača on the Karavanke
