@@ -61,6 +61,17 @@ ${PH}{
   html.mk #fab{bottom:calc(24px + env(safe-area-inset-bottom))!important}
   html.mk body.dopen #fab,html.mk body.menu #fab,html.mk body.pop #fab:not(.open){display:none}
 }
+@media (max-height:500px) and (pointer:coarse) and (orientation:landscape){
+  html.mk #mkdock{left:auto;right:calc(10px + env(safe-area-inset-right));top:10px;bottom:10px;width:64px;height:auto}
+  html.mk #mkdock .trk{flex-direction:column;height:100%}
+  html.mk #mkdock .pg{flex:0 0 100%;flex-direction:column;padding:4px 0;width:100%}
+  html.mk #mkdock button,html.mk #mkdock .ph{width:100%;height:auto;flex:1}
+  html.mk #mkdock .gap{flex:0 0 64px}
+  html.mk #mkdock .dots{left:auto;right:4px;bottom:auto;top:50%;transform:translateY(-50%);flex-direction:column}
+  html.mk #fab{left:auto!important;margin-left:0!important;right:calc(13px + env(safe-area-inset-right))!important;bottom:calc(50% - 29px)!important}
+  html.mk .maplibregl-ctrl-top-right{right:82px!important}
+  html.mk body.pop #mkdock{display:block}html.mk body.pop #fab:not(.open){display:block}
+}
 `; document.head.append(st);
 
 // ---------- phone: bottom bar with pages. The blaze in the middle stays; tap it (or swipe the bar) and the four buttons around
@@ -84,14 +95,15 @@ function build(){ const it = items(), first = ['◧', '🗓', '👤'], rest = it
     return `<button data-k="${x[0]}">${(window.V2I && V2I[x[0]]) || IC[x[0]] || x[0]}<span class="lb">${SHORT[x[0]] || x[1]}</span>${x[3] ? `<i class="bdg">${x[3]}</i>` : ''}</button>`; };
   trk.innerHTML = PAGES.map(p => `<div class="pg">${btn(p[0])}${btn(p[1])}<span class="gap"></span>${btn(p[2])}${btn(p[3])}</div>`).join('');
   dots.innerHTML = PAGES.map((_, i) => `<i class="${i === PG ? 'on' : ''}"></i>`).join(''); if (PG >= PAGES.length) PG = 0; go(PG, true); up(); }
-function go(i, inst){ PG = (i + PAGES.length) % PAGES.length; trk.style.transition = inst ? 'none' : ''; trk.style.transform = `translateX(${-PG * 100}%)`;
+function go(i, inst){ PG = (i + PAGES.length) % PAGES.length; trk.style.transition = inst ? 'none' : ''; trk.style.transform = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches ? `translateY(${-PG * 100}%)` : `translateX(${-PG * 100}%)`;
   dots.querySelectorAll('i').forEach((d, j) => d.classList.toggle('on', j === PG)); }
 dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k;
   if (window.fabClose) fabClose();
   if (k === 'peaks'){ if (window.DRAW_ON && window.stopDraw) stopDraw(); B.classList.remove('menu'); $('drawer').classList.add('open'); return; }
   const x = items().find(y => y[0] === k); if (x) x[2](); setTimeout(() => { sig = ''; build(); }, 300); };
 { let x0 = null; dock.addEventListener('pointerdown', e => { x0 = e.clientX; });
-  dock.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) go(PG + (e.clientX < x0 ? 1 : -1)); x0 = null; }); }
+  dock.addEventListener('pointerup', e => { if (x0 != null && Math.abs(e.clientX - x0) > 40) go(PG + (e.clientX < x0 ? 1 : -1)); x0 = null; });
+  addEventListener('resize', () => go(PG, true)); }
 // the blaze: tap = next set of buttons, hold = the full round menu
 const fab = $('fab'), fb = fab && fab.querySelector('.fb'); let hold = null, held = false;
 if (fb){

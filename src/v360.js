@@ -76,7 +76,7 @@ function apply(){
   map.jumpTo(cam());
   const b = ((S.brg % 360) + 360) % 360;
   $$('v360dir').textContent = `${DIRS[Math.round(b/45) % 8]} ${Math.round(b)}°`;
-  placeLabels(); placeSun();
+  placeLabels(); placeSun(); if (window.V2) placeCompass();
 }
 
 // ---------- own peak labels (projected from the summit) ----------
@@ -92,9 +92,11 @@ function buildLabels(){
     const major = q.rank!=null || q.is_sub==='no'; if (!major && d>5000) continue;
     const el = Math.atan2(topH(q)-S.eye, d);
     const div=document.createElement('div'); div.className='pl'+(q.rank&&q.rank<=25?' big':'');
-    div.innerHTML=`${q.name}<small>${Math.round(q.elev)} m · ${d<10000?(d/1000).toFixed(1):Math.round(d/1000)} km</small>`;
+    div.innerHTML = window.V2 ? `<span class="t">${q.name} ${Math.round(q.elev)}</span><i class="ln"></i>`
+      : `${q.name}<small>${Math.round(q.elev)} m · ${d<10000?(d/1000).toFixed(1):Math.round(d/1000)} km</small>`;
+    if (window.V2) div.title = `${q.name} · ${Math.round(q.elev)} m · ${d<10000?(d/1000).toFixed(1):Math.round(d/1000)} km`;
     div.style.display='none'; div.onclick=()=>window.enter360(q.id); LBL.append(div);
-    LB.push({q,az,el,d,div,vis:true,w:Math.max(q.name.length*7.2,70)+8,pri:(q.rank||400)+d/2000}); }
+    LB.push({q,az,el,d,div,vis:true,w:Math.max(q.name.length*7.2,70)+8,th:(q.name.length+5)*7.4+8,pri:(q.rank||400)+d/2000}); }
   LB.sort((a,b)=>a.pri-b.pri);
   occlusion(S.p);
 }
@@ -112,11 +114,32 @@ function placeLabels(){
     let x=0,y=0;
     if (show){ x=W/2+(v[0]*Rt[0]+v[1]*Rt[1])/zc*f; y=H/2-(v[0]*U[0]+v[1]*U[1]+v[2]*U[2])/zc*f;
       if (x<-60||x>W+60||y<40||y>H+20) show=false; }
-    if (show){ const b=[x-o.w/2, y-46, x+o.w/2, y]; if (boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1])) show=false; else boxes.push(b); }
+    if (show && window.V2){ let ok=false;
+      for (const ln of [24, 64, 110, 160, 220]){ const b=[x-11, y-ln-o.th, x+11, y-ln+4]; if (b[1] < 70) break;
+        if (!boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1])){ boxes.push(b, [x-2, y-ln, x+2, y]); o.div.style.setProperty('--ln', ln+'px'); ok=true; break; } }
+      show=ok; }
+    else if (show){ const b=[x-o.w/2, y-46, x+o.w/2, y]; if (boxes.some(c=>b[0]<c[2]&&b[2]>c[0]&&b[1]<c[3]&&b[3]>c[1])) show=false; else boxes.push(b); }
     if (show){ o.div.style.display=''; o.div.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`; }
     else o.div.style.display='none';
   }
 }
+// ---------- new looks: compass strip along the top (S, SV, V ... and a tick every 15°) + "Vidni vrhovi · N" ----------
+let CMP = null;
+function placeCompass(){ if (!CMP){ CMP = document.createElement('div'); CMP.id = 'v360cmp'; $$('v360').append(CMP); }
+  const W = LBL.clientWidth || innerWidth, H = LBL.clientHeight || innerHeight, f = (H/2)/Math.tan(S.fov*D2R/2), out = [];
+  for (let a = 0; a < 360; a += 15){ let d = ((a - S.brg + 540) % 360) - 180; if (Math.abs(d) > 80) continue; const x = W/2 + Math.tan(d*D2R)*f; if (x < 8 || x > W-8) continue;
+    out.push(a % 45 ? `<i style="left:${x.toFixed(0)}px"></i>` : `<b style="left:${x.toFixed(0)}px">${DIRS[a/45]}</b>`); }
+  CMP.innerHTML = out.join('');
+  const n = LB.filter(o => o.vis).length, vb = $$('v360vis'); if (vb) vb.querySelector('span').textContent = n; }
+function visList(){ let w = $$('v360list'); if (w){ w.remove(); return; }
+  w = document.createElement('div'); w.id = 'v360list';
+  const L = LB.filter(o => o.vis).sort((a, b) => a.d - b.d);
+  w.innerHTML = `<div class="h"><b>${window.LANG==='en'?'Visible peaks':'Vidni vrhovi'} · ${L.length}</b><button aria-label="Zapri">×</button></div>` +
+    L.map((o, i) => `<button data-i="${i}"><span>${o.q.name}</span><small>${Math.round(o.q.elev)} m · ${o.d<10000?(o.d/1000).toFixed(1):Math.round(o.d/1000)} km · ${DIRS[Math.round(((o.az/D2R)+360)%360/45)%8]}</small></button>`).join('');
+  $$('v360').append(w); w.querySelector('.h button').onclick = () => w.remove();
+  w.querySelectorAll('button[data-i]').forEach(b => b.onclick = () => { const o = L[+b.dataset.i]; S.brg = ((o.az/D2R)+360)%360; S.look = 0; w.remove(); apply(); }); }
+if (window.V2){ const vb = document.createElement('button'); vb.id = 'v360vis'; vb.innerHTML = `${window.LANG==='en'?'Visible peaks':'Vidni vrhovi'} · <span>0</span>`; vb.onclick = visList;
+  const bar = document.querySelector('#v360 .vb'); if (bar) bar.prepend(vb); }
 // line-of-sight check on the DEM (z10 ≈ 50 m) so peaks hidden behind ridges get no label
 const TS=512, TZ=10, dtiles=new Map();
 const tx=lon=>(lon+180)/360*2**TZ*TS, ty=lat=>{const r=lat*D2R;return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**TZ*TS;};
@@ -135,7 +158,7 @@ async function occlusion(p0){
       const lon=p0.lon+(o.q.lon-p0.lon)*f, lat=p0.lat+(o.q.lat-p0.lat)*f, h=hAt(lon,lat); if (h==null) continue;
       if (h > S.eye+(topH(o.q)-S.eye)*f + 12){ vis=false; break; } }
     o.vis=vis; }
-  if (S.on && S.p===p0) placeLabels();
+  if (S.on && S.p===p0){ placeLabels(); if (window.V2) placeCompass(); }
 }
 addEventListener('resize', ()=>{ if (S.on){ fitFov(); schedule(); } });
 function fitFov(){ const c=map.getContainer(); const portrait=c.clientHeight>c.clientWidth;

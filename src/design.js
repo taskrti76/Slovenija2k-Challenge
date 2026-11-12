@@ -211,16 +211,23 @@ if (tab){ tab.innerHTML = `<span class="g"></span><div class="tx"><b>${L('Moji v
 
 // ---------- Karta in sloji: base maps as picture tiles, layers as switches ----------
 const sv = b => `<svg viewBox="0 0 80 56" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${b}</svg>`;
-const SW = {   // little map pictures for the base maps (canvas: Podloga, version 1)
-  relief: sv('<rect width="80" height="56" fill="#9DBB7E"/><path d="M0 56V44c8-2 14-8 22-9l10-12 8 6 10-16 10 9 6-4 14 12v26Z" fill="#D9CB92"/><path d="M22 35l10-12 8 6 10-16 10 9 6-4 14 12-6 1-10-5-8 3-6-6-6 5-8-3-6 6Z" fill="#C49C70"/><path d="M44 18l6-5 4 4-3 2Z M30 25l2-2 3 3Z" fill="#F4F2EE"/><path d="M50 13l10 9 6-4 14 12V56H44l2-24-6-3Z" fill="#2B2418" opacity=".16"/><path d="M0 50c10-1 16 3 26 1" fill="none" stroke="#7FB2D9" stroke-width="1.6"/>'),
-  sat: sv('<rect width="80" height="56" fill="#3E5530"/><path d="M0 0h34l-6 14-14 4-14-2Z" fill="#7E8C52"/><path d="M40 0h40v22l-12-4-8-10-14 4Z" fill="#9C978C"/><path d="M58 4l6 6 6-2-4-6Z" fill="#EEF0F2"/><path d="M0 40l14-4 10 6-6 14H0Z" fill="#8FA35C"/><ellipse cx="50" cy="40" rx="11" ry="6" fill="#2F5F6E"/><path d="M0 30c18 2 30-6 46-4s22 6 34 2" fill="none" stroke="#D6CDB8" stroke-width="1.6"/><g fill="#2C4122"><circle cx="20" cy="26" r="4"/><circle cx="30" cy="20" r="3.5"/><circle cx="70" cy="44" r="5"/><circle cx="34" cy="48" r="4"/><circle cx="64" cy="30" r="3"/></g>'),
-  topo: sv('<rect width="80" height="56" fill="#F6F1E2"/><path d="M0 34c10-4 18 2 26-2v24H0Z" fill="#DCE9C8"/><g fill="none" stroke="#B8946A" stroke-width=".8"><path d="M14 56c2-16 14-30 30-32s30 12 34 32"/><path d="M24 56c2-11 10-21 21-22s21 9 24 22"/><path d="M33 56c2-7 6-13 12-13s12 6 14 13"/></g><g fill="none" stroke="#9C7448" stroke-width="1.4"><path d="M4 56c3-22 20-40 41-42s33 18 35 30"/></g><path d="M6 52C18 42 28 46 36 36s12-16 20-24" fill="none" stroke="#D32F2F" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M56 8l4 6h-8Z" fill="#3B3027"/><text x="62" y="11" font-family="sans-serif" font-size="6" font-weight="700" fill="#3B3027">2864</text><path d="M0 14c10 2 16-4 26-2" fill="none" stroke="#5FA0D3" stroke-width="1.4"/>'),
-  snow: sv('<rect width="80" height="56" fill="#B7C3B0"/><path d="M0 56V42l18-10 12 4 14-22 12 10 8-5 16 14v23Z" fill="#9AA79A"/><path d="M18 32l12 4 14-22 12 10 8-5 16 14-4 2-12-5-8 3-6-6-6 5-8-3-10 3Z" fill="#DCEFFC"/><path d="M36 22l8-8 12 10 8-5 8 7-10-1-6 2-6-4-6 3Z" fill="#7FB8F0"/><path d="M42 17l2-3 6 5-4 1Z" fill="#6B3CCF"/><rect y="50" width="80" height="6" fill="url(#sgv1)"/><defs><linearGradient id="sgv1"><stop offset="0" stop-color="#E2F3FF"/><stop offset=".45" stop-color="#56A8F5"/><stop offset=".75" stop-color="#6B3CCF"/><stop offset="1" stop-color="#6E0B35"/></linearGradient></defs>')};
+const SW = {   // little map pictures for the base maps (relief: badge style; satellite, topo, snow: mini maps)
+  relief: sv('<rect width="80" height="56" fill="#2a73c6"/><path d="M0 56V36l14-10 8 4 12-16 10 8 8-6 12 8 16 12v20Z" fill="#4a5a82"/><path d="M14 26l8 4 12-16 10 8 8-6 12 8-8-1-8 3-6-4-6 5-6-3-8 6Z" fill="#c9c6cc"/><path d="M30 18l4-4 4 4-4 1Z" fill="#fff5e8"/><path d="M0 46c20-6 50-4 80-10v20H0Z" fill="#3b5733"/>'),
+  sat: sv('<rect width="80" height="56" fill="#3E5530"/><path d="M0 0h34l-6 14-14 4-14-2Z" fill="#7E8C52"/><path d="M40 0h40v22l-12-4-8-10-14 4Z" fill="#9C978C"/><path d="M58 4l6 6 6-2-4-6Z" fill="#EEF0F2"/><path d="M0 40l14-4 10 6-6 14H0Z" fill="#8FA35C"/><ellipse cx="50" cy="40" rx="11" ry="6" fill="#2F5F6E"/><path d="M0 30c18 2 30-6 46-4s22 6 34 2" fill="none" stroke="#D6CDB8" stroke-width="1.6"/><g fill="#2C4122"><circle cx="20" cy="26" r="4"/><circle cx="30" cy="20" r="3.5"/><circle cx="70" cy="44" r="5"/><circle cx="34" cy="48" r="4"/><circle cx="64" cy="30" r="3"/></g><g transform="translate(67 11) rotate(-35)"><rect x="-3.2" y="-4" width="6.4" height="8" rx="1.4" fill="#F2F4F6" stroke="#1B1F23" stroke-width=".8"/><rect x="-13" y="-2.6" width="8.6" height="5.2" fill="#2F6FB2" stroke="#1B1F23" stroke-width=".7"/><rect x="4.4" y="-2.6" width="8.6" height="5.2" fill="#2F6FB2" stroke="#1B1F23" stroke-width=".7"/><path d="M-13 0h8.6M4.4 0H13" stroke="#9EC3EA" stroke-width=".6"/></g><path d="M58 22a8 8 0 0 1 10-4M55 25a12 12 0 0 1 15-6" fill="none" stroke="#fff" stroke-width="1" opacity=".8"/>'),
+  topo: sv('<rect width="80" height="56" fill="#F6F1E2"/><path d="M-2 30C8 30 14 36 20 44S28 56 30 58H-2Z" fill="#DCE9C8"/><g fill="none" stroke="#B8946A" stroke-width=".8" stroke-linejoin="round"><path d="M8 58C12 53 16 52 20 54C22 48 26 42 34 36S46 18 58 16C68 14 76 20 82 24"/><path d="M26 58C30 51 34 45 40 41S50 27 58 25C66 23 72 29 76 35S82 48 82 50"/><path d="M46 32C48 26 54 22 60 24S66 34 60 36S46 38 46 32Z"/><path d="M52.5 30.5C53 27.5 57 26.5 59 28.3S58 33 55.5 32.6S52.3 32 52.5 30.5Z"/></g><path d="M-2 50C6 46 12 44 16 47C18 44 20 36 28 30S44 10 58 8C70 6 78 10 82 14" fill="none" stroke="#9C7448" stroke-width="1.3" stroke-linejoin="round"/><path d="M-2 43C4 43 10 45 14 48.5S19 54 21 58" fill="none" stroke="#3E8DD0" stroke-width="1.7" stroke-linecap="round"/><path d="M80 52C72 50 68 44 64 40S58 33 56 30" fill="none" stroke="#D32F2F" stroke-width="1.5" stroke-dasharray="2.6 1.8"/><path d="M56 26.3l3 4.6h-6Z" fill="#3B3027"/><text x="60.5" y="25" font-family="sans-serif" font-size="5.6" font-weight="700" fill="#3B3027">2864</text>'),
+  snow: sv('<rect width="80" height="56" fill="#3F5A48"/><path d="M0 56V44l12-6 10 2 14-22 12 9 9-6 23 17v18Z" fill="#7D8F82"/><path d="M22 40l14-22 12 9 9-6 23 17-6 2-11-5-7 3-6-5-7 4-8-2Z" fill="#E9F6FF"/><path d="M33 26l3-8 12 9 9-6 10 8-9-1-6 2-6-4-6 3Z" fill="#7FB8F0"/><path d="M38 21l3-3 7 5-5 1Z" fill="#6B3CCF"/><rect y="50" width="80" height="6" fill="url(#sgv4)"/><defs><linearGradient id="sgv4"><stop offset="0" stop-color="#E2F3FF"/><stop offset=".45" stop-color="#56A8F5"/><stop offset=".75" stop-color="#6B3CCF"/><stop offset="1" stop-color="#6E0B35"/></linearGradient></defs>')};
 const base = document.querySelector('.panel .grp input[name=base]'), bg = base && base.closest('.grp');
 if (bg){ bg.classList.add('v2base'); bg.querySelectorAll('label').forEach(l => { const v = l.querySelector('input').value, th = document.createElement('span'); th.className = 'th'; th.innerHTML = SW[v] || ''; l.prepend(th);
   const tx = [...l.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()); if (tx) tx.textContent = ' ' + tx.textContent.trim().replace(/\s*\(.*\)$/, '').replace(/^Snežna karta$/, 'Sneg').replace(/^OpenTopoMap$/, 'Topo'); }); }
 document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c => { const l = c.closest('label'); l.classList.add('v2sw');
   const t = document.createElement('span'); t.className = 'v2tx'; [...l.childNodes].filter(n => n !== c).forEach(n => t.append(n)); l.append(t); });
+// ---------- phone held sideways: bars out of the way (search = a button, menu = a column on the right edge) and
+// both slide away while you move the map; a tap on the map or 3 s of rest brings them back ----------
+{ const LS = () => matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches;
+  let t = 0; const show = () => { clearTimeout(t); B.classList.remove('v2hide'); };
+  map.on('movestart', e => { if (!LS() || !e.originalEvent) return; clearTimeout(t); B.classList.add('v2hide'); });
+  map.on('moveend', () => { if (!B.classList.contains('v2hide')) return; clearTimeout(t); t = setTimeout(show, 3000); });
+  map.on('click', show); addEventListener('orientationchange', show); }
 // ---------- 360° view: name + direction top left with a close button, the controls in one white card at the bottom ----------
 { const v = $('v360'), ex = $('v360exit');
   if (v && ex){ ex.classList.add('v2x'); ex.setAttribute('aria-label', L('Zapri razgled','Close view')); ex.title = L('Zapri razgled','Close view');
@@ -333,4 +340,31 @@ html.v2 #v360 .seg{background:#F2F0EB!important;backdrop-filter:none}
 html.v2 #v360 .vb .seg button{background:transparent!important;color:#626870!important}
 html.v2 #v360 .vb .seg button.on{background:#B42318!important;color:#fff!important}
 html.v2 #v360 .vh{bottom:calc(150px + env(safe-area-inset-bottom));text-shadow:0 1px 3px #000}
+html.v2 #v360lbl .pl{display:flex;flex-direction:column;align-items:center}
+html.v2 #v360lbl .pl .t{writing-mode:vertical-rl;transform:rotate(180deg);font:700 calc(13px * var(--ui,1)) Inter,system-ui,sans-serif;white-space:nowrap;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6),0 0 1px rgba(0,0,0,.6)}
+html.v2 #v360lbl .pl.big .t{font-size:calc(14.5px * var(--ui,1))}
+html.v2 #v360lbl .pl .ln{display:block;width:1.5px;height:var(--ln,24px);background:rgba(255,255,255,.92);box-shadow:0 0 2px rgba(0,0,0,.45)}
+html.v2 #v360cmp{position:absolute;left:0;right:0;top:calc(72px + env(safe-area-inset-top));height:24px;border-bottom:1px solid rgba(255,255,255,.7);pointer-events:none}
+html.v2 #v360cmp b{position:absolute;bottom:4px;transform:translateX(-50%);font:600 12px Inter,system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+html.v2 #v360cmp i{position:absolute;bottom:0;width:1px;height:6px;background:rgba(255,255,255,.75)}
+html.v2 #v360list{position:absolute;left:12px;right:12px;max-width:520px;margin:0 auto;bottom:calc(150px + env(safe-area-inset-bottom));max-height:48vh;overflow:auto;background:#fff;color:#1B1F23;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.3);pointer-events:auto;z-index:12}
+html.v2 #v360list .h{display:flex;align-items:center;justify-content:space-between;padding:10px 8px 6px 14px;position:sticky;top:0;background:#fff}
+html.v2 #v360list .h button{width:36px;height:36px;border:0;background:none;font-size:22px;cursor:pointer}
+html.v2 #v360list button[data-i]{display:flex;flex-direction:column;align-items:flex-start;width:100%;border:0;border-top:1px solid #E6E3DC;background:none;padding:9px 14px;font:600 14px Inter,system-ui,sans-serif;color:#1B1F23;cursor:pointer;text-align:left}
+html.v2 #v360list button[data-i] small{font-weight:400;color:#626870;font-size:12px}
+html.mk #v360list{border:2px solid #141414}
+
+/* phone held sideways */
+@media (max-height:500px) and (pointer:coarse) and (orientation:landscape){
+  html.v2 #v2s{right:auto;width:48px;padding:0;justify-content:center;border-radius:24px;transition:width .2s}
+  html.v2 #v2s label{justify-content:center;flex:0 0 auto}html.v2 #v2s:not(:focus-within) input,html.v2 #v2s:not(:focus-within) .av{display:none}
+  html.v2 #v2s:focus-within{width:min(420px,60vw);padding:0 6px 0 14px;justify-content:flex-start}html.v2 #v2s:focus-within label{flex:1}
+  html.v2 #fabTab{left:12px!important;right:auto!important;width:220px!important;height:44px!important;bottom:calc(10px + env(safe-area-inset-bottom))!important;border-radius:22px!important;padding:0 14px!important}
+  html.v2 #fabTab .g,html.v2 #fabTab .mn,html.v2 #fabTab .pr span,html.v2 #fabTab .tx span,html.v2 #fabTab svg{display:none!important}
+  html.v2 #fab{left:auto!important;right:calc(14px + env(safe-area-inset-right));margin-left:0!important;bottom:calc(10px + env(safe-area-inset-bottom))!important}
+  html.v2 #v2s,html.v2 #fabTab,html.v2 #fab,html.v2 #mkdock,html.v2 .maplibregl-ctrl-top-right,html.v2 #hleg,html.v2 #snowleg{transition:transform .25s ease,opacity .25s}
+  html.v2 body.v2hide #v2s{transform:translateY(-90px)}html.v2 body.v2hide #fabTab{transform:translateY(90px)!important}
+  html.v2 body.v2hide #fab:not(.open){transform:translateX(110px)}html.v2 body.v2hide #mkdock{transform:translateX(110px)}
+  html.v2 body.v2hide .maplibregl-ctrl-top-right,html.v2 body.v2hide #hleg,html.v2 body.v2hide #snowleg{opacity:0;pointer-events:none}
+}
 `; document.head.append(st); }

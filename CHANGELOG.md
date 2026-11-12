@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.75 — 2026-11-12
+- Phone held sideways (new looks): search is a round button (opens wide when tapped); Markacija's bar is a column on the
+  right edge with the blaze in its middle (pages scroll up/down); new look: peak tab bottom left, menu button bottom right.
+  Moving the map slides the bars away; a tap on the map or 3 s of rest brings them back.
+- 360 view (new looks): peak names stand upright with a line down to the summit (longer lines when names would collide),
+  a compass strip along the top (S, SV, V … and a tick every 15°), "Vidni vrhovi · N" opens the list of visible peaks
+  (nearest first) - tap one to turn towards it.
+- Base map pictures: relief in the badge style, satellite with a satellite, topo with believable contours and a river,
+  snow with more contrast.
+
 ## web-v0.74 — 2026-11-12
 - Guide: the Triglav window opens at once on a flat map for "click a peak" and "360°" (no flying, never hidden behind a
   ridge - 360° now works on a computer too); routes open at once; the lit part is live (tap, scroll, open things) while the
