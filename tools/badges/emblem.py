@@ -9,7 +9,7 @@ from sklearn.cluster import KMeans
 ap = argparse.ArgumentParser(); ap.add_argument('src'); ap.add_argument('out')
 ap.add_argument('--crop', default='0,0,1,1'); ap.add_argument('--k', type=int, default=6); ap.add_argument('--size', type=int, default=100)
 ap.add_argument('--work', type=int, default=220); ap.add_argument('--ramp', default='#2c385a,#4a5a82,#8692b3,#c9c6cc,#eedcc8,#fff5e8')
-ap.add_argument('--png'); ap.add_argument('--greena', type=float, default=122); ap.add_argument('--greenb', type=float, default=99); ap.add_argument('--wide', action='store_true'); ap.add_argument('--maxline', default=''); ap.add_argument('--ridge', action='store_true'); ap.add_argument('--hut', action='store_true'); ap.add_argument('--despike', type=int, default=5); ap.add_argument('--chroma', type=float, default=0.25); ap.add_argument('--clahe', type=float, default=1.4); ap.add_argument('--green', default='#2f4a2c,#3b5733,#567a3f,#7a9a52'); ap.add_argument('--eps', type=float, default=1.6); ap.add_argument('--tol', type=float, default=3.5); ap.add_argument('--blur', type=float, default=3.2)
+ap.add_argument('--png'); ap.add_argument('--greena', type=float, default=122); ap.add_argument('--greenb', type=float, default=99); ap.add_argument('--greenbmin', type=float, default=128); ap.add_argument('--wide', action='store_true'); ap.add_argument('--maxline', default=''); ap.add_argument('--ridge', action='store_true'); ap.add_argument('--hut', action='store_true'); ap.add_argument('--despike', type=int, default=5); ap.add_argument('--chroma', type=float, default=0.25); ap.add_argument('--clahe', type=float, default=1.4); ap.add_argument('--green', default='#2f4a2c,#3b5733,#567a3f,#7a9a52'); ap.add_argument('--eps', type=float, default=1.6); ap.add_argument('--tol', type=float, default=3.5); ap.add_argument('--blur', type=float, default=3.2)
 a = ap.parse_args()
 
 img = cv2.imread(a.src); H, W = img.shape[:2]
@@ -47,7 +47,7 @@ cl = cv2.createCLAHE(clipLimit=a.clahe, tileGridSize=(4, 4)); L[..., 0] = cl.app
 km = KMeans(a.k, n_init=6, random_state=2).fit(L[land]); lab_k = np.full((N, NW), -1); lab_k[land] = km.labels_
 order = np.argsort(km.cluster_centers_[:, 0]); rank = np.empty(a.k, int); rank[order] = np.arange(a.k)
 Lraw = cv2.cvtColor(ms, cv2.COLOR_BGR2LAB).astype(float); med = lambda k, c: np.median(Lraw[land][km.labels_ == k][:, c])
-green = {k for k in range(a.k) if (med(k, 1) < a.greena and med(k, 2) > 128) or (med(k, 2) - 128) - (med(k, 1) - 128) * 1.5 > a.greenb}   # --greenb: yellow-green forests
+green = {k for k in range(a.k) if (med(k, 1) < a.greena and med(k, 2) > a.greenbmin) or (med(k, 2) - 128) - (med(k, 1) - 128) * 1.5 > a.greenb}   # --greenb: yellow-green forests
 ramp = a.ramp.split(','); gr = a.green.split(','); gk = sorted(green, key=lambda k: km.cluster_centers_[k, 0])
 rk = [k for k in order if k not in green]                               # rock / snow tones get the whole ramp
 col = lambda k: gr[min(len(gr) - 1, gk.index(k))] if k in green else ramp[min(len(ramp) - 1, round(rk.index(k) * (len(ramp) - 1) / max(1, len(rk) - 1)))]

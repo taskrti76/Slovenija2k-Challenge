@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.77 — 2026-11-12
+- Markacija: the page dots of the bottom bar are now in the white middle of the blaze (they were hidden behind it).
+- Snow map: steepness takes snow away much later - full snow up to 45°, thinning to 70°, only walls steeper than that hold
+  little (was: less from 35°, almost none at 60°).
+- Profile / friends background: the Triglav view stands higher, forests in green, rock in blue-greys; the sky behind is a blue
+  that fades upward; the contour lines stay above the mountains.
+
 ## web-v0.76 — 2026-11-12
 - Markacija: the blaze is the GPS summit check - tap to start / stop (it glows green while on), hold = the full menu; the bar's
   buttons change only by swiping (sideways: up/down); the blaze sits exactly in the middle of the bar. On the website (not only

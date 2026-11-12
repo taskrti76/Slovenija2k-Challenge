@@ -59,7 +59,9 @@ ${PH}{
   html.mk body.gpson #fab:not(.open) .fb{box-shadow:0 0 0 4px rgba(46,125,79,.85),0 0 16px 4px rgba(46,125,79,.55)!important;animation:mkgps 1.6s ease-in-out infinite}
   @keyframes mkgps{50%{box-shadow:0 0 0 7px rgba(46,125,79,.5),0 0 22px 8px rgba(46,125,79,.35)}}
   html.mk #mkdock .dots{position:absolute;left:50%;bottom:3px;transform:translateX(-50%);display:flex;gap:4px}
-  html.mk #mkdock .dots i{width:5px;height:5px;border-radius:50%;background:#C9C4BA}html.mk #mkdock .dots i.on{background:${RED}}
+  html.mk #mkdock .dots{display:none}
+  html.mk #mkdots{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:2.5px;pointer-events:none;z-index:3}
+  html.mk #mkdots i{width:4.5px;height:4.5px;border-radius:50%;background:#E9C3C9}html.mk #mkdots i.on{background:${RED}}html.mk #fab.open #mkdots{display:none}
   html.mk #fab{bottom:calc(24px + env(safe-area-inset-bottom))!important}
   html.mk body.dopen #fab,html.mk body.menu #fab,html.mk body.pop #fab:not(.open){display:none}
 }
@@ -69,7 +71,7 @@ ${PH}{
   html.mk #mkdock .pg{flex:0 0 100%;flex-direction:column;padding:4px 0;width:100%}
   html.mk #mkdock button,html.mk #mkdock .ph{width:100%;height:auto;flex:1}
   html.mk #mkdock .gap{flex:0 0 64px}
-  html.mk #mkdock .dots{left:auto;right:4px;bottom:auto;top:50%;transform:translateY(-50%);flex-direction:column}
+  html.mk #mkdots{flex-direction:column}
   html.mk #fab{left:auto!important;margin-left:0!important;right:calc(13px + env(safe-area-inset-right))!important;bottom:calc(50% - 29px)!important}
   html.mk .maplibregl-ctrl-top-right{right:82px!important}
   html.mk body.pop #mkdock{display:block}html.mk body.pop #fab:not(.open){display:block}
@@ -98,7 +100,10 @@ function build(){ const it = items(), first = ['◧', '🗓', '👤'], rest = it
   trk.innerHTML = PAGES.map(p => `<div class="pg">${btn(p[0])}${btn(p[1])}<span class="gap"></span>${btn(p[2])}${btn(p[3])}</div>`).join('');
   dots.innerHTML = PAGES.map((_, i) => `<i class="${i === PG ? 'on' : ''}"></i>`).join(''); if (PG >= PAGES.length) PG = 0; go(PG, true); up(); }
 function go(i, inst){ setTimeout(() => window.mkCentre && mkCentre(), inst ? 0 : 320); PG = (i + PAGES.length) % PAGES.length; trk.style.transition = inst ? 'none' : ''; trk.style.transform = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches ? `translateY(${-PG * 100}%)` : `translateX(${-PG * 100}%)`;
-  dots.querySelectorAll('i').forEach((d, j) => d.classList.toggle('on', j === PG)); }
+  dots.querySelectorAll('i').forEach((d, j) => d.classList.toggle('on', j === PG));
+  // the page dots sit in the white middle of the blaze (the bar's own dots were hidden behind it)
+  const fb2 = $('fab') && $('fab').querySelector('.fb'); if (fb2){ let md = $('mkdots'); if (!md){ md = document.createElement('span'); md.id = 'mkdots'; fb2.append(md); }
+    md.innerHTML = PAGES.length > 1 ? PAGES.map((_, j) => `<i class="${j === PG ? 'on' : ''}"></i>`).join('') : ''; } }
 dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; const k = b.dataset.k;
   if (window.fabClose) fabClose();
   if (k === 'peaks'){ if (window.DRAW_ON && window.stopDraw) stopDraw(); B.classList.remove('menu'); $('drawer').classList.add('open'); return; }
@@ -122,7 +127,7 @@ if (fb){
   window.mkCentre = centre; addEventListener('resize', () => setTimeout(centre, 80)); new ResizeObserver(() => centre()).observe(dock); setTimeout(centre, 300); setInterval(centre, 2000); }
 const vc = $('vcount3'), up = () => { const m = (vc && vc.textContent || '').match(/(\d+)\s*\/\s*(\d+)/), c = $('mkcnt'); if (m && c) c.textContent = `${m[1]}/${m[2]}`; };
 if (vc) new MutationObserver(up).observe(vc, {childList: true, characterData: true, subtree: true});
-build(); setInterval(build, 3000);
+build(); setInterval(build, 3000); setInterval(() => { if (!$('mkdots') && PAGES.length) go(PG, true); }, 1000);   // the menu button's face can be redrawn
 window.mkDockPage = go;   // the guide shows the pages
 
 // ---------- map: peaks as trail blazes ----------

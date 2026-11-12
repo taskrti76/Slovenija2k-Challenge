@@ -803,7 +803,7 @@ map.on('click',e=>{
     const L=(X)=>(X[k]*(1-tx)+X[k+1]*tx)*(1-ty)+(X[k+FNX]*(1-tx)+X[k+FNX+1]*tx)*ty;
     return [L(FIT.A),L(FIT.B),L(FIT.M),L(FIT.L)]; }
   const depthPx=(f,h,slopeF)=>{ if(h<f[3]) return 0; const cap=Math.max(f[2]*1.5,f[2]+30); return Math.max(0,Math.min(cap,f[0]+f[1]*h))*slopeF; };
-  const slopeFac=deg=>deg<35?1:deg>60?0.15:1-0.85*(deg-35)/25; // steep rock walls hold little snow
+  const slopeFac=deg=>deg<45?1:deg<70?1-0.65*(deg-45)/25:Math.max(0.1,0.35-0.25*(deg-70)/15); // snow sticks up to ~45°, thins out to 70°, only rock walls above that hold little
   window.snowPx=(la,lo,h)=>{ if(!SNOWMAP||!FIT||h==null) return null; const f=fitAt(la,lo); return Math.round(depthPx(f,h,1)); };
   // hover / tap readout on the snow map: the same depth the map paints at that pixel (height + slope from the cached height tiles)
   const HC=new Map();
@@ -836,7 +836,7 @@ map.on('click',e=>{
   document.head.append(tipCss);
   const showTip=(e)=>{ lastE=e; const v=snowHere(e.lngLat.lng,e.lngLat.lat); if(!v){ tip.style.display='none'; return; }
     const r=map.getContainer().getBoundingClientRect(); tip.style.left=(r.left+e.point.x)+'px'; tip.style.top=(r.top+e.point.y)+'px';
-    tip.innerHTML=`❄ <b>${v.cm} cm</b> · ${v.h} m${v.deg>=35?` · ${(window.T||(s=>s))('strmo')} ${v.deg}°`:''}${v.line!=null?`<br><span style="opacity:.75">${(window.T||(s=>s))('meja snega')} ~${v.line} m</span>`:''}${v.sat?`<br><span style="opacity:.75">🛰 ${(window.T||(s=>s))(v.sat.cls===2?'satelit: sneg':'satelit: kopno')}${v.sat.age!=null?` (${v.sat.age} d)`:''}${v.sat.nw?' · '+(window.T||(s=>s))('od takrat')+' +'+v.sat.nw+' cm':''}</span>`:''}`; tip.style.display='block'; };
+    tip.innerHTML=`❄ <b>${v.cm} cm</b> · ${v.h} m${v.deg>=50?` · ${(window.T||(s=>s))('strmo')} ${v.deg}°`:''}${v.line!=null?`<br><span style="opacity:.75">${(window.T||(s=>s))('meja snega')} ~${v.line} m</span>`:''}${v.sat?`<br><span style="opacity:.75">🛰 ${(window.T||(s=>s))(v.sat.cls===2?'satelit: sneg':'satelit: kopno')}${v.sat.age!=null?` (${v.sat.age} d)`:''}${v.sat.nw?' · '+(window.T||(s=>s))('od takrat')+' +'+v.sat.nw+' cm':''}</span>`:''}`; tip.style.display='block'; };
   let tipRaf=0;
   map.on('mousemove',e=>{ if(!SNOWMAP||matchMedia('(pointer:coarse)').matches){ tip.style.display='none'; return; } cancelAnimationFrame(tipRaf); tipRaf=requestAnimationFrame(()=>showTip(e)); });
   map.on('mouseout',()=>tip.style.display='none'); map.on('movestart',()=>tip.style.display='none');
@@ -871,7 +871,7 @@ map.on('click',e=>{
   ${snowTerr}
   ${satAdj}
   ${satMix}
-  const slopeFac=deg=>deg<35?1:deg>60?0.15:1-0.85*(deg-35)/25;
+  const slopeFac=deg=>deg<45?1:deg<70?1-0.65*(deg-45)/25:Math.max(0.1,0.35-0.25*(deg-70)/15);
   self.onmessage=async e=>{ const m=e.data; if(m.type==='sat'){ K.sat=m.sat; return; }
     const {id,z,x,y,prof,NG,useSat,slopeRef,RGB,AI,SW}=m, N1=NG*NG*3*NH0;
     try{ const r=await fetch('https://tiles.mapterhorn.com/'+z+'/'+x+'/'+y+'.webp'); if(!r.ok) throw new Error('dem '+r.status);
@@ -1154,7 +1154,7 @@ map.on('click',e=>{
     if(SNOWMAP){ await Promise.all([window.loadSat(), window.loadSnowpack()]); renderMap(); renderObs(); setVis('snowd',false);
       const ok=DATA.elev&&DATA.elev.some(e=>e!=null);
       info.textContent=`${tag} · snežna karta${FIT||spDay(day)?'':' — premalo točk za razporeditev'}${spDay(day)?' · sezonski model snežne odeje':''}${satDayOK(day)?` · satelit ${SAT.m.date} (${Math.round(SAT.m.clear_pct)} % brez oblakov)`:''}${part}`;
-      $id('snowlegnote').textContent='Snežna karta: kje je sneg pove satelit Copernicus Sentinel-2 (zadnji jasen posnetek ≤10 dni, 40 m), kjer je bilo oblačno pa Copernicus GFSC (radar Sentinel-1 + Sentinel-2, 60 m); globino naš sezonski model snežne odeje (vsako uro od 1. oktobra: dež ali sneg po mokri temperaturi in meji sneženja, gostota novega snega, sesedanje, taljenje s temperaturo in soncem na ravnem, severnem in južnem pobočju; vsakih 250 m višine, celice ~4 km; dnevno popravljen s satelitom, 2× na dan z meritvami ARSO). Strmine >35° manj snega. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
+      $id('snowlegnote').textContent='Snežna karta: kje je sneg pove satelit Copernicus Sentinel-2 (zadnji jasen posnetek ≤10 dni, 40 m), kjer je bilo oblačno pa Copernicus GFSC (radar Sentinel-1 + Sentinel-2, 60 m); globino naš sezonski model snežne odeje (vsako uro od 1. oktobra: dež ali sneg po mokri temperaturi in meji sneženja, gostota novega snega, sesedanje, taljenje s temperaturo in soncem na ravnem, severnem in južnem pobočju; vsakih 250 m višine, celice ~4 km; dnevno popravljen s satelitom, 2× na dan z meritvami ARSO). Nad 45° naklona manj snega, stene nad 70° skoraj brez. Izohipse: Mapterhorn DEM. Ocena, ne meritev.'; }
     else { const f=renderCells(); setVis('snowd',true); const max=f.reduce((m,x)=>Math.max(m,x.properties.cm),0);
       info.textContent=`${tag} · ${f.length} celic s snegom${f.length?', največ '+max+' cm':''}${part}`;
       $id('snowlegnote').textContent='Model ICON-D2 (DWD) · Open-Meteo. Celice: 8 km pod 1000 m, 4 km do 1500 m, 2 km do 2000 m, 1 km nad 2000 m.'; }
