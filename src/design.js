@@ -245,13 +245,19 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
 { const CARDS = ['plCard', 'rcard', 'dcard', 'shCard'], shown = e => e && e.offsetWidth > 0 && getComputedStyle(e).display !== 'none';
   const setP = (c, p, v) => { c.style.setProperty(p, v, 'important'); c.dataset.dg = ((c.dataset.dg || '') + ' ' + p).trim(); };
   const clr = c => { for (const p of (c.dataset.dg || '').split(' ').filter(Boolean)) c.style.removeProperty(p); delete c.dataset.dg; };
-  const dodge = () => { const s = $('v2s'), d = $('mkdock'), W = innerWidth, H = innerHeight;
-    const sr = shown(s) && !B.classList.contains('v2hide') ? s.getBoundingClientRect() : null, dr = shown(d) ? d.getBoundingClientRect() : null;
+  // phone keyboard open over a window's text field: the bars step away and the window gets the whole space above the keyboard
+  const kb = () => { const a = document.activeElement, on = !!(PH() && a && a.matches && a.matches('input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea') && a.closest('#plCard,#rcard,#dcard,#shCard,.card'));
+    if (on !== B.classList.contains('kbdcard')){ B.classList.toggle('kbdcard', on); CARDS.forEach(id => { const c = $(id); if (c) delete c.dataset.dgs; }); setTimeout(dodge, 30); } };
+  addEventListener('focusin', kb); addEventListener('focusout', () => setTimeout(kb, 60));
+  if (window.visualViewport) visualViewport.addEventListener('resize', () => { CARDS.forEach(id => { const c = $(id); if (c) delete c.dataset.dgs; }); setTimeout(dodge, 30); });
+  const dodge = () => { const s = $('v2s'), d = $('mkdock'), K = B.classList.contains('kbdcard'), W = innerWidth, H = window.visualViewport ? Math.min(innerHeight, visualViewport.height) : innerHeight;
+    const sr = !K && shown(s) && !B.classList.contains('v2hide') ? s.getBoundingClientRect() : null, dr = !K && shown(d) ? d.getBoundingClientRect() : null;
     for (const id of CARDS){ const c = $(id); if (!shown(c)) continue;
       if (PH()){ let bot = null, rt = null;
         if (dr && dr.width > dr.height) bot = Math.round(H - dr.top + 8); else if (dr) rt = Math.round(W - dr.left + 8);
         const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '');
         if (c.dataset.dgs === sig && c.style.getPropertyValue('max-height')) continue;   // (the card's own code may have cleared our styles) clr(c); c.dataset.dgs = sig;
+        if (K){ setP(c, 'top', 'calc(8px + env(safe-area-inset-top))'); setP(c, 'bottom', 'auto'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); setP(c, 'max-height', (H - 16) + 'px'); continue; }
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
         const top = sr ? sr.bottom + 8 : 8; setP(c, 'max-height', Math.max(160, H - (bot || 0) - top) + 'px'); }
@@ -406,6 +412,7 @@ ${PHq}{
   html.v2 .maplibregl-popup.v2sh .v2h::before{content:"";position:absolute;left:50%;top:-8px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:rgba(127,127,127,.35)}
   html.v2 .maplibregl-popup.v2sh .v2n span:first-child{font-size:22px!important}
   html.v2 .maplibregl-popup.v2sh .v2act button{padding:8px 4px!important}
+  html.v2 body.kbdcard #mkdock,html.v2 body.kbdcard #fab,html.v2 body.kbdcard #v2s,html.v2 body.kbdcard #fabTab{display:none!important}
   html.v2 .v2more{margin-top:8px;border-top:1px solid var(--line)}
   html.v2 .v2more>summary{cursor:pointer;padding:10px 2px 4px;font-weight:600;list-style:none;display:flex;align-items:baseline;gap:6px}
   html.v2 .v2more>summary::-webkit-details-marker{display:none}html.v2 .v2more>summary::after{content:"▾";margin-left:auto;color:var(--mute)}

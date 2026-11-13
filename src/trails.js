@@ -1316,6 +1316,9 @@ const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:
 #plCard .pla{display:flex;gap:6px;margin:6px 0}#plCard .pla input{flex:1;min-width:0;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
 #plCard .pla button,#plCard .plb button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:8px;padding:6px 9px;font:inherit;cursor:pointer;white-space:nowrap}
 #plCard .pla button.on{background:#1976d2;color:#fff;border-color:#1976d2}
+#plCard .plsug{display:flex;flex-direction:column;margin:-2px 0 6px}#plCard .plsug:empty{display:none}
+#plCard .plsug button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:inherit;font:inherit;padding:9px 6px;cursor:pointer}
+#plCard .plsug button:hover,#plCard .plsug button:active{background:rgba(127,127,127,.12)}#plCard .plsug b{font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#plCard .plsug small{color:var(--mute);flex:none}
 #plCard .plo{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0;font-size:.92em}#plCard .plo label{display:flex;align-items:center;gap:4px}
 #plCard .chips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}#plCard .chips button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:16px;padding:4px 10px;font:inherit;font-size:.9em;cursor:pointer}#plCard .chips button.on{background:#1d2321;color:#fff;border-color:#1d2321}
 #plCard .go{width:100%;margin:8px 0 4px;border:0;border-radius:9px;background:#1976d2;color:#fff;font:600 1em system-ui;padding:9px;cursor:pointer}#plCard .go:disabled{opacity:.5}
@@ -1343,7 +1346,8 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
   plCard.innerHTML=`<div class="rh"><b>🗓 ${LP('Načrtovalnik ture','Trip planner')}</b><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
     <div class="hint">${LP('Dodaj točke v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče, mesto ali vas — ali klikni katerokoli točko na karti.','Add stops in order: the first is the start. Peak, hut, trailhead, town or village — or click any spot on the map.')}</div>
     <div class="pls">${S.map((x,i)=>`<div class="plr"><i class="n">${i+1}</i><span title="${esc(x.name)}">${KI[x.k]||'•'} ${esc(x.name)}</span><button data-a="up" data-i="${i}" ${i?'':'disabled'}>↑</button><button data-a="dn" data-i="${i}" ${i<S.length-1?'':'disabled'}>↓</button><button data-a="rm" data-i="${i}">✕</button></div>`).join('')||`<div class="hint">${LP('Še ni krajev.','No places yet.')}</div>`}</div>
-    <div class="pla"><input id="plQ" list="plL" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><datalist id="plL"></datalist><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
+    <div class="pla"><input id="plQ" type="search" autocomplete="off" enterkeyhint="search" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
+    <div class="plsug" id="plSug" role="listbox"></div>
     <div class="q">${LP('Prenočevanje','Overnight')}</div>
     <div class="chips" id="plSl"><button data-v="none" class="${O.sleep==='none'?'on':''}">${LP('brez spanja (en dan)','no sleep (one go)')}</button><button data-v="hut" class="${O.sleep==='hut'?'on':''}">${LP('v kočah','at huts')}</button></div>
     ${O.sleep==='hut'?`<div class="plo"><label><input type="checkbox" id="plBiv" ${O.biv?'checked':''}> ${LP('tudi bivaki','bivouacs too')}</label><label><input type="checkbox" id="plTent" ${O.tent?'checked':''}> ${LP('imam šotor','I have a tent')}</label></div>
@@ -1353,8 +1357,18 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
     <div class="plb"><button id="plRev" ${S.length<2?'disabled':''} title="${LP('Obrni vrstni red (konec postane začetek)','Reverse the order (the end becomes the start)')}">⇄ ${LP('Obrni smer','Reverse')}</button></div>
     <button class="go" id="plGo" ${S.length<2?'disabled':''}>${LP('Izračunaj turo','Plan the trip')}</button><div id="plOut">${PLR?plOut():''}</div>`;
   plCard.querySelector('.x').onclick=plClose;
-  const dl=plCard.querySelector('#plL'), idx=PLI||(PLI=plIndex()); dl.innerHTML=idx.slice(0,3000).map(([l])=>`<option value="${esc(l)}">`).join('');
-  const q=plCard.querySelector('#plQ'); q.onchange=()=>{ const m=idx.find(([l])=>l===q.value)||idx.find(([l])=>l.toLowerCase().startsWith(q.value.trim().toLowerCase())); if(m){ planAdd(m[1]); } };
+  // own suggestion list inside the window (the browser's list collided with the phone keyboard): up to 8 matches, tap one to add
+  const nAll=HUTS.length+STARTS_ALL.length+PLACES.length; if(PLI&&PLI.n!==nAll) PLI=null;   // huts / places arrive later than the peaks
+  const idx=PLI||(PLI=plIndex(),PLI.n=nAll,PLI), q=plCard.querySelector('#plQ'), sg=plCard.querySelector('#plSug');
+  const nrm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const sugg=()=>{ const v=nrm(q.value.trim()); if(v.length<2){ sg.innerHTML=''; return []; }
+    const out=[]; for(const it of idx){ const n=nrm(it[0]), i=n.indexOf(v); if(i>=0) out.push([i===0?0:(n.indexOf(' '+v)>=0?1:2), it]); if(out.length>400) break; }
+    out.sort((a,b)=>a[0]-b[0]||a[1][0].length-b[1][0].length); const top=out.slice(0,8).map(x=>x[1]);
+    sg.innerHTML=top.map(([l],i)=>{ const m=l.match(/^(.*) \((.*)\)$/); return `<button type="button" role="option" data-i="${i}"><b>${esc(m?m[1]:l)}</b><small>${esc(m?m[2]:'')}</small></button>`; }).join('')||`<div class="hint">${LP('Ni zadetkov.','No matches.')}</div>`;
+    sg.querySelectorAll('button').forEach(b=>b.onpointerdown=e=>e.preventDefault());   // keep the keyboard while choosing
+    sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const o=top[+b.dataset.i]; if(o){ q.value=''; sg.innerHTML=''; planAdd(o[1]); } }); return top; };
+  q.oninput=sugg; q.onkeydown=e=>{ if(e.key==='Enter'){ const t=sugg(); if(t[0]){ q.value=''; planAdd(t[0][1]); } } if(e.key==='Escape'){ q.value=''; sg.innerHTML=''; } };
+  q.onfocus=()=>setTimeout(()=>{ try{ q.scrollIntoView({block:'start',behavior:'smooth'}); }catch(_){} },300);
   plCard.querySelector('#plPk').onclick=()=>{ plPick=!plPick; map.getCanvas().style.cursor=plPick?'crosshair':''; plRender(); if(plPick&&!DESK()) toastOk&&toastOk(LP('Tapni na karto.','Tap on the map.')); };
   plCard.querySelectorAll('.plr button').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, a=b.dataset.a;
     if(a==='rm') S.splice(i,1); else { const j=a==='up'?i-1:i+1; [S[i],S[j]]=[S[j],S[i]]; } PLR=null; plSave(); plRender(); plDraw(); });

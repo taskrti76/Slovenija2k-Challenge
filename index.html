@@ -2828,6 +2828,9 @@ const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:
 #plCard .pla{display:flex;gap:6px;margin:6px 0}#plCard .pla input{flex:1;min-width:0;font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:transparent;color:inherit}
 #plCard .pla button,#plCard .plb button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:8px;padding:6px 9px;font:inherit;cursor:pointer;white-space:nowrap}
 #plCard .pla button.on{background:#1976d2;color:#fff;border-color:#1976d2}
+#plCard .plsug{display:flex;flex-direction:column;margin:-2px 0 6px}#plCard .plsug:empty{display:none}
+#plCard .plsug button{display:flex;align-items:baseline;gap:8px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;color:inherit;font:inherit;padding:9px 6px;cursor:pointer}
+#plCard .plsug button:hover,#plCard .plsug button:active{background:rgba(127,127,127,.12)}#plCard .plsug b{font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#plCard .plsug small{color:var(--mute);flex:none}
 #plCard .plo{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0;font-size:.92em}#plCard .plo label{display:flex;align-items:center;gap:4px}
 #plCard .chips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}#plCard .chips button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:16px;padding:4px 10px;font:inherit;font-size:.9em;cursor:pointer}#plCard .chips button.on{background:#1d2321;color:#fff;border-color:#1d2321}
 #plCard .go{width:100%;margin:8px 0 4px;border:0;border-radius:9px;background:#1976d2;color:#fff;font:600 1em system-ui;padding:9px;cursor:pointer}#plCard .go:disabled{opacity:.5}
@@ -2855,7 +2858,8 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
   plCard.innerHTML=`<div class="rh"><b>🗓 ${LP('Načrtovalnik ture','Trip planner')}</b><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
     <div class="hint">${LP('Dodaj točke v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče, mesto ali vas — ali klikni katerokoli točko na karti.','Add stops in order: the first is the start. Peak, hut, trailhead, town or village — or click any spot on the map.')}</div>
     <div class="pls">${S.map((x,i)=>`<div class="plr"><i class="n">${i+1}</i><span title="${esc(x.name)}">${KI[x.k]||'•'} ${esc(x.name)}</span><button data-a="up" data-i="${i}" ${i?'':'disabled'}>↑</button><button data-a="dn" data-i="${i}" ${i<S.length-1?'':'disabled'}>↓</button><button data-a="rm" data-i="${i}">✕</button></div>`).join('')||`<div class="hint">${LP('Še ni krajev.','No places yet.')}</div>`}</div>
-    <div class="pla"><input id="plQ" list="plL" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><datalist id="plL"></datalist><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
+    <div class="pla"><input id="plQ" type="search" autocomplete="off" enterkeyhint="search" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
+    <div class="plsug" id="plSug" role="listbox"></div>
     <div class="q">${LP('Prenočevanje','Overnight')}</div>
     <div class="chips" id="plSl"><button data-v="none" class="${O.sleep==='none'?'on':''}">${LP('brez spanja (en dan)','no sleep (one go)')}</button><button data-v="hut" class="${O.sleep==='hut'?'on':''}">${LP('v kočah','at huts')}</button></div>
     ${O.sleep==='hut'?`<div class="plo"><label><input type="checkbox" id="plBiv" ${O.biv?'checked':''}> ${LP('tudi bivaki','bivouacs too')}</label><label><input type="checkbox" id="plTent" ${O.tent?'checked':''}> ${LP('imam šotor','I have a tent')}</label></div>
@@ -2865,8 +2869,18 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
     <div class="plb"><button id="plRev" ${S.length<2?'disabled':''} title="${LP('Obrni vrstni red (konec postane začetek)','Reverse the order (the end becomes the start)')}">⇄ ${LP('Obrni smer','Reverse')}</button></div>
     <button class="go" id="plGo" ${S.length<2?'disabled':''}>${LP('Izračunaj turo','Plan the trip')}</button><div id="plOut">${PLR?plOut():''}</div>`;
   plCard.querySelector('.x').onclick=plClose;
-  const dl=plCard.querySelector('#plL'), idx=PLI||(PLI=plIndex()); dl.innerHTML=idx.slice(0,3000).map(([l])=>`<option value="${esc(l)}">`).join('');
-  const q=plCard.querySelector('#plQ'); q.onchange=()=>{ const m=idx.find(([l])=>l===q.value)||idx.find(([l])=>l.toLowerCase().startsWith(q.value.trim().toLowerCase())); if(m){ planAdd(m[1]); } };
+  // own suggestion list inside the window (the browser's list collided with the phone keyboard): up to 8 matches, tap one to add
+  const nAll=HUTS.length+STARTS_ALL.length+PLACES.length; if(PLI&&PLI.n!==nAll) PLI=null;   // huts / places arrive later than the peaks
+  const idx=PLI||(PLI=plIndex(),PLI.n=nAll,PLI), q=plCard.querySelector('#plQ'), sg=plCard.querySelector('#plSug');
+  const nrm=t=>String(t||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const sugg=()=>{ const v=nrm(q.value.trim()); if(v.length<2){ sg.innerHTML=''; return []; }
+    const out=[]; for(const it of idx){ const n=nrm(it[0]), i=n.indexOf(v); if(i>=0) out.push([i===0?0:(n.indexOf(' '+v)>=0?1:2), it]); if(out.length>400) break; }
+    out.sort((a,b)=>a[0]-b[0]||a[1][0].length-b[1][0].length); const top=out.slice(0,8).map(x=>x[1]);
+    sg.innerHTML=top.map(([l],i)=>{ const m=l.match(/^(.*) \((.*)\)$/); return `<button type="button" role="option" data-i="${i}"><b>${esc(m?m[1]:l)}</b><small>${esc(m?m[2]:'')}</small></button>`; }).join('')||`<div class="hint">${LP('Ni zadetkov.','No matches.')}</div>`;
+    sg.querySelectorAll('button').forEach(b=>b.onpointerdown=e=>e.preventDefault());   // keep the keyboard while choosing
+    sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const o=top[+b.dataset.i]; if(o){ q.value=''; sg.innerHTML=''; planAdd(o[1]); } }); return top; };
+  q.oninput=sugg; q.onkeydown=e=>{ if(e.key==='Enter'){ const t=sugg(); if(t[0]){ q.value=''; planAdd(t[0][1]); } } if(e.key==='Escape'){ q.value=''; sg.innerHTML=''; } };
+  q.onfocus=()=>setTimeout(()=>{ try{ q.scrollIntoView({block:'start',behavior:'smooth'}); }catch(_){} },300);
   plCard.querySelector('#plPk').onclick=()=>{ plPick=!plPick; map.getCanvas().style.cursor=plPick?'crosshair':''; plRender(); if(plPick&&!DESK()) toastOk&&toastOk(LP('Tapni na karto.','Tap on the map.')); };
   plCard.querySelectorAll('.plr button').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, a=b.dataset.a;
     if(a==='rm') S.splice(i,1); else { const j=a==='up'?i-1:i+1; [S[i],S[j]]=[S[j],S[i]]; } PLR=null; plSave(); plRender(); plDraw(); });
@@ -6016,13 +6030,19 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
 { const CARDS = ['plCard', 'rcard', 'dcard', 'shCard'], shown = e => e && e.offsetWidth > 0 && getComputedStyle(e).display !== 'none';
   const setP = (c, p, v) => { c.style.setProperty(p, v, 'important'); c.dataset.dg = ((c.dataset.dg || '') + ' ' + p).trim(); };
   const clr = c => { for (const p of (c.dataset.dg || '').split(' ').filter(Boolean)) c.style.removeProperty(p); delete c.dataset.dg; };
-  const dodge = () => { const s = $('v2s'), d = $('mkdock'), W = innerWidth, H = innerHeight;
-    const sr = shown(s) && !B.classList.contains('v2hide') ? s.getBoundingClientRect() : null, dr = shown(d) ? d.getBoundingClientRect() : null;
+  // phone keyboard open over a window's text field: the bars step away and the window gets the whole space above the keyboard
+  const kb = () => { const a = document.activeElement, on = !!(PH() && a && a.matches && a.matches('input:not([type=checkbox]):not([type=radio]):not([type=range]),textarea') && a.closest('#plCard,#rcard,#dcard,#shCard,.card'));
+    if (on !== B.classList.contains('kbdcard')){ B.classList.toggle('kbdcard', on); CARDS.forEach(id => { const c = $(id); if (c) delete c.dataset.dgs; }); setTimeout(dodge, 30); } };
+  addEventListener('focusin', kb); addEventListener('focusout', () => setTimeout(kb, 60));
+  if (window.visualViewport) visualViewport.addEventListener('resize', () => { CARDS.forEach(id => { const c = $(id); if (c) delete c.dataset.dgs; }); setTimeout(dodge, 30); });
+  const dodge = () => { const s = $('v2s'), d = $('mkdock'), K = B.classList.contains('kbdcard'), W = innerWidth, H = window.visualViewport ? Math.min(innerHeight, visualViewport.height) : innerHeight;
+    const sr = !K && shown(s) && !B.classList.contains('v2hide') ? s.getBoundingClientRect() : null, dr = !K && shown(d) ? d.getBoundingClientRect() : null;
     for (const id of CARDS){ const c = $(id); if (!shown(c)) continue;
       if (PH()){ let bot = null, rt = null;
         if (dr && dr.width > dr.height) bot = Math.round(H - dr.top + 8); else if (dr) rt = Math.round(W - dr.left + 8);
         const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '');
         if (c.dataset.dgs === sig && c.style.getPropertyValue('max-height')) continue;   // (the card's own code may have cleared our styles) clr(c); c.dataset.dgs = sig;
+        if (K){ setP(c, 'top', 'calc(8px + env(safe-area-inset-top))'); setP(c, 'bottom', 'auto'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); setP(c, 'max-height', (H - 16) + 'px'); continue; }
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
         const top = sr ? sr.bottom + 8 : 8; setP(c, 'max-height', Math.max(160, H - (bot || 0) - top) + 'px'); }
@@ -6177,6 +6197,7 @@ ${PHq}{
   html.v2 .maplibregl-popup.v2sh .v2h::before{content:"";position:absolute;left:50%;top:-8px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:rgba(127,127,127,.35)}
   html.v2 .maplibregl-popup.v2sh .v2n span:first-child{font-size:22px!important}
   html.v2 .maplibregl-popup.v2sh .v2act button{padding:8px 4px!important}
+  html.v2 body.kbdcard #mkdock,html.v2 body.kbdcard #fab,html.v2 body.kbdcard #v2s,html.v2 body.kbdcard #fabTab{display:none!important}
   html.v2 .v2more{margin-top:8px;border-top:1px solid var(--line)}
   html.v2 .v2more>summary{cursor:pointer;padding:10px 2px 4px;font-weight:600;list-style:none;display:flex;align-items:baseline;gap:6px}
   html.v2 .v2more>summary::-webkit-details-marker{display:none}html.v2 .v2more>summary::after{content:"▾";margin-left:auto;color:var(--mute)}
@@ -6236,6 +6257,7 @@ html.mk.dk #lbPage .lbnav button:not(.on){color:#ECEBE6}html.mk.dk #lbPage .addf
 html.mk.dk #lbPage .lbnav button.on,html.mk.dk #lbPage .lbtabs button.on{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
 html.mk.dk #lbPage .sb.pri,html.mk.dk #accWin .go,html.mk.dk #lbPage .sb.sure{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
 html.mk.dk .maplibregl-popup .wish{background:#24282A!important;border-color:#3A3F3D!important;color:#ECEBE6!important}
+html.mk.dk .maplibregl-popup-content .v2act button.pri,html.mk.dk .card .go,html.mk.dk .maplibregl-popup-content .v2ok{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}html.mk.dk .maplibregl-popup-content .v2act button.pri svg{color:#fff}html.mk.dk .v2act button:not(.pri){color:#ECEBE6!important}html.mk.dk .v2act button:not(.pri) svg{color:#ECEBE6}
 html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
 html.mk{--acc:${RED};--v2red:${RED};--v2float:0 0 0 2px ${INK};--v2sheet:0 0 0 2px ${INK}}
 html.mk .maplibregl-popup-content{--acc:${RED};border:2px solid ${INK}!important;box-shadow:0 6px 0 rgba(20,20,20,.12)!important;border-radius:18px!important}
@@ -6310,15 +6332,18 @@ ${PH}{
 // Built from the live style sheets, so new rules there are covered too. ----------
 { const RX = /#(lbPage|accWin)\b/, rgb = v => { const m = String(v).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/); return m ? [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]] : null; };
   const lum = c => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255, all = v => (String(v).match(/rgba?\([^)]*\)/g) || []).map(rgb);
-  const out = [];
-  const walk = list => { for (const r of list){ if (r.cssRules && !r.selectorText){ walk(r.cssRules); continue; } if (!r.selectorText || !RX.test(r.selectorText)) continue;
-      const sel = r.selectorText.split(',').map(x => x.trim()); if (sel.some(x => /^#(lbPage|accWin)$/.test(x))) continue;   // the page itself keeps its picture
+  const out = [], SC = ['.maplibregl-popup-content', '.card', '#wxBig', '.panel', '#drawer', '#setWin', '#v360 .vb'];
+  const walk = list => { for (const r of list){ if (r.cssRules && !r.selectorText){ walk(r.cssRules); continue; } if (!r.selectorText) continue;
+      let sel = r.selectorText.split(',').map(x => x.trim()); if (sel.some(x => /^#(lbPage|accWin)$/.test(x))) continue;   // the page itself keeps its picture
+      if (!RX.test(r.selectorText)){   // a plain class rule (weather block, GPS button, chips ...): its dark twin applies inside the windows only
+        sel = sel.filter(x => /^[.a-z]/i.test(x) && !/^(html|body)\b/.test(x)); if (!sel.length) continue;
+        sel = sel.flatMap(x => SC.some(c => x.includes(c.split(' ')[0])) ? [x] : SC.map(c => c + ' ' + x)); }
       const st = r.style, o = [], bg = all(st.backgroundColor + ' ' + st.backgroundImage);
       if (bg.length && !/url\(/.test(st.backgroundImage) && bg.every(c => c && c[3] > .5 && lum(c) > .75)){
         const c = bg[0], mn = Math.min(c[0], c[1], c[2]), tint = Math.max(c[0], c[1], c[2]) - mn > 10;
         const d = /\.lbc\b|\.acard\b/.test(r.selectorText) ? [27, 30, 29] : /\bbar\b/.test(r.selectorText) ? [58, 63, 61] : tint ? [36 + (c[0] - mn) * .5, 40 + (c[1] - mn) * .5, 42 + (c[2] - mn) * .5] : [36, 40, 42];
         o.push(`background:rgb(${d.map(Math.round).join(',')})!important`); }
-      const fg = rgb(st.color); if (fg && lum(fg) < .4) o.push(`color:${lum(fg) < .2 ? '#ECEBE6' : '#A3A8A4'}!important`);
+      const fg = rgb(st.color); if (fg && lum(fg) < .45) o.push(`color:${lum(fg) < .2 ? '#ECEBE6' : '#C4C8C4'}!important`);
       for (const k of ['borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor']){ const b = rgb(st[k]); if (b && lum(b) > .7) o.push(k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()) + ':#3A3F3D!important'); }
       if (o.length) out.push(sel.map(x => 'html.mk.dk ' + x).join(',') + '{' + o.join(';') + '}'); } };
   const make = () => { out.length = 0; for (const sh of document.styleSheets){ try{ walk(sh.cssRules); }catch(_){} }

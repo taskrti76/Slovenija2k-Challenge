@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.81 — 2026-11-13
+- App without signal: when the site can't be loaded, the app starts from the copy it saved last time (page, MapLibre, data,
+  map tiles and downloaded areas) instead of the "Prvi zagon potrebuje internet" screen - that screen now only shows on the
+  very first start. Needs the new APK (app/www/offline.html).
+- Trip planner: its own suggestion list under the field (up to 8 matches: peaks, huts, trailheads, towns) instead of the
+  browser's list that collided with the phone keyboard; while typing on a phone the window moves to the top and the bottom
+  bar and search step away. Huts, trailheads and places are in the list also when they load after the peaks.
+- Dark theme: dim grey text made lighter - the 360° / V načrt / Kamere buttons, the weather block, small grey notes in the
+  peak window and other windows (other text unchanged).
+
 ## web-v0.80 — 2026-11-13
 - Dark theme: the map is no longer dimmed; outlines are softer; the height and snow legends (also shrunk to a round button)
   are dark too; the whole profile / leaderboard / friends / groups page and the account window are readable in the dark

@@ -1,14 +1,38 @@
-<!doctype html><html lang="sl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>2000-čaki</title>
+<!doctype html><html lang="sl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>2000-čaki</title>
 <body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0e3a86;color:#fff;font:16px system-ui,sans-serif;text-align:center;padding:24px;box-sizing:border-box">
-<div><div style="font-size:56px">⛰</div><h2 style="margin:8px 0">Prvi zagon potrebuje internet</h2>
+<div id="msg" style="visibility:hidden"><div style="font-size:56px">⛰</div><h2 style="margin:8px 0">Prvi zagon potrebuje internet</h2>
 <p style="opacity:.85;max-width:300px;margin:8px auto">Aplikacija se mora enkrat naložiti s povezavo. Potem deluje tudi brez signala. Ko bo povezava, se odpre sama.</p>
 <p style="opacity:.6;font-size:.9em;max-width:300px;margin:8px auto">The first start needs internet; the app opens by itself as soon as there is a connection.</p>
 <div style="width:120px;height:4px;margin:18px auto 0;border-radius:2px;background:rgba(255,255,255,.22);overflow:hidden"><div id="b" style="width:40%;height:100%;background:#fff;border-radius:2px"></div></div></div>
 <script>
-// shown only when the site could not be loaded at all (first start without signal): hide the splash, wait for a connection, open the site
+// Shown when the site could not be loaded (no signal). This page lives on the site's own address (taskrti76.github.io), so it can
+// read the copy the app saved last time (page, MapLibre, data, map tiles, downloaded areas) and start the app from it.
+// Only when nothing was saved yet (the very first start) the "needs internet" message stays and the app opens once online.
 var SITE = 'https://taskrti76.github.io/Slovenija2k-Challenge/';
-try{ if (window.Capacitor && Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen', 'hide', {}).catch(function(){}); }catch(e){}
-var x = 0; setInterval(function(){ x = (x + 4) % 140; document.getElementById('b').style.transform = 'translateX(' + (x - 40) * 2.5 + '%)'; }, 40);
-function tryOpen(){ fetch(SITE + 'manifest.webmanifest', {cache: 'no-store'}).then(function(r){ if (r.ok) location.replace(SITE); }).catch(function(){}); }
-addEventListener('online', tryOpen); setInterval(tryOpen, 5000); tryOpen();
+var timers = [];
+function hideSplash(){ try{ if (window.Capacitor && Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen', 'hide', {}).catch(function(){}); }catch(e){} }
+function firstStart(){ hideSplash(); document.getElementById('msg').style.visibility = 'visible';
+  var x = 0; timers.push(setInterval(function(){ x = (x + 4) % 140; document.getElementById('b').style.transform = 'translateX(' + (x - 40) * 2.5 + '%)'; }, 40));
+  function tryOpen(){ fetch(SITE + 'manifest.webmanifest', {cache: 'no-store'}).then(function(r){ if (r.ok) location.replace(SITE); }).catch(function(){}); }
+  addEventListener('online', tryOpen); timers.push(setInterval(tryOpen, 5000)); tryOpen(); }
+async function fromSaved(){
+  if (!window.caches) return false;
+  var res = null, keys = await caches.keys();
+  for (var i = 0; i < keys.length && !res; i++){ if (!/^dvat-shell-/.test(keys[i])) continue; var c = await caches.open(keys[i]);
+    res = (await c.match(SITE)) || (await c.match(SITE + 'index.html')) || (await c.match(SITE, {ignoreSearch: true})); }
+  if (!res) return false;
+  var html = await res.text(); if (html.length < 10000) return false;
+  // outside files the page loads by tag (MapLibre script + style): from the saved copies too
+  var urls = {}; (html.match(/(?:src|href)="https:\/\/[^"]+"/g) || []).forEach(function(m){ urls[m.replace(/^(src|href)="/, '').slice(0, -1)] = 1; });
+  for (var u in urls){ var h = await caches.match(u, {ignoreVary: true}); if (h){ var bl = URL.createObjectURL(await h.blob()); html = html.split('"' + u + '"').join('"' + bl + '"'); } }
+  // this page is not under the service worker: data and map tiles that fail on the network come from the saved copies
+  var pre = '<script>(function(){var of=window.fetch.bind(window),K=function(u){return u.replace("//services.arcgisonline.com/","//server.arcgisonline.com/");};' +
+    'window.fetch=function(i,o){return of(i,o).catch(function(e){var u=new URL(typeof i==="string"?i:i.url,location.href).href,same=u.indexOf(location.origin)===0;' +
+    'return caches.match(K(u),{ignoreVary:true,ignoreSearch:same}).then(function(h){if(h)return h;throw e;});});};window.DVAT_OFFLINE_START=1;})();<\/script>';
+  html = html.replace(/<head[^>]*>/i, function(m){ return m + pre; });
+  timers.forEach(clearInterval);
+  history.replaceState(null, '', SITE);   // the page sees its usual address (same site, so this is allowed)
+  document.open(); document.write(html); document.close();
+  return true; }
+fromSaved().then(function(ok){ if (!ok) firstStart(); }).catch(function(){ firstStart(); });
 </script></body></html>

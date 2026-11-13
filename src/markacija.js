@@ -30,6 +30,7 @@ html.mk.dk #lbPage .lbnav button:not(.on){color:#ECEBE6}html.mk.dk #lbPage .addf
 html.mk.dk #lbPage .lbnav button.on,html.mk.dk #lbPage .lbtabs button.on{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
 html.mk.dk #lbPage .sb.pri,html.mk.dk #accWin .go,html.mk.dk #lbPage .sb.sure{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
 html.mk.dk .maplibregl-popup .wish{background:#24282A!important;border-color:#3A3F3D!important;color:#ECEBE6!important}
+html.mk.dk .maplibregl-popup-content .v2act button.pri,html.mk.dk .card .go,html.mk.dk .maplibregl-popup-content .v2ok{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}html.mk.dk .maplibregl-popup-content .v2act button.pri svg{color:#fff}html.mk.dk .v2act button:not(.pri){color:#ECEBE6!important}html.mk.dk .v2act button:not(.pri) svg{color:#ECEBE6}
 html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
 html.mk{--acc:${RED};--v2red:${RED};--v2float:0 0 0 2px ${INK};--v2sheet:0 0 0 2px ${INK}}
 html.mk .maplibregl-popup-content{--acc:${RED};border:2px solid ${INK}!important;box-shadow:0 6px 0 rgba(20,20,20,.12)!important;border-radius:18px!important}
@@ -104,15 +105,18 @@ ${PH}{
 // Built from the live style sheets, so new rules there are covered too. ----------
 { const RX = /#(lbPage|accWin)\b/, rgb = v => { const m = String(v).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/); return m ? [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]] : null; };
   const lum = c => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255, all = v => (String(v).match(/rgba?\([^)]*\)/g) || []).map(rgb);
-  const out = [];
-  const walk = list => { for (const r of list){ if (r.cssRules && !r.selectorText){ walk(r.cssRules); continue; } if (!r.selectorText || !RX.test(r.selectorText)) continue;
-      const sel = r.selectorText.split(',').map(x => x.trim()); if (sel.some(x => /^#(lbPage|accWin)$/.test(x))) continue;   // the page itself keeps its picture
+  const out = [], SC = ['.maplibregl-popup-content', '.card', '#wxBig', '.panel', '#drawer', '#setWin', '#v360 .vb'];
+  const walk = list => { for (const r of list){ if (r.cssRules && !r.selectorText){ walk(r.cssRules); continue; } if (!r.selectorText) continue;
+      let sel = r.selectorText.split(',').map(x => x.trim()); if (sel.some(x => /^#(lbPage|accWin)$/.test(x))) continue;   // the page itself keeps its picture
+      if (!RX.test(r.selectorText)){   // a plain class rule (weather block, GPS button, chips ...): its dark twin applies inside the windows only
+        sel = sel.filter(x => /^[.a-z]/i.test(x) && !/^(html|body)\b/.test(x)); if (!sel.length) continue;
+        sel = sel.flatMap(x => SC.some(c => x.includes(c.split(' ')[0])) ? [x] : SC.map(c => c + ' ' + x)); }
       const st = r.style, o = [], bg = all(st.backgroundColor + ' ' + st.backgroundImage);
       if (bg.length && !/url\(/.test(st.backgroundImage) && bg.every(c => c && c[3] > .5 && lum(c) > .75)){
         const c = bg[0], mn = Math.min(c[0], c[1], c[2]), tint = Math.max(c[0], c[1], c[2]) - mn > 10;
         const d = /\.lbc\b|\.acard\b/.test(r.selectorText) ? [27, 30, 29] : /\bbar\b/.test(r.selectorText) ? [58, 63, 61] : tint ? [36 + (c[0] - mn) * .5, 40 + (c[1] - mn) * .5, 42 + (c[2] - mn) * .5] : [36, 40, 42];
         o.push(`background:rgb(${d.map(Math.round).join(',')})!important`); }
-      const fg = rgb(st.color); if (fg && lum(fg) < .4) o.push(`color:${lum(fg) < .2 ? '#ECEBE6' : '#A3A8A4'}!important`);
+      const fg = rgb(st.color); if (fg && lum(fg) < .45) o.push(`color:${lum(fg) < .2 ? '#ECEBE6' : '#C4C8C4'}!important`);
       for (const k of ['borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor']){ const b = rgb(st[k]); if (b && lum(b) > .7) o.push(k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()) + ':#3A3F3D!important'); }
       if (o.length) out.push(sel.map(x => 'html.mk.dk ' + x).join(',') + '{' + o.join(';') + '}'); } };
   const make = () => { out.length = 0; for (const sh of document.styleSheets){ try{ walk(sh.cssRules); }catch(_){} }
