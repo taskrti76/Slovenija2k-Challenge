@@ -272,8 +272,14 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
       else { const T = s && s.offsetWidth ? s.getBoundingClientRect().bottom : 0; tx = innerWidth / 2; ty = (T + r.top) / 2; }
       if (Math.hypot(pt.x - tx, pt.y - ty) > 30) map.panBy([pt.x - tx, pt.y - ty], {duration: 350}); };
     if (map.isMoving()) map.once('moveend', () => setTimeout(go, 30)); else setTimeout(go, 30);
+    // the sheet: swipe its header up (or open »Več«) = almost the whole screen; down = back to small, then closed; tap the handle = toggle
+    const full = on => { el.classList.toggle('v2full', on); const md = el.querySelector('.v2more'); if (on && md) md.open = true; };
     const hd = el.querySelector('.v2h'); if (hd && !hd.dataset.sw){ hd.dataset.sw = 1; let y0 = null;
-      hd.addEventListener('pointerdown', e => { y0 = e.clientY; }); hd.addEventListener('pointerup', e => { if (y0 != null && e.clientY - y0 > 50 && popup) popup.remove(); y0 = null; }); } };
+      hd.addEventListener('pointerdown', e => { y0 = e.clientY; });
+      hd.addEventListener('pointerup', e => { if (y0 == null) return; const d = e.clientY - y0; y0 = null;
+        if (d < -40) full(true); else if (d > 50){ if (el.classList.contains('v2full')) full(false); else if (popup) popup.remove(); }
+        else if (e.clientY - hd.getBoundingClientRect().top < 14) full(!el.classList.contains('v2full')); }); }
+    const md = el.querySelector('.v2more'); if (md && !md.dataset.sw){ md.dataset.sw = 1; md.addEventListener('toggle', () => { if (md.open && !LS()) el.classList.add('v2full'); }); } };
   new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.classList && n.classList.contains('maplibregl-popup')) setTimeout(fit, 0); })
     .observe(map.getContainer(), {childList: true}); }
 
@@ -395,6 +401,8 @@ ${PHq}{
   html.v2 .maplibregl-popup.v2sh .maplibregl-popup-tip{display:none}
   html.v2 .maplibregl-popup.v2sh .maplibregl-popup-content{max-height:min(52dvh,430px);overflow-y:auto;overscroll-behavior:contain;border-radius:20px!important;padding:16px 14px 12px!important}
   html.v2 .maplibregl-popup.v2sh .v2h{touch-action:none;position:relative;padding-top:6px}
+  html.v2 .maplibregl-popup.v2sh.v2full .maplibregl-popup-content{max-height:calc(100dvh - 76px - env(safe-area-inset-top) - env(safe-area-inset-bottom));min-height:min(70dvh,560px)}
+  html.v2 .maplibregl-popup.v2sh .maplibregl-popup-content{transition:max-height .22s ease,min-height .22s ease}
   html.v2 .maplibregl-popup.v2sh .v2h::before{content:"";position:absolute;left:50%;top:-8px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:rgba(127,127,127,.35)}
   html.v2 .maplibregl-popup.v2sh .v2n span:first-child{font-size:22px!important}
   html.v2 .maplibregl-popup.v2sh .v2act button{padding:8px 4px!important}

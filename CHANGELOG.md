@@ -2,6 +2,19 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.80 — 2026-11-13
+- Dark theme: the map is no longer dimmed; outlines are softer; the height and snow legends (also shrunk to a round button)
+  are dark too; the whole profile / leaderboard / friends / groups page and the account window are readable in the dark
+  (every light colour there gets a dark twin, built from the page's own styles; your own row, the bottom bar, the tabs).
+- Phone, peak window: swipe its header up (or open »Več«) and it fills almost the whole screen; down = small again, then closed;
+  a tap on the handle switches.
+- Guide: the texts follow the look (Markacija's bottom bar and blaze, the left column on a computer, the red button in the
+  classic look) - no more »rdeči gumb« / »jeziček« where there is none; the step count is right. During the guide only the
+  thing being shown works (e.g. base maps on the layers step, »Več« in the peak window, route rows); other buttons, links,
+  ticking peaks and the blaze wait until the guide ends. Scrolling and swiping still work.
+- Profile / friends backgrounds: smooth skylines (no stair steps), small sky specks gone, the spruce drawn by its own colour
+  against the clouds - its whole top, both sides.
+
 ## web-v0.79 — 2026-11-13
 - Markacija is now the main look (new visitors get it); Osnovni and Nov videz stay as older looks in ⚙ Nastavitve → Videz.
 - Light / dark theme: ⚙ Nastavitve → Videz → Tema (Samodejno = as the phone/computer, Svetla, Temna; ?theme=light/dark/auto).

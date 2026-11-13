@@ -12,21 +12,24 @@ const RED = '#C8102E', INK = 'var(--mkol)', CD = "'Barlow Condensed',Inter,syste
 const st = document.createElement('style'); st.id = 'mkcss'; st.textContent = `
 html.mk{--mkol:#141414;--mkbtn:#141414;--mkcnt:${RED}}
 /* dark theme (Nastavitve → Videz → Tema, or the system's): dark panels, light outlines; the blaze stays red and white */
-html.mk.dk{--mkol:#D9D6CF;--mkbtn:#3A3F3D;--mkcnt:#FF5A6E;--panel:#1B1E1D;--solid:#1B1E1D;--ink:#ECEBE6;--mute:#A3A8A4;--line:#353A38;--bg:#121414}
+html.mk.dk{--mkol:#5F6562;--mkbtn:#3A3F3D;--mkcnt:#FF5A6E;--panel:#1B1E1D;--solid:#1B1E1D;--ink:#ECEBE6;--mute:#A3A8A4;--line:#353A38;--bg:#121414}
 html.mk.dk .maplibregl-popup-content{--ink:#ECEBE6;--mute:#A3A8A4;--line:#353A38;--solid:#1B1E1D;--panel:#1B1E1D;background:#1B1E1D!important;color:#ECEBE6!important}
 html.mk.dk .maplibregl-popup-close-button{color:#ECEBE6}
 html.mk.dk .maplibregl-ctrl-group{background:#1B1E1D!important}html.mk.dk .maplibregl-ctrl-group button{filter:invert(.9) hue-rotate(180deg)}
-html.mk.dk body:not(.in360) #map .maplibregl-canvas{filter:brightness(.8) saturate(.92)}
+html.mk.dk #hleg,html.mk.dk #snowleg{background:#1B1E1D!important;color:#ECEBE6!important}
 html.mk.dk #lbPage{--lbsky:linear-gradient(180deg,#121414 0%,#17202a 35%,#22364a 65%,#2f4d6a 100%);background-color:#121414}
 html.mk.dk #lbPage .lbc{background:#1B1E1D;color:#ECEBE6}html.mk.dk #lbPage .lbh{background:linear-gradient(180deg,#24221c,#1B1E1D);border-color:#353A38}
 html.mk.dk #lbPage .lbs,html.mk.dk #lbPage .bdg2 small,html.mk.dk #lbPage .ac2 h4,html.mk.dk #lbPage .ac2 .it span{color:#A3A8A4}
-html.mk.dk #lbPage .lbtabs button{background:#24282A;border-color:#3A3F3D;color:#ECEBE6}html.mk.dk #lbPage .lbtabs button.on{background:#ECEBE6;color:#141414}
+html.mk.dk #lbPage .lbtabs button{background:#24282A;border-color:#3A3F3D;color:#ECEBE6}
 html.mk.dk #lbPage .lbx{background:rgba(255,255,255,.1);color:#ECEBE6}html.mk.dk #lbPage .lbq{background:#24282A;border-color:#3A3F3D;color:#ECEBE6}
 html.mk.dk #lbPage .ac2{background:#24282A;border-color:#353A38}html.mk.dk #lbPage .ac2 .it{border-color:#2E3331}
 html.mk.dk #lbPage .pd,html.mk.dk #lbPage .grid div,html.mk.dk #lbPage .pd.g2{background:#24282A;border-color:#353A38}html.mk.dk #lbPage .pd.g1{background:linear-gradient(180deg,#3a3220,#24282A);border-color:#7a6430}html.mk.dk #lbPage .pd.g3{background:#2e2722}
 html.mk.dk #lbPage .lr:hover{background:#24282A}html.mk.dk #lbPage .more,html.mk.dk #lbPage .sb:not(.pri):not(.sure),html.mk.dk #lbPage .addf input,html.mk.dk #lbPage .inp{background:#24282A;color:#ECEBE6;border-color:#3A3F3D}
-html.mk.dk #lbPage .lbf{border-color:#353A38}html.mk.dk #lbPage .lbnav button.on,html.mk.dk #lbPage .lbf button{background:#ECEBE6;color:#141414}
+html.mk.dk #lbPage .lbf{border-color:#353A38}html.mk.dk #lbPage .lbf button{background:#ECEBE6;color:#141414}
 html.mk.dk #lbPage .lbnav button:not(.on){color:#ECEBE6}html.mk.dk #lbPage .addf input,html.mk.dk #lbPage .inp,html.mk.dk #lbPage .lbc,html.mk.dk #lbPage .lbnav button,html.mk.dk #lbPage .lbtabs button,html.mk.dk #lbPage .sb{color:#ECEBE6}html.mk.dk #lbPage .ac2 .it span,html.mk.dk #lbPage .ac2 .nb,html.mk.dk #lbPage .ac2 h4,html.mk.dk #lbPage .ah2,html.mk.dk #lbPage .bdg2 small,html.mk.dk #lbPage .empty,html.mk.dk #lbPage .grid small,html.mk.dk #lbPage .lbs,html.mk.dk #lbPage .lbx,html.mk.dk #lbPage .mehero .who small,html.mk.dk #lbPage .nb,html.mk.dk #lbPage .num small,html.mk.dk #lbPage .pb>small,html.mk.dk #lbPage .pd small,html.mk.dk #lbPage .pdt small,html.mk.dk #lbPage .pg small,html.mk.dk #lbPage .pick small,html.mk.dk #lbPage .pk span,html.mk.dk #lbPage .rk,html.mk.dk #lbPage .sh,html.mk.dk #lbPage .who small{color:#A3A8A4}
+html.mk.dk #lbPage .lbnav button.on,html.mk.dk #lbPage .lbtabs button.on{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
+html.mk.dk #lbPage .sb.pri,html.mk.dk #accWin .go,html.mk.dk #lbPage .sb.sure{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}
+html.mk.dk .maplibregl-popup .wish{background:#24282A!important;border-color:#3A3F3D!important;color:#ECEBE6!important}
 html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
 html.mk{--acc:${RED};--v2red:${RED};--v2float:0 0 0 2px ${INK};--v2sheet:0 0 0 2px ${INK}}
 html.mk .maplibregl-popup-content{--acc:${RED};border:2px solid ${INK}!important;box-shadow:0 6px 0 rgba(20,20,20,.12)!important;border-radius:18px!important}
@@ -96,6 +99,27 @@ ${PH}{
 }
 `; document.head.append(st);
 
+// ---------- dark theme for the profile / leaderboard / friends / groups page and the account window: their own styles use fixed
+// light colours, so a dark twin of every such rule is made here (light backgrounds -> dark, dark text -> light, light lines -> dark).
+// Built from the live style sheets, so new rules there are covered too. ----------
+{ const RX = /#(lbPage|accWin)\b/, rgb = v => { const m = String(v).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/); return m ? [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]] : null; };
+  const lum = c => (0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]) / 255, all = v => (String(v).match(/rgba?\([^)]*\)/g) || []).map(rgb);
+  const out = [];
+  const walk = list => { for (const r of list){ if (r.cssRules && !r.selectorText){ walk(r.cssRules); continue; } if (!r.selectorText || !RX.test(r.selectorText)) continue;
+      const sel = r.selectorText.split(',').map(x => x.trim()); if (sel.some(x => /^#(lbPage|accWin)$/.test(x))) continue;   // the page itself keeps its picture
+      const st = r.style, o = [], bg = all(st.backgroundColor + ' ' + st.backgroundImage);
+      if (bg.length && !/url\(/.test(st.backgroundImage) && bg.every(c => c && c[3] > .5 && lum(c) > .75)){
+        const c = bg[0], mn = Math.min(c[0], c[1], c[2]), tint = Math.max(c[0], c[1], c[2]) - mn > 10;
+        const d = /\.lbc\b|\.acard\b/.test(r.selectorText) ? [27, 30, 29] : /\bbar\b/.test(r.selectorText) ? [58, 63, 61] : tint ? [36 + (c[0] - mn) * .5, 40 + (c[1] - mn) * .5, 42 + (c[2] - mn) * .5] : [36, 40, 42];
+        o.push(`background:rgb(${d.map(Math.round).join(',')})!important`); }
+      const fg = rgb(st.color); if (fg && lum(fg) < .4) o.push(`color:${lum(fg) < .2 ? '#ECEBE6' : '#A3A8A4'}!important`);
+      for (const k of ['borderTopColor', 'borderBottomColor', 'borderLeftColor', 'borderRightColor']){ const b = rgb(st[k]); if (b && lum(b) > .7) o.push(k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()) + ':#3A3F3D!important'); }
+      if (o.length) out.push(sel.map(x => 'html.mk.dk ' + x).join(',') + '{' + o.join(';') + '}'); } };
+  const make = () => { out.length = 0; for (const sh of document.styleSheets){ try{ walk(sh.cssRules); }catch(_){} }
+    let e = $('mkdarkpg'); if (!e){ e = document.createElement('style'); e.id = 'mkdarkpg'; document.head.append(e); } e.textContent = out.join('\n'); };
+  setTimeout(make, 0); setTimeout(make, 4000);
+  const fix = document.createElement('style'); fix.textContent = 'html.mk.dk #lbPage [style*="color:#5b6461"],html.mk.dk #accWin [style*="color:#5b6461"]{color:#A3A8A4!important}html.mk.dk #lbPage [style*="color:#2e7d32"]{color:#6CC07A!important}html.mk.dk #lbPage [style*="color:#b3261e"]{color:#FF7A85!important}'; document.head.append(fix); }
+
 // ---------- phone: bottom bar with pages. The blaze in the middle stays; tap it (or swipe the bar) and the four buttons around
 // it change to the next set. Hold the blaze = the old round menu with everything. ----------
 const ico = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
@@ -135,7 +159,7 @@ dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; cons
 // the blaze: tap = GPS summit check on/off (it glows while on), hold = the full round menu; the buttons change by swiping the bar
 const fab = $('fab'), fb = fab && fab.querySelector('.fb'); let hold = null, held = false;
 if (fb){
-  fb.addEventListener('pointerdown', () => { held = false; clearTimeout(hold); hold = setTimeout(() => { if (!window.PHONE_UI || !PHONE_UI()) return; held = true; window.__fabOpen && __fabOpen(); }, 550); });
+  fb.addEventListener('pointerdown', () => { held = false; clearTimeout(hold); hold = setTimeout(() => { if (!window.PHONE_UI || !PHONE_UI() || B.classList.contains('touring')) return; held = true; window.__fabOpen && __fabOpen(); }, 550); });
   addEventListener('pointerup', () => clearTimeout(hold));
   fab.addEventListener('click', e => { if (!window.PHONE_UI || !PHONE_UI() || fab.classList.contains('open') || B.classList.contains('touring')) return;
     if (!e.target.closest('.fb')) return; e.stopPropagation(); e.preventDefault(); if (held){ held = false; return; } window.gpsToggle && gpsToggle(); }, true);

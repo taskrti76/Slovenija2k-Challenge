@@ -79,7 +79,12 @@ if a.maxline and a.snap:   # sky seen between branches / teeth just under the li
     cloud = (Lc > 150) & (np.abs(lb2[..., 1] - 128) < 8) & (lb2[..., 2] < 136) & (tex < 9)   # white-grey and smooth: cloud, not sunlit rock (rough)
     cx = np.zeros((N, NW), bool)
     if a.clouds: c0, c1 = [float(v) for v in a.clouds.split(':')]; cx[:, int(c0 * NW):int(c1 * NW)] = True
-    land = land & ~(near & (((d < np.where(cx, a.skyd, min(a.skyd, 8))) & (tex < 7)) | (cloud & cx) if a.clouds else False))
+    if a.clouds:   # a tree against clouds: there the tree's own colour decides (green or dark = tree), not the line
+        tree = cx & (((lb2[..., 1] < 123) & (lb2[..., 2] > 128)) | (Lc < 90)) & (yy > lim[None, :] - a.snap * N * 2.5)
+        tree = cv2.morphologyEx(cv2.morphologyEx(tree.astype(np.uint8), cv2.MORPH_OPEN, np.ones((2, 2), np.uint8)), cv2.MORPH_CLOSE, np.ones((7, 3), np.uint8)) > 0   # trunk tip joined
+        land = (land & ~(cx & (yy < lim[None, :] + a.snap * N))) | tree | (land & ~cx)
+        land = land & ~(cx & cloud & (yy < lim[None, :] + a.snap * N * 3) & ~tree)
+    land = land & ~(near & (((d < np.where(cx, a.skyd, min(a.skyd, 8))) & (tex < 7)) | (cloud & cx)))
 
 # --- posterise the land (light channel; colour only a little, as in the logo)
 ms = cv2.pyrMeanShiftFiltering(sm, 8, 32); L = cv2.cvtColor(ms, cv2.COLOR_BGR2LAB).astype(float)
@@ -110,6 +115,12 @@ for k in range(a.k):
     m = cv2.resize((lab_k == k).astype(np.float32), (UW, U), interpolation=cv2.INTER_CUBIC)
     acc[k] = cv2.GaussianBlur(m, (0, 0), a.blur) * (1 - wy) + cv2.GaussianBlur(m, (0, 0), a.blur * 2.6) * wy
 big = np.argmax(acc, 0); landU = cv2.resize(land.astype(np.uint8), (UW, U), interpolation=cv2.INTER_LINEAR) > 0
+if a.snap:   # backgrounds: a smooth, anti-aliased skyline (no stair steps from the work grid); specks of sky / land under ~3 px go
+    lm = cv2.morphologyEx(land.astype(np.uint8), cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)); lm = cv2.morphologyEx(lm, cv2.MORPH_OPEN, np.ones((2, 2), np.uint8))
+    n_, cc_, st_, _ = cv2.connectedComponentsWithStats(1 - lm, connectivity=4)
+    for i in range(1, n_):
+        if st_[i, cv2.CC_STAT_AREA] < 12 and st_[i, cv2.CC_STAT_TOP] > 0: lm[cc_ == i] = 1   # small sky holes inside the land
+    landU = cv2.GaussianBlur(cv2.resize(lm.astype(np.float32), (UW, U), interpolation=cv2.INTER_CUBIC), (0, 0), 2.2) > .5
 sc = a.size / U
 def paths(m, eps, holes=False):
     cs, _ = cv2.findContours(m.astype(np.uint8), cv2.RETR_CCOMP if holes else cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE); out = []   # --snap: holes too (sky between branches)
