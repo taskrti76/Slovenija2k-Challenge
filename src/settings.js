@@ -52,10 +52,12 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="chips" data-k="ferrata" style="margin-top:6px"><button data-v="1">${L('ferate: da','via ferratas: yes')}</button><button data-v="0">${L('ferate: ne','via ferratas: no')}</button></div>
   <div class="hint">${L('Težje poti in vrhovi dobijo oznako »⚠ nad tvojo mejo«. T2 planinska, T3 zahtevna planinska, T4 alpska, T5 zahtevna alpska, T6 težka alpska pot.','Harder routes and peaks get "⚠ above your limit". T2 mountain, T3 demanding mountain, T4 alpine, T5 demanding alpine, T6 difficult alpine.')}</div>
   <h4>${L('Videz','Look')}</h4>
-  <div class="tchips" id="setV2" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">${[['0', L('Osnovni','Classic')], ['1', L('Nov videz','New look')], ['mk', L('Markacija','Trail blaze')]].map(([v, t]) =>
+  <div class="tchips" id="setV2" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">${[['mk', L('Markacija','Trail blaze')], ['0', L('Osnovni (stari)','Classic (legacy)')], ['1', L('Nov videz (stari)','New look (legacy)')]].map(([v, t]) =>
     `<button type="button" data-v="${v}" class="${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? 'on' : ''}" style="padding:7px 12px;border-radius:16px;border:1px solid var(--line);background:${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? 'var(--accent,#1565c0)' : 'transparent'};color:${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? '#fff' : 'inherit'};font:inherit;cursor:pointer">${t}</button>`).join('')}</div>
-  <div style="font-size:.85em;color:var(--mute)">${L('Nov videz in Markacija sta preizkusa.','New look and Trail blaze are previews.')}</div>
-  <div class="hint">${L('Nove barve, pisava Inter, ikone namesto emojijev. Stran se ponovno naloži.','New colours, Inter font, icons instead of emoji. The page reloads.')}</div>
+  <div class="hint">${L('Markacija je glavni videz; Osnovni in Nov videz sta starejši različici. Stran se ponovno naloži.','Trail blaze is the main look; Classic and New look are the older versions. The page reloads.')}</div>
+  <div class="q" style="margin-top:8px">${L('Tema','Theme')}</div>
+  <div class="tchips" id="setTheme" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">${[['auto', L('Samodejno','Automatic')], ['light', L('Svetla','Light')], ['dark', L('Temna','Dark')]].map(([v, t]) =>
+    `<button type="button" data-v="${v}" class="${(window.THEME || 'auto') === v ? 'on' : ''}" style="padding:7px 12px;border-radius:16px;border:1px solid var(--line);background:${(window.THEME || 'auto') === v ? 'var(--accent,#1565c0)' : 'transparent'};color:${(window.THEME || 'auto') === v ? '#fff' : 'inherit'};font:inherit;cursor:pointer">${t}</button>`).join('')}</div>
   <h4>${L('Napredno','Advanced')}</h4><div class="advbox" id="setAdv"></div></div>`;
 document.body.append(win);
 const paintChips = () => win.querySelectorAll('.chips[data-k]').forEach(c => { const k = c.dataset.k, v = k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k];
@@ -64,6 +66,8 @@ win.querySelectorAll('.chips[data-k]').forEach(c => c.onclick = e => { const b =
   P[k] = k === 'ferrata' ? v === 1 : v; paintChips(); save(); });
 paintChips();
 $s('setLang').onclick = e => { const b = e.target.closest('button[data-l]'); if (!b || b.classList.contains('on')) return; try{ localStorage.setItem('dvat3d_lang', b.dataset.l); }catch(_){} location.reload(); };
+$s('setTheme').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b || !window.setTheme) return; setTheme(b.dataset.v);
+  $s('setTheme').querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.style.background = on ? 'var(--accent,#1565c0)' : 'transparent'; x.style.color = on ? '#fff' : 'inherit'; }); };
 $s('setV2').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; try{ localStorage.setItem('dvat3d_v2', b.dataset.v); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
 const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };

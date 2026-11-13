@@ -15,7 +15,8 @@
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <style>
   :root{--bg:#f6f4ef;--panel:rgba(255,255,255,.92);--solid:#fdfdfc;--ink:#1d2321;--mute:#5d6662;--line:#d9d5cc;--acc:#b5482d}
-  @media (prefers-color-scheme:dark){:root{--panel:rgba(24,27,26,.9);--solid:#1b1e1d;--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d;--acc:#e07a5f}}
+  @media (prefers-color-scheme:dark){:root:not(.lt){--panel:rgba(24,27,26,.9);--solid:#1b1e1d;--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d;--acc:#e07a5f}}
+  :root.dk{--panel:rgba(24,27,26,.9);--solid:#1b1e1d;--ink:#ecebe6;--mute:#a3a8a4;--line:#3a3f3d;--acc:#e07a5f}
   html,body{margin:0;position:fixed;inset:0;overflow:hidden;overscroll-behavior:none;-webkit-text-size-adjust:100%;background:#1b1f1e;font:calc(14px * var(--ui,1))/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
   #map{position:absolute;inset:0}
   .panel{position:absolute;top:12px;left:12px;width:250px;max-width:calc(100% - 24px);max-height:calc(100vh - 24px);overflow-y:auto;overscroll-behavior:contain;box-sizing:border-box;background:var(--panel);backdrop-filter:blur(6px);
@@ -347,8 +348,13 @@
 @keyframes bootbar{from{transform:translateX(-100%)}to{transform:translateX(330%)}}</style>
 <script>/* experimental new look: ?v2=1 / ?v2=0 switches it (remembered); html.v2 scopes all of it (design.js) */
 /* looks: 0 = osnovni, 1 = nov videz, mk = markacija (nov videz + markacija skin and bottom bar) */
-try{ var q2=new URLSearchParams(location.search).get('v2'); if(q2!==null) localStorage.setItem('dvat3d_v2',q2==='mk'?'mk':q2==='1'?'1':'0'); var lv=localStorage.getItem('dvat3d_v2'); window.V2=lv==='1'||lv==='mk'; window.MK=lv==='mk'; }catch(e){ window.V2=false; window.MK=false; }
+try{ var q2=new URLSearchParams(location.search).get('v2'); if(q2!==null) localStorage.setItem('dvat3d_v2',q2==='mk'?'mk':q2==='1'?'1':'0'); var lv=localStorage.getItem('dvat3d_v2'); if(lv===null) lv='mk'; window.V2=lv==='1'||lv==='mk'; window.MK=lv==='mk'; }catch(e){ window.V2=true; window.MK=true; }
 if(window.V2) document.documentElement.classList.add('v2'); if(window.MK) document.documentElement.classList.add('mk');
+/* theme: auto (system) / light / dark - ?theme=auto|light|dark or Nastavitve -> Videz -> Tema; html.dk = dark, html.lt = light */
+(function(){ var t='auto'; try{ var q=new URLSearchParams(location.search).get('theme'); if(q==='light'||q==='dark'||q==='auto') localStorage.setItem('dvat3d_theme',q); t=localStorage.getItem('dvat3d_theme')||'auto'; }catch(e){}
+  window.THEME=t; var mq=matchMedia('(prefers-color-scheme:dark)'), r=document.documentElement;
+  var ap=function(){ var d=t==='dark'||(t==='auto'&&mq.matches); r.classList.toggle('dk',d); r.classList.toggle('lt',!d); var m=document.querySelector('meta[name=theme-color]'); if(m) m.content=d?'#121414':'#1f3b57'; };
+  ap(); try{ mq.addEventListener('change',function(){ if(window.THEME==='auto') ap(); }); }catch(e){} window.setTheme=function(v){ t=window.THEME=v; try{ localStorage.setItem('dvat3d_theme',v); }catch(e){} ap(); }; })();
 /* app: the native splash steps aside as soon as this page paints, so the loading screen with its bar is what you see */
 requestAnimationFrame(function(){ setTimeout(function(){ try{ if(window.Capacitor&&Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen','hide',{fadeOutDuration:200}).catch(function(){}); }catch(e){} },50); });
 window.PHONE_UI=function(){ return innerWidth<=700||(innerHeight<=500&&matchMedia('(pointer:coarse)').matches); };

@@ -8,32 +8,50 @@ const $ = id => document.getElementById(id), B = document.body, L = (sl, en) => 
 const f = document.createElement('link'); f.rel = 'stylesheet';
 f.href = 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap'; document.head.append(f);
 const PH = '@media (max-width:700px),(max-height:500px) and (pointer:coarse)', PC = '@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine)';
-const RED = '#C8102E', INK = '#141414', CD = "'Barlow Condensed',Inter,system-ui,sans-serif";
+const RED = '#C8102E', INK = 'var(--mkol)', CD = "'Barlow Condensed',Inter,system-ui,sans-serif";
 const st = document.createElement('style'); st.id = 'mkcss'; st.textContent = `
+html.mk{--mkol:#141414;--mkbtn:#141414;--mkcnt:${RED}}
+/* dark theme (Nastavitve → Videz → Tema, or the system's): dark panels, light outlines; the blaze stays red and white */
+html.mk.dk{--mkol:#D9D6CF;--mkbtn:#3A3F3D;--mkcnt:#FF5A6E;--panel:#1B1E1D;--solid:#1B1E1D;--ink:#ECEBE6;--mute:#A3A8A4;--line:#353A38;--bg:#121414}
+html.mk.dk .maplibregl-popup-content{--ink:#ECEBE6;--mute:#A3A8A4;--line:#353A38;--solid:#1B1E1D;--panel:#1B1E1D;background:#1B1E1D!important;color:#ECEBE6!important}
+html.mk.dk .maplibregl-popup-close-button{color:#ECEBE6}
+html.mk.dk .maplibregl-ctrl-group{background:#1B1E1D!important}html.mk.dk .maplibregl-ctrl-group button{filter:invert(.9) hue-rotate(180deg)}
+html.mk.dk body:not(.in360) #map .maplibregl-canvas{filter:brightness(.8) saturate(.92)}
+html.mk.dk #lbPage{--lbsky:linear-gradient(180deg,#121414 0%,#17202a 35%,#22364a 65%,#2f4d6a 100%);background-color:#121414}
+html.mk.dk #lbPage .lbc{background:#1B1E1D;color:#ECEBE6}html.mk.dk #lbPage .lbh{background:linear-gradient(180deg,#24221c,#1B1E1D);border-color:#353A38}
+html.mk.dk #lbPage .lbs,html.mk.dk #lbPage .bdg2 small,html.mk.dk #lbPage .ac2 h4,html.mk.dk #lbPage .ac2 .it span{color:#A3A8A4}
+html.mk.dk #lbPage .lbtabs button{background:#24282A;border-color:#3A3F3D;color:#ECEBE6}html.mk.dk #lbPage .lbtabs button.on{background:#ECEBE6;color:#141414}
+html.mk.dk #lbPage .lbx{background:rgba(255,255,255,.1);color:#ECEBE6}html.mk.dk #lbPage .lbq{background:#24282A;border-color:#3A3F3D;color:#ECEBE6}
+html.mk.dk #lbPage .ac2{background:#24282A;border-color:#353A38}html.mk.dk #lbPage .ac2 .it{border-color:#2E3331}
+html.mk.dk #lbPage .pd,html.mk.dk #lbPage .grid div,html.mk.dk #lbPage .pd.g2{background:#24282A;border-color:#353A38}html.mk.dk #lbPage .pd.g1{background:linear-gradient(180deg,#3a3220,#24282A);border-color:#7a6430}html.mk.dk #lbPage .pd.g3{background:#2e2722}
+html.mk.dk #lbPage .lr:hover{background:#24282A}html.mk.dk #lbPage .more,html.mk.dk #lbPage .sb:not(.pri):not(.sure),html.mk.dk #lbPage .addf input,html.mk.dk #lbPage .inp{background:#24282A;color:#ECEBE6;border-color:#3A3F3D}
+html.mk.dk #lbPage .lbf{border-color:#353A38}html.mk.dk #lbPage .lbnav button.on,html.mk.dk #lbPage .lbf button{background:#ECEBE6;color:#141414}
+html.mk.dk #lbPage .lbnav button:not(.on){color:#ECEBE6}html.mk.dk #lbPage .addf input,html.mk.dk #lbPage .inp,html.mk.dk #lbPage .lbc,html.mk.dk #lbPage .lbnav button,html.mk.dk #lbPage .lbtabs button,html.mk.dk #lbPage .sb{color:#ECEBE6}html.mk.dk #lbPage .ac2 .it span,html.mk.dk #lbPage .ac2 .nb,html.mk.dk #lbPage .ac2 h4,html.mk.dk #lbPage .ah2,html.mk.dk #lbPage .bdg2 small,html.mk.dk #lbPage .empty,html.mk.dk #lbPage .grid small,html.mk.dk #lbPage .lbs,html.mk.dk #lbPage .lbx,html.mk.dk #lbPage .mehero .who small,html.mk.dk #lbPage .nb,html.mk.dk #lbPage .num small,html.mk.dk #lbPage .pb>small,html.mk.dk #lbPage .pd small,html.mk.dk #lbPage .pdt small,html.mk.dk #lbPage .pg small,html.mk.dk #lbPage .pick small,html.mk.dk #lbPage .pk span,html.mk.dk #lbPage .rk,html.mk.dk #lbPage .sh,html.mk.dk #lbPage .who small{color:#A3A8A4}
+html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
 html.mk{--acc:${RED};--v2red:${RED};--v2float:0 0 0 2px ${INK};--v2sheet:0 0 0 2px ${INK}}
 html.mk .maplibregl-popup-content{--acc:${RED};border:2px solid ${INK}!important;box-shadow:0 6px 0 rgba(20,20,20,.12)!important;border-radius:18px!important}
 html.mk .maplibregl-popup-tip{display:none}
 html.mk .panel h1,html.mk #dtitle,html.mk .v2p .v2n span:first-child,html.mk .rg,html.mk #tour h3,html.mk #setWin h2,html.mk #lbPage h2{font-family:${CD}!important;text-transform:uppercase;letter-spacing:.02em}
 html.mk .v2p .v2n span:first-child{font-size:30px!important;line-height:1}
 html.mk .v2ok{background:${RED}!important;color:#fff!important}
-html.mk .v2act button{background:#fff!important;border:2px solid ${INK}!important;color:${INK}!important;border-radius:14px!important}
+html.mk .v2act button{background:var(--solid)!important;border:2px solid ${INK}!important;color:${INK}!important;border-radius:14px!important}
 html.mk .v2act button.pri{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
-html.mk .v2snow{background:#fff!important;border:2px solid #1F5FAD}
+html.mk .v2snow{background:var(--solid)!important;border:2px solid #1F5FAD}
 html.mk #v2s{border:2px solid ${INK};border-radius:24px!important;box-shadow:none!important}
 html.mk #v2s .av{background:${RED}!important}
 html.mk .maplibregl-ctrl-group{border:2px solid ${INK}!important;border-radius:22px!important;box-shadow:none!important}
 html.mk #hleg,html.mk #snowleg{border:2px solid ${INK}!important;box-shadow:none!important;border-radius:14px!important}
 html.mk #hleg b,html.mk #snowleg b{font-family:${CD};text-transform:uppercase;letter-spacing:.02em;font-size:1.08em}
-html.mk .btn:not(.btn2){background:${INK}!important;border-color:${INK}!important}
+html.mk .btn:not(.btn2){background:var(--mkbtn)!important;border-color:var(--mkbtn)!important}
 html.mk .sb.pri,html.mk #accBox .go,html.mk #plCard .go,html.mk #tour .nx{background:${RED}!important;border-color:${RED}!important}
 html.mk #chips button.on,html.mk .chips button.on,html.mk .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
-html.mk #stchips button.on{background:${INK}!important;color:#fff!important}
+html.mk #stchips button.on{background:var(--mkbtn)!important;color:#fff!important}
 html.mk .it input[type=checkbox]{accent-color:${RED}}
 html.mk .ri.on{border-color:${RED}!important;background:rgba(200,16,46,.06)!important}
 html.mk #vcount3,html.mk #ptab em{color:${RED}!important;font-family:${CD}}
 html.mk #fab .fb{background:radial-gradient(circle,#fff 0 11px,${RED} 11.5px)!important;border:2px solid ${INK}!important;box-shadow:none!important}
 html.mk #fab .fb .fi{color:${RED}!important}html.mk #fab .fb .fi svg{width:16px!important;height:16px!important;stroke-width:3!important}
-html.mk #fab.open .fb{background:${INK}!important}html.mk #fab.open .fb .fx{color:#fff}
+html.mk #fab.open .fb{background:var(--mkbtn)!important}html.mk #fab.open .fb .fx{color:#fff}
 html.mk #fab .fo{border:2px solid ${INK}!important;box-shadow:none!important}
 html.mk #fab .fo .ol{border:1.5px solid ${INK};box-shadow:none!important}
 html.mk #fab.open .fo:hover,html.mk #fab.open .fo:active{background:${RED}!important}
@@ -45,15 +63,15 @@ html.mk #v360 .v2x{border:2px solid ${INK}}
 html.mk #mkdock{display:none}
 ${PH}{
   html.mk #fabTab{display:none!important}
-  html.mk #mkdock{display:block;position:absolute;z-index:8;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:#fff;border:2px solid ${INK};border-radius:32px;box-sizing:border-box;overflow:hidden;touch-action:pan-y}
+  html.mk #mkdock{display:block;position:absolute;z-index:8;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:var(--solid);border:2px solid ${INK};border-radius:32px;box-sizing:border-box;overflow:hidden;touch-action:pan-y}
   html.mk body.menu #mkdock,html.mk body.dopen #mkdock,html.mk body.in360 #mkdock,html.mk body.drawing #mkdock,html.mk body.pop #mkdock{display:none}
   html.mk #mkdock .trk{display:flex;height:100%;transition:transform .28s cubic-bezier(.3,.7,.3,1)}
-  html.mk #mkdock .pg{flex:0 0 100%;display:flex;align-items:center;padding:0 4px;box-sizing:border-box}
+  html.mk #mkdock .pg{flex:0 0 100%;display:flex;align-items:center;padding:0 4px;box-sizing:border-box;position:relative}
   html.mk #mkdock button,html.mk #mkdock .ph{flex:1;min-width:0;height:58px;border:0;background:none;color:${INK};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 11px Inter,system-ui,sans-serif;padding:0;cursor:pointer;position:relative}
   html.mk #mkdock button .lb{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   html.mk #mkdock button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   html.mk #mkdock button .bdg{position:absolute;top:4px;right:calc(50% - 20px)}
-  html.mk #mkdock .cnt{font:700 18px ${CD};color:${RED};line-height:22px}
+  html.mk #mkdock .cnt{font:700 18px ${CD};color:var(--mkcnt);line-height:22px}
   html.mk #mkdock .gap{flex:0 0 70px}
   html.mk #fab:not(.open) .fb .fi{display:none!important}
   html.mk body.gpson #fab:not(.open) .fb{box-shadow:0 0 0 4px rgba(46,125,79,.85),0 0 16px 4px rgba(46,125,79,.55)!important;animation:mkgps 1.6s ease-in-out infinite}
@@ -66,7 +84,7 @@ ${PH}{
   html.mk body.dopen #fab,html.mk body.menu #fab,html.mk body.pop #fab:not(.open){display:none}
 }
 @media (max-height:500px) and (pointer:coarse) and (orientation:landscape){
-  html.mk #mkdock{left:auto;right:calc(10px + env(safe-area-inset-right));top:10px;bottom:10px;width:64px;height:auto}
+  html.mk #mkdock{left:auto;right:calc(10px + env(safe-area-inset-right));top:10px;bottom:10px;width:64px;height:auto;touch-action:none}
   html.mk #mkdock .trk{flex-direction:column;height:100%}
   html.mk #mkdock .pg{flex:0 0 100%;flex-direction:column;padding:4px 0;width:100%}
   html.mk #mkdock button,html.mk #mkdock .ph{width:100%;height:auto;flex:1}
@@ -109,6 +127,8 @@ dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; cons
   if (k === 'peaks'){ if (window.DRAW_ON && window.stopDraw) stopDraw(); B.classList.remove('menu'); $('drawer').classList.add('open'); return; }
   const x = items().find(y => y[0] === k); if (x) x[2](); setTimeout(() => { sig = ''; build(); }, 300); };
 { let x0 = null, y0 = 0; dock.addEventListener('pointerdown', e => { x0 = e.clientX; y0 = e.clientY; });
+  dock.addEventListener('pointercancel', e => { if (x0 == null) return; const vert = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches;   // the browser took the gesture: still a swipe
+    const d = vert ? e.clientY - y0 : e.clientX - x0; if (Math.abs(d) > 40) go(PG + (d < 0 ? 1 : -1)); x0 = null; });
   dock.addEventListener('pointerup', e => { if (x0 == null) return; const vert = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches;
     const d = vert ? e.clientY - y0 : e.clientX - x0; if (Math.abs(d) > 40) go(PG + (d < 0 ? 1 : -1)); x0 = null; });
   addEventListener('resize', () => go(PG, true)); }
@@ -120,9 +140,12 @@ if (fb){
   fab.addEventListener('click', e => { if (!window.PHONE_UI || !PHONE_UI() || fab.classList.contains('open') || B.classList.contains('touring')) return;
     if (!e.target.closest('.fb')) return; e.stopPropagation(); e.preventDefault(); if (held){ held = false; return; } window.gpsToggle && gpsToggle(); }, true);
   // keep the blaze exactly in the middle of the bar's gap (phone upright or sideways, any safe-area)
+  // layout offsets, not screen positions: the page slide and the bar's slide-away are transforms, so the blaze lands right
+  // even mid-swipe (it used to be measured during the slide and parked off screen for up to 2 s - "the blaze disappears")
   const centre = () => { const g = trk.querySelectorAll('.gap')[PG]; if (!g || !PHONE_UI() || !dock.offsetWidth){ fab.style.removeProperty('left'); fab.style.removeProperty('top'); fab.style.removeProperty('bottom'); fab.style.removeProperty('right'); return; }
-    const r = g.getBoundingClientRect(), w = fab.offsetWidth || 58, h = fab.offsetHeight || 58; if (!r.width && !r.height) return;
-    fab.style.setProperty('left', (r.left + r.width / 2 - w / 2).toFixed(1) + 'px', 'important'); fab.style.setProperty('top', (r.top + r.height / 2 - h / 2).toFixed(1) + 'px', 'important');
+    const w = fab.offsetWidth || 58, h = fab.offsetHeight || 58; if (!g.offsetWidth && !g.offsetHeight) return;
+    const x = dock.offsetLeft + dock.clientLeft + g.offsetLeft + g.offsetWidth / 2, y = dock.offsetTop + dock.clientTop + g.offsetTop + g.offsetHeight / 2;
+    fab.style.setProperty('left', (x - w / 2).toFixed(1) + 'px', 'important'); fab.style.setProperty('top', (y - h / 2).toFixed(1) + 'px', 'important');
     fab.style.setProperty('bottom', 'auto', 'important'); fab.style.setProperty('right', 'auto', 'important'); fab.style.setProperty('margin', '0', 'important'); };
   window.mkCentre = centre; addEventListener('resize', () => setTimeout(centre, 80)); new ResizeObserver(() => centre()).observe(dock); setTimeout(centre, 300); setInterval(centre, 2000); }
 const vc = $('vcount3'), up = () => { const m = (vc && vc.textContent || '').match(/(\d+)\s*\/\s*(\d+)/), c = $('mkcnt'); if (m && c) c.textContent = `${m[1]}/${m[2]}`; };

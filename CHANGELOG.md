@@ -2,6 +2,19 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.79 — 2026-11-13
+- Markacija is now the main look (new visitors get it); Osnovni and Nov videz stay as older looks in ⚙ Nastavitve → Videz.
+- Light / dark theme: ⚙ Nastavitve → Videz → Tema (Samodejno = as the phone/computer, Svetla, Temna; ?theme=light/dark/auto).
+  Dark: dark panels with light outlines, the blaze stays red and white, the map a little dimmer; the profile / friends page too.
+- Phone, peak window: a compact sheet at the bottom (sideways: on the left) instead of a big bubble; the peak moves into the
+  free part of the map above it; weather, visit details, GPS, admin and webcams fold under »Več«; swipe the header down to close.
+- Windows step aside: the planner, routes, drawing and sharing windows never sit under the search bar (computer) or under
+  Markacija's bottom bar / side column (phone) - »Izračunaj turo« is reachable again.
+- Markacija, phone sideways: swiping the side column works (the browser took the vertical swipe); the blaze no longer
+  disappears - it hid whenever a window was open near the bottom middle, and was measured mid-slide and parked off screen.
+- Profile / friends backgrounds redrawn: the ridge follows the real edge in the photo (sharp peaks, the spruce's tip is back,
+  sky between branches cut out), true photo colours (no more green on rock in the Triglav view).
+
 ## web-v0.78 — 2026-11-12
 - Profile / friends background: three pictures drawn from photos, a different one on every visit: the view from Triglav, the Julian Alps
   panorama and the Špik group from the valley (?bg=0/a/b shows one now). Above them the contour lines lie on a gradient from the

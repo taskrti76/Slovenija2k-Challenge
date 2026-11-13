@@ -11,8 +11,8 @@ const PC = '@media (min-width:701px) and (min-height:501px),(min-width:701px) an
 const PH = '@media (max-width:700px),(max-height:500px) and (pointer:coarse)';
 const c = document.createElement('style'); c.id = 'v2css'; c.textContent = `
 html.v2{--acc:#B42318;--v2red:#B42318;--v2blue:#1F5FAD;--v2float:0 1px 3px rgba(16,24,32,.22);--v2sheet:0 8px 28px rgba(16,24,32,.18)}
-@media (prefers-color-scheme:light){html.v2{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--bg:#F5F4F0;--panel:#ffffff;--solid:#ffffff}}
-@media (prefers-color-scheme:dark){html.v2{--acc:#F07167;--v2blue:#6EA8F0}}
+html.v2.lt{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--bg:#F5F4F0;--panel:#ffffff;--solid:#ffffff}
+html.v2.dk{--acc:#F07167;--v2blue:#6EA8F0}
 /* the peak window is always white: keep its text dark when the phone is in dark mode (buttons looked disabled) */
 html.v2 .maplibregl-popup-content{--ink:#1B1F23;--mute:#626870;--line:#E6E3DC;--solid:#fff;--panel:#fff;--acc:#B42318;color:#1B1F23}
 html.v2 body,html.v2 button,html.v2 input,html.v2 select,html.v2 textarea,html.v2 .maplibregl-popup-content,html.v2 .maplibregl-ctrl{font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif!important}
@@ -138,19 +138,24 @@ window.v2PeakBox = (box, p, o) => {
   const btn = (ic, t, fn, pri) => { const b = document.createElement('button'); b.className = pri ? 'pri' : ''; b.innerHTML = ic + `<span>${t}</span>`; b.onclick = fn; a.append(b); };
   btn(ICON.route, L('Poti','Routes'), o.rb.onclick, true); btn(ICON.pano, '360°', o.vb.onclick); a.lastChild.classList.add('p360');   // p360: the guide's 360 step points at it
   if (plan) btn(I('🗓'), L('V načrt','Plan'), plan.onclick);
-  if (camN) btn(ICON.cam, `${L('Kamere','Webcams')} · ${camN}`, () => { const c = box.querySelector('.v2cams'); if (c) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
+  if (camN) btn(ICON.cam, `${L('Kamere','Webcams')} · ${camN}`, () => { const c = box.querySelector('.v2cams'), md = box.querySelector('.v2more'); if (md) md.open = true; if (c) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   box.append(a);
   if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
   { const sb = $('snow'), cm = window.snowAt && sb && sb.checked ? snowAt(p.lat, p.lon) : null;   // snow on the summit (snow layer on)
     if (cm != null){ const d = document.createElement('div'); d.className = 'v2snow'; d.textContent = `❄ ${L('Sneg','Snow')} (${L('model','model')}, ${snowDay()}): ~${cm} cm`; box.append(d); } }
-  for (const n of rest) if (n !== wish && n !== plan && n !== cams && !n.classList.contains('pbtns')) box.append(n);   // visited, visit info, weather, GPS, admin
+  // phone: only the "climbed" switch stays open; visit details, weather, GPS, admin, webcams and the LiDAR line fold under "Več"
+  const ph = window.PHONE_UI && PHONE_UI(), more = ph ? document.createElement('details') : null, tgt = more || box;
+  if (more){ more.className = 'v2more'; more.innerHTML = `<summary>${L('Več', 'More')} <small>${L('vreme, obisk, GPS', 'weather, visit, GPS')}${camN ? L(', kamere', ', webcams') : ''}</small></summary>`;
+    const cb = o.lab.querySelector('input'); if (cb) cb.addEventListener('change', () => { if (cb.checked) more.open = true; }); }
+  for (const n of rest) if (n !== wish && n !== plan && n !== cams && !n.classList.contains('pbtns')) (n === o.lab ? box : tgt).append(n);   // visited, visit info, weather, GPS, admin
+  if (more) box.append(more);
   if (cams){ const c2 = document.createElement('div'); c2.className = 'v2cams';
     cams.querySelectorAll('a').forEach(a0 => { const sm = a0.nextElementSibling, ch = document.createElement('button');
       ch.innerHTML = ICON.cam + `<span>${a0.textContent.replace(/[<>&]/g, '')}</span>` + (sm ? `<small>${sm.textContent}</small>` : ''); ch.onclick = a0.onclick; c2.append(ch); });
-    box.append(c2); }
+    tgt.append(c2); }
   const meta = document.createElement('div'); meta.className = 'v2meta';
   meta.textContent = [p.dem_h != null ? `LiDAR ${p.dem_h.toFixed(1)} m` : '', p.coord_status !== 'ok' ? L('približna lega (±150 m)','approximate position (±150 m)') : ''].filter(Boolean).join(' · ');
-  if (meta.textContent) box.append(meta); };
+  if (meta.textContent) tgt.append(meta); };
 
 // ---------- free part of the map on a computer: right of the rail and the open left panel ----------
 window.v2Free = () => { const r = $('v2rail'), pn = document.querySelector('.panel'), dr = $('drawer');
@@ -235,6 +240,43 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
 { const v = $('v360'), ex = $('v360exit');
   if (v && ex){ ex.classList.add('v2x'); ex.setAttribute('aria-label', L('Zapri razgled','Close view')); ex.title = L('Zapri razgled','Close view');
     ex.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>'; v.append(ex); } }
+// ---------- floating windows step aside: never under the search bar (computer) or Markacija's bar (phone: above it upright,
+// left of it sideways). Planner, routes, drawing, sharing. ----------
+{ const CARDS = ['plCard', 'rcard', 'dcard', 'shCard'], shown = e => e && e.offsetWidth > 0 && getComputedStyle(e).display !== 'none';
+  const setP = (c, p, v) => { c.style.setProperty(p, v, 'important'); c.dataset.dg = ((c.dataset.dg || '') + ' ' + p).trim(); };
+  const clr = c => { for (const p of (c.dataset.dg || '').split(' ').filter(Boolean)) c.style.removeProperty(p); delete c.dataset.dg; };
+  const dodge = () => { const s = $('v2s'), d = $('mkdock'), W = innerWidth, H = innerHeight;
+    const sr = shown(s) && !B.classList.contains('v2hide') ? s.getBoundingClientRect() : null, dr = shown(d) ? d.getBoundingClientRect() : null;
+    for (const id of CARDS){ const c = $(id); if (!shown(c)) continue;
+      if (PH()){ let bot = null, rt = null;
+        if (dr && dr.width > dr.height) bot = Math.round(H - dr.top + 8); else if (dr) rt = Math.round(W - dr.left + 8);
+        const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '');
+        if (c.dataset.dgs === sig && c.style.getPropertyValue('max-height')) continue;   // (the card's own code may have cleared our styles) clr(c); c.dataset.dgs = sig;
+        if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
+        if (rt != null) setP(c, 'right', rt + 'px');
+        const top = sr ? sr.bottom + 8 : 8; setP(c, 'max-height', Math.max(160, H - (bot || 0) - top) + 'px'); }
+      else { if (c.dataset.dg){ clr(c); delete c.dataset.dgs; } if (!sr) continue;
+        const r = c.getBoundingClientRect();
+        if (r.left < sr.right && sr.left < r.right && r.top < sr.bottom + 6 && r.bottom > sr.top){ c.style.top = Math.round(sr.bottom + 10) + 'px'; c.style.bottom = 'auto';
+          c.style.maxHeight = Math.round(H - sr.bottom - 22) + 'px'; } } } };
+  setInterval(dodge, 300); addEventListener('resize', () => { CARDS.forEach(id => { const c = $(id); if (c) delete c.dataset.dgs; }); setTimeout(dodge, 60); }); }
+
+// ---------- phone: the peak window is a compact sheet (bottom upright, left side sideways); the peak moves into the free
+// part of the map; weather, visit details, GPS, admin fold under "Več"; swipe its header down to close ----------
+{ const LS = () => matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches;
+  const fit = () => { if (!PH() || typeof popup === 'undefined' || !popup || !popup.getElement) return; const el = popup.getElement(); if (!el || !el.querySelector('.v2p')) return;
+    el.classList.add('v2sh');
+    const go = () => { const r = el.getBoundingClientRect(), ll = popup.getLngLat(); if (!ll) return; const pt = map.project(ll), s = $('v2s'), d = $('mkdock');
+      let tx, ty;
+      if (LS()){ const R = d && d.offsetWidth ? d.getBoundingClientRect().left : innerWidth; tx = (r.right + R) / 2; ty = innerHeight / 2; }
+      else { const T = s && s.offsetWidth ? s.getBoundingClientRect().bottom : 0; tx = innerWidth / 2; ty = (T + r.top) / 2; }
+      if (Math.hypot(pt.x - tx, pt.y - ty) > 30) map.panBy([pt.x - tx, pt.y - ty], {duration: 350}); };
+    if (map.isMoving()) map.once('moveend', () => setTimeout(go, 30)); else setTimeout(go, 30);
+    const hd = el.querySelector('.v2h'); if (hd && !hd.dataset.sw){ hd.dataset.sw = 1; let y0 = null;
+      hd.addEventListener('pointerdown', e => { y0 = e.clientY; }); hd.addEventListener('pointerup', e => { if (y0 != null && e.clientY - y0 > 50 && popup) popup.remove(); y0 = null; }); } };
+  new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.classList && n.classList.contains('maplibregl-popup')) setTimeout(fit, 0); })
+    .observe(map.getContainer(), {childList: true}); }
+
 if (window.fabFace) fabFace();
 })();
 
@@ -346,6 +388,27 @@ html.v2 #v360 .vh{bottom:calc(150px + env(safe-area-inset-bottom));text-shadow:0
 html.v2 #v360cmp{position:absolute;left:0;right:0;top:calc(72px + env(safe-area-inset-top));height:24px;border-bottom:1px solid rgba(255,255,255,.7);pointer-events:none}
 html.v2 #v360cmp b{position:absolute;bottom:4px;transform:translateX(-50%);font:600 12px Inter,system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
 html.v2 #v360cmp i{position:absolute;bottom:0;width:1px;height:6px;background:rgba(255,255,255,.75)}
+
+/* phone: the peak window as a compact sheet */
+${PHq}{
+  html.v2 .maplibregl-popup.v2sh{transform:none!important;position:fixed!important;left:8px!important;right:8px!important;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;max-width:none!important;margin:0!important;z-index:14}
+  html.v2 .maplibregl-popup.v2sh .maplibregl-popup-tip{display:none}
+  html.v2 .maplibregl-popup.v2sh .maplibregl-popup-content{max-height:min(52dvh,430px);overflow-y:auto;overscroll-behavior:contain;border-radius:20px!important;padding:16px 14px 12px!important}
+  html.v2 .maplibregl-popup.v2sh .v2h{touch-action:none;position:relative;padding-top:6px}
+  html.v2 .maplibregl-popup.v2sh .v2h::before{content:"";position:absolute;left:50%;top:-8px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:rgba(127,127,127,.35)}
+  html.v2 .maplibregl-popup.v2sh .v2n span:first-child{font-size:22px!important}
+  html.v2 .maplibregl-popup.v2sh .v2act button{padding:8px 4px!important}
+  html.v2 .v2more{margin-top:8px;border-top:1px solid var(--line)}
+  html.v2 .v2more>summary{cursor:pointer;padding:10px 2px 4px;font-weight:600;list-style:none;display:flex;align-items:baseline;gap:6px}
+  html.v2 .v2more>summary::-webkit-details-marker{display:none}html.v2 .v2more>summary::after{content:"▾";margin-left:auto;color:var(--mute)}
+  html.v2 .v2more[open]>summary::after{content:"▴"}html.v2 .v2more>summary small{color:var(--mute);font-weight:400;font-size:.85em}
+}
+@media (max-height:500px) and (pointer:coarse) and (orientation:landscape){
+  html.v2 .maplibregl-popup.v2sh{right:auto!important;width:min(370px,48vw);top:calc(8px + env(safe-area-inset-top))!important;bottom:calc(8px + env(safe-area-inset-bottom))!important;left:calc(8px + env(safe-area-inset-left))!important}
+  html.v2 .maplibregl-popup.v2sh .maplibregl-popup-content{max-height:100%;height:auto;box-sizing:border-box}
+  html.v2 .maplibregl-popup.v2sh{display:flex;flex-direction:column;justify-content:flex-start}
+  html.v2 body.pop #v2s{display:none}
+}
 
 /* phone held sideways */
 @media (max-height:500px) and (pointer:coarse) and (orientation:landscape){
