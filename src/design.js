@@ -260,7 +260,10 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
         if (K){ setP(c, 'top', 'calc(8px + env(safe-area-inset-top))'); setP(c, 'bottom', 'auto'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); setP(c, 'max-height', (H - 16) + 'px'); continue; }
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
-        const top = sr ? sr.bottom + 8 : 8; setP(c, 'max-height', Math.max(160, H - (bot || 0) - top) + 'px'); }
+        const top = sr ? sr.bottom + 8 : 8; let mh = Math.max(160, H - (bot || 0) - top);
+        // summit routes upright: at most ~half the screen (it scrolls inside), so the routes stay visible on the map above it
+        if (id === 'rcard' && bot != null) mh = Math.min(mh, Math.max(220, Math.round(mh * 0.55)));
+        setP(c, 'max-height', mh + 'px'); }
       else { if (c.dataset.dg){ clr(c); delete c.dataset.dgs; } if (!sr) continue;
         const r = c.getBoundingClientRect();
         if (r.left < sr.right && sr.left < r.right && r.top < sr.bottom + 6 && r.bottom > sr.top){ c.style.top = Math.round(sr.bottom + 10) + 'px'; c.style.bottom = 'auto';

@@ -3200,6 +3200,13 @@ addEventListener('resize', ()=>{ if (S.on){ fitFov(); schedule(); } });
 function fitFov(){ const c=map.getContainer(); const portrait=c.clientHeight>c.clientWidth;
   S.fov=clamp((portrait?46:34)*S.zoomK, 12, 75); if (map.setVerticalFieldOfView) map.setVerticalFieldOfView(S.fov); }
 function zoomBy(f){ S.zoomK=clamp(S.zoomK*f, 0.3, 1.6); fitFov(); schedule(); }
+// Zoom in 360 = narrower view. MapLibre's tile detail got WORSE with a narrower view: the map zoom is at its limit (24) there,
+// and its pitch rule (tiles towards the horizon coarser) gets much stronger as the view narrows (-3 levels at 12 km, Srednja).
+// Now tiles are picked as for the normal wide view, plus log2(1/zoomK) levels for the magnification
+// (2× zoom -> 1 level finer; the narrower view needs about as many tiles as before). Satellite + terrain.
+function zoomLod(){ for (const id of ['sat','dem_terrain']){ try{ const src = map.getSource(id); if (!src || !src.calculateTileZoom || src.calculateTileZoom.v360) continue;
+  const f = src.calculateTileZoom, g = (z, d2, dz, dc, fov) => S.on && S.zoomK ? f(z, d2, dz, dc, clamp(fov / S.zoomK, 12, 75)) - 0.6 * Math.log2(S.zoomK) : f(z, d2, dz, dc, fov);
+  g.v360 = 1; src.calculateTileZoom = g; }catch(_){} } }
 function setAuto(on, warm){
   S.auto = on; $$('v360auto').classList.toggle('on', on && !warm); cancelAnimationFrame(S.raf);
   // warm = one quick full turn right after arriving: every direction gets its tiles loaded once,
@@ -3327,6 +3334,7 @@ function applyQuality(){ const q=Q[qi]; { const ss = S.on && map.getSource('sat'
   setPR(Math.min(devicePixelRatio, movingPR?Math.min(qi===2?Q[1].pr:1,q.pr):q.pr));
   const L = S.on && !S.full ? COARSE : q;   // first pass: coarse tiles everywhere
   try{ map.setSourceTileLodParams(L.sat[0], L.sat[1], 'sat'); map.setSourceTileLodParams(L.dem[0], L.dem[1], 'dem_terrain'); }catch(_){}
+  if (S.on) zoomLod();
   $$('v360q').querySelectorAll('button').forEach((b,i)=>b.classList.toggle('on',i===qi)); }
 $$('v360q').innerHTML=(window.LITE_ON?Q.slice(0,1):Q).map((q,i)=>`<button data-i="${i}">${q.n}${window.LITE_ON?' (varčno)':''}</button>`).join('');
 $$('v360q').onclick = e => { const b=e.target.closest('button'); if(!b) return; qi=+b.dataset.i;
@@ -6120,7 +6128,10 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
         if (K){ setP(c, 'top', 'calc(8px + env(safe-area-inset-top))'); setP(c, 'bottom', 'auto'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); setP(c, 'max-height', (H - 16) + 'px'); continue; }
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
-        const top = sr ? sr.bottom + 8 : 8; setP(c, 'max-height', Math.max(160, H - (bot || 0) - top) + 'px'); }
+        const top = sr ? sr.bottom + 8 : 8; let mh = Math.max(160, H - (bot || 0) - top);
+        // summit routes upright: at most ~half the screen (it scrolls inside), so the routes stay visible on the map above it
+        if (id === 'rcard' && bot != null) mh = Math.min(mh, Math.max(220, Math.round(mh * 0.55)));
+        setP(c, 'max-height', mh + 'px'); }
       else { if (c.dataset.dg){ clr(c); delete c.dataset.dgs; } if (!sr) continue;
         const r = c.getBoundingClientRect();
         if (r.left < sr.right && sr.left < r.right && r.top < sr.bottom + 6 && r.bottom > sr.top){ c.style.top = Math.round(sr.bottom + 10) + 'px'; c.style.bottom = 'auto';

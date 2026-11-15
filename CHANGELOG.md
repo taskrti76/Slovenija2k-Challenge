@@ -2,6 +2,12 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.86 — 2026-11-15
+- 360: zooming in now gets sharper instead of blurrier. The map zoom is at its limit in 360, and MapLibre's pitch rule made
+  tiles towards the horizon coarser the narrower the view (-3 levels at 12 km). Tiles are now picked as for the normal
+  view plus ~0.6 level per 2× zoom (satellite + terrain); zooming out stays as before minus the same.
+- Phone: the summit routes window takes at most ~half of the free space (scrolls inside), the map with the routes stays visible above it.
+
 ## web-v0.85 — 2026-11-15
 - Admin: "❄ Sneg · admin" panel on the snow map (admin only, draggable) with live sliders: snow line shift (±800 m), depth ×,
   slope where snow starts to thin / is nearly gone, aspect (sunny/shady) strength, satellite influence, min depth drawn.
