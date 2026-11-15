@@ -1059,7 +1059,16 @@ function applyFixes(F, first){ const old = window.FIXES; window.FIXES = F; F.poi
   window.DATA_FIX.closedIds = ids;
   if (!first || Object.keys(F.peak).length) window.refreshPeaksMap && window.refreshPeaksMap();
   if (!first && (ids.size !== (was ? was.size : 0) || [...ids].some(x => !was.has(x)) || JSON.stringify(old.route) !== JSON.stringify(F.route))) window.trailsFixesChanged && trailsFixesChanged(); }
-function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; for (const r of rows || []) if (F[r.kind]) F[r.kind][r.key] = Object.assign({}, r.data, {_at: r.updated_at}); return F; }
+// a broken fix (empty / non-numeric position, line with gaps) is cleaned or left out, so one bad entry can't break the map for everyone;
+// ?nofix=1 on the address shows the page without any fixes (to check whether a fix causes a problem)
+const NOFIX = /[?&]nofix=1/.test(location.search), fin = v => v != null && v !== '' && Number.isFinite(+v);
+function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; if (NOFIX) return F;
+  for (const r of rows || []){ if (!F[r.kind] || !r.key) continue; const d = Object.assign({}, r.data, {_at: r.updated_at});
+    if (r.kind === 'peak' || r.kind === 'poi'){ if (!fin(d.lat) || !fin(d.lon)){ if (r.kind === 'poi' && String(r.key).startsWith('new|')) continue; delete d.lat; delete d.lon; } if (d.elev != null && !fin(d.elev)) delete d.elev; }
+    if (r.kind === 'route' && Array.isArray(d.geom)){ d.geom = d.geom.filter(q => Array.isArray(q) && fin(q[0]) && fin(q[1])); if (d.geom.length < 2) delete d.geom; }
+    if (r.kind === 'closed' && !fin(r.key)) continue;
+    F[r.kind][r.key] = d; }
+  return F; }
 { const c = get(FXK); if (c) applyFixes(fixesFrom(c), true); }
 async function loadFixes(){ try{ const rows = await call('/rest/v1/fixes?select=kind,key,data,updated_at&limit=5000', {auth: false}); put(FXK, rows); applyFixes(fixesFrom(rows)); }catch(_){} }   // 08 not run yet -> nothing
 setTimeout(loadFixes, 1200);

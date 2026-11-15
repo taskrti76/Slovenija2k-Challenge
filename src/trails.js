@@ -610,7 +610,8 @@ let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=fa
 // via ferratas - renamed, moved, hidden, or new ones; OSM data is kept in BASE, the fixes are laid over it
 const BASE={pf:null,HUTS:null,STARTS:null,SPRINGS:null,ff:null};
 const POIT={hut:'hut',biv:'biv',sh:'biv',park:'park',th:'th',spring:'spring'};
-function poiApply(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+function poiApply(){ try{ poiApply0(); }catch(e){ console.warn('poi fixes',e); } }
+function poiApply0(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
   const mv=(o,x)=>x&&x.lat!=null&&x.lon!=null?{lat:+x.lat,lon:+x.lon}:{};
   const news=Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.lat!=null&&!hid(x));
   if(BASE.pf){
@@ -898,7 +899,9 @@ window.peakRoutesUI = async function(id){
   const p=byId[id]; if(!p) return; if(popup) popup.remove(); window.gpsHint&&gpsHint();
   const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
   if(!inG(p.lat,p.lon,0.17)){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
-    if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }
+    // trails still loading: carry on by itself once they are there (the card used to stay at "Pripravljam …")
+    if(!GRAPHSRC){ if(!loading) loadData(); c.dataset.pk=id; const t=setInterval(()=>{ if(!GRAPHSRC) return; clearInterval(t); if(c.style.display!=='none'&&c.dataset.pk===id) window.peakRoutesUI(id); },700); setTimeout(()=>clearInterval(t),180000); return; }
+    await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }
   // an extra (relation) route must end in the valley: at a parking, or at a hut ≥3 km away - never on another peak
   // every route starts at a parking/trailhead (≤300 m); relation routes that end elsewhere (also at a hut) are continued to the nearest parking
   const nearStart=(la,lo)=>{ let b=null,bd=300; for(const x of STARTS){ const d=hav(x.lat,x.lon,la,lo); if(d<bd){ bd=d; b={...x}; } } for(const h of HUTS){ const d=hav(h.lat,h.lon,la,lo); if(d<bd){ bd=d; b={name:h.name,lat:h.lat,lon:h.lon,kind:'hut'}; } } return b; };

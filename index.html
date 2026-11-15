@@ -2122,7 +2122,8 @@ let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=fa
 // via ferratas - renamed, moved, hidden, or new ones; OSM data is kept in BASE, the fixes are laid over it
 const BASE={pf:null,HUTS:null,STARTS:null,SPRINGS:null,ff:null};
 const POIT={hut:'hut',biv:'biv',sh:'biv',park:'park',th:'th',spring:'spring'};
-function poiApply(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+function poiApply(){ try{ poiApply0(); }catch(e){ console.warn('poi fixes',e); } }
+function poiApply0(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
   const mv=(o,x)=>x&&x.lat!=null&&x.lon!=null?{lat:+x.lat,lon:+x.lon}:{};
   const news=Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.lat!=null&&!hid(x));
   if(BASE.pf){
@@ -2410,7 +2411,9 @@ window.peakRoutesUI = async function(id){
   const p=byId[id]; if(!p) return; if(popup) popup.remove(); window.gpsHint&&gpsHint();
   const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
   if(!inG(p.lat,p.lon,0.17)){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
-    if(!GRAPHSRC){ if(!loading) loadData(); return; } await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }
+    // trails still loading: carry on by itself once they are there (the card used to stay at "Pripravljam …")
+    if(!GRAPHSRC){ if(!loading) loadData(); c.dataset.pk=id; const t=setInterval(()=>{ if(!GRAPHSRC) return; clearInterval(t); if(c.style.display!=='none'&&c.dataset.pk===id) window.peakRoutesUI(id); },700); setTimeout(()=>clearInterval(t),180000); return; }
+    await ensureGraph(p.lat,p.lon,0.17); if(!G) return; }
   // an extra (relation) route must end in the valley: at a parking, or at a hut ≥3 km away - never on another peak
   // every route starts at a parking/trailhead (≤300 m); relation routes that end elsewhere (also at a hut) are continued to the nearest parking
   const nearStart=(la,lo)=>{ let b=null,bd=300; for(const x of STARTS){ const d=hav(x.lat,x.lon,la,lo); if(d<bd){ bd=d; b={...x}; } } for(const h of HUTS){ const d=hav(h.lat,h.lon,la,lo); if(d<bd){ bd=d; b={name:h.name,lat:h.lat,lon:h.lon,kind:'hut'}; } } return b; };
@@ -5335,7 +5338,16 @@ function applyFixes(F, first){ const old = window.FIXES; window.FIXES = F; F.poi
   window.DATA_FIX.closedIds = ids;
   if (!first || Object.keys(F.peak).length) window.refreshPeaksMap && window.refreshPeaksMap();
   if (!first && (ids.size !== (was ? was.size : 0) || [...ids].some(x => !was.has(x)) || JSON.stringify(old.route) !== JSON.stringify(F.route))) window.trailsFixesChanged && trailsFixesChanged(); }
-function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; for (const r of rows || []) if (F[r.kind]) F[r.kind][r.key] = Object.assign({}, r.data, {_at: r.updated_at}); return F; }
+// a broken fix (empty / non-numeric position, line with gaps) is cleaned or left out, so one bad entry can't break the map for everyone;
+// ?nofix=1 on the address shows the page without any fixes (to check whether a fix causes a problem)
+const NOFIX = /[?&]nofix=1/.test(location.search), fin = v => v != null && v !== '' && Number.isFinite(+v);
+function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; if (NOFIX) return F;
+  for (const r of rows || []){ if (!F[r.kind] || !r.key) continue; const d = Object.assign({}, r.data, {_at: r.updated_at});
+    if (r.kind === 'peak' || r.kind === 'poi'){ if (!fin(d.lat) || !fin(d.lon)){ if (r.kind === 'poi' && String(r.key).startsWith('new|')) continue; delete d.lat; delete d.lon; } if (d.elev != null && !fin(d.elev)) delete d.elev; }
+    if (r.kind === 'route' && Array.isArray(d.geom)){ d.geom = d.geom.filter(q => Array.isArray(q) && fin(q[0]) && fin(q[1])); if (d.geom.length < 2) delete d.geom; }
+    if (r.kind === 'closed' && !fin(r.key)) continue;
+    F[r.kind][r.key] = d; }
+  return F; }
 { const c = get(FXK); if (c) applyFixes(fixesFrom(c), true); }
 async function loadFixes(){ try{ const rows = await call('/rest/v1/fixes?select=kind,key,data,updated_at&limit=5000', {auth: false}); put(FXK, rows); applyFixes(fixesFrom(rows)); }catch(_){} }   // 08 not run yet -> nothing
 setTimeout(loadFixes, 1200);

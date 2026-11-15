@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.83 — 2026-11-15
+- Admin fixes are checked before they are used: a fix with an empty / wrong position or a broken line is cleaned or left out,
+  so one bad entry can't take huts, parkings or routes away for everybody. ?nofix=1 on the address shows the page without
+  any fixes (to see whether a fix causes a problem).
+- Routes asked for while trails are still loading: the window no longer stays at "Pripravljam omrežje poti …" - it carries
+  on by itself once the trails are there.
+
 ## web-v0.82 — 2026-11-15
 - Trails, huts, parkings, ferratas and routes no longer go missing when the trails pack can't be fetched: the page then uses the
   copy saved earlier, and a new version keeps the old copy of any file it could not download while installing (weak signal).
