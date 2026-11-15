@@ -611,7 +611,11 @@ let G=null, STARTS=[], HUTS=[], PLACES=[], SPRINGS=[], REL=new Map(), loading=fa
 const BASE={pf:null,HUTS:null,STARTS:null,SPRINGS:null,ff:null};
 const POIT={hut:'hut',biv:'biv',sh:'biv',park:'park',th:'th',spring:'spring'};
 function poiApply(){ try{ poiApply0(); }catch(e){ console.warn('poi fixes',e); } }
-function poiApply0(){ PLI=null; const F=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+function poiApply0(){ PLI=null; const F0=(window.FIXES&&window.FIXES.poi)||{}, A=!!window.ADMIN, hid=x=>x&&x.hide&&!A;
+  // fixes saved with the old broken key (…undefined): given to the one point nearest to the position saved with the fix
+  const F={}; for(const [k,x] of Object.entries(F0)){ if(!/undefined/.test(k)){ F[k]=x; continue; } if(!BASE.pf||x.lat==null) continue;
+    let best=null,bd=150; for(const f of BASE.pf){ const c=f.geometry.coordinates, d=hav(+x.lat,+x.lon,c[1],c[0]); if(d<bd){ bd=d; best=f.properties.key; } }
+    if(best&&!F0[best]) F[best]=x; }
   const mv=(o,x)=>x&&x.lat!=null&&x.lon!=null?{lat:+x.lat,lon:+x.lon}:{};
   const news=Object.entries(F).filter(([k,x])=>k.startsWith('new|')&&x.lat!=null&&!hid(x));
   if(BASE.pf){
@@ -856,7 +860,9 @@ async function build(poi,tr,src){
     if(t.tourism==='alpine_hut') k='hut'; else if(t.tourism==='wilderness_hut'||t.amenity==='shelter') k='biv';
     else if(t.amenity==='parking') k='park'; else if(t.highway==='trailhead') k='th'; else if(t.natural==='spring') k='spring';
     if(!k) continue;
-    const id='osm|'+(e.type||'n')[0]+e.id;
+    // the point's key for admin fixes: its position (the trails pack keeps no OSM ids - every point used to get the same key
+    // "osm|nundefined", so one hut fix moved ALL huts, parkings and springs to that hut)
+    const id='poi|'+la.toFixed(5)+','+lo.toFixed(5);
     if(k==='park'||k==='th'){ if(t.access==='private') continue; STARTS.push({node:-1,name:t.name||'',lat:la,lon:lo,kind:k,id}); }
     if(k==='spring') SPRINGS.push({lat:la,lon:lo,id});
     if(k==='hut'||k==='biv') HUTS.push({name:t.name||TNAME[k],lat:la,lon:lo,k:k==='biv'&&/^(lean_to|rock_shelter)$/.test(t.shelter_type||'')?'sh':k,id});

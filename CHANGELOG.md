@@ -2,6 +2,12 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.84 — 2026-11-15
+- Fixed: one admin edit of a hut (14 Nov, "Jamarski bivak na Dleskovški planoti") moved and renamed EVERY hut, parking and
+  spring - the trails pack keeps no OSM ids, so all points shared one key ("osm|nundefined"). Without parkings near the
+  peaks there were no routes. Points are now keyed by their position; a fix saved with the old key goes to the one point
+  nearest to where it was saved (so that edit still applies, to the bivouac only).
+
 ## web-v0.83 — 2026-11-15
 - Admin fixes are checked before they are used: a fix with an empty / wrong position or a broken line is cleaned or left out,
   so one bad entry can't take huts, parkings or routes away for everybody. ?nofix=1 on the address shows the page without
