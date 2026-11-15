@@ -679,12 +679,17 @@ function addLayers(){
   const before = map.getLayer('pk') ? 'pk' : undefined;
   const add=(l)=>{ if(!map.getLayer(l.id)) map.addLayer(l, before); };
   if(!map.getSource('trails-v')) map.addSource('trails-v',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:window.IS_PHONE?0.7:0.5,maxzoom:window.IS_PHONE?14:16,buffer:window.IS_PHONE?48:96,   /* phones: trail tiles cut only to z14 (then enlarged) - far less work + memory */attribution:'Poti, koče, ceste: © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors (ODbL)'});
+  // small ways (village streets, service roads, forest tracks) in their own source: shown only zoomed in, so the map does not
+  // cut tiles with them at lower zooms (fast moves on a phone stalled under the extra streets)
+  if(!map.getSource('trails-lo')) map.addSource('trails-lo',{type:'geojson',data:EMPTY,tolerance:window.LITE_ON?1.2:window.IS_PHONE?0.7:0.5,maxzoom:window.IS_PHONE?14:16,buffer:window.IS_PHONE?48:96});
   // roads: thick grey, width by class (h: 3 main, 2 local, 1 service)
   add({id:'tr-road-c',type:'line',source:'trails-v',minzoom:9,filter:['==',['get','k'],'r'],layout:{'line-join':'round','line-cap':'round'},
     paint:{'line-color':'rgba(255,255,255,.55)','line-width':['interpolate',['linear'],['zoom'],9,['match',['get','h'],3,2.5,2,1.6,0.8],13,['match',['get','h'],3,7,2,5.5,3.5],16,['match',['get','h'],3,12,2,9,6]]}});
   add({id:'tr-road',type:'line',source:'trails-v',minzoom:9,filter:['==',['get','k'],'r'],layout:{'line-join':'round','line-cap':'round'},
     paint:{'line-color':['match',['get','h'],3,'#5f5a54',2,'#77726b','#8e8982'],'line-width':['interpolate',['linear'],['zoom'],9,['match',['get','h'],3,1.6,2,1,0.5],13,['match',['get','h'],3,5,2,3.8,2.2],16,['match',['get','h'],3,9,2,7,4.5]]}});
-  add({id:'tr-track',type:'line',source:'trails-v',minzoom:11.5,filter:['==',['get','k'],'t'],layout:{'line-join':'round'},
+  for(const [id,c] of [['tr-road1-c','rgba(255,255,255,.55)'],['tr-road1','#8e8982']]) add({id,type:'line',source:'trails-lo',minzoom:12.5,filter:['==',['get','k'],'r'],layout:{'line-join':'round','line-cap':'round'},
+    paint:{'line-color':c,'line-width':['interpolate',['linear'],['zoom'],13,id.endsWith('-c')?3.5:2.2,16,id.endsWith('-c')?6:4.5]}});
+  add({id:'tr-track',type:'line',source:'trails-lo',minzoom:11.5,filter:['==',['get','k'],'t'],layout:{'line-join':'round'},
     paint:{'line-color':'#8a5a2b','line-width':['interpolate',['linear'],['zoom'],12,0.8,16,2],'line-dasharray':[4,2],'line-opacity':.8}});
   add({id:'tr-path',type:'line',source:'trails-v',minzoom:11,filter:['==',['get','k'],'p'],layout:{'line-join':'round'},
     paint:{'line-color':['case',['>=',['get','s'],4],'#3b1a12','#9c2a1c'],'line-width':['interpolate',['linear'],['zoom'],11,0.8,16,2.2],
@@ -716,7 +721,7 @@ function addLayers(){
     'circle-stroke-color':['case',['get','sel'],'#ffb300',['==',['get','r'],'m'],DCOL,'#ffffff'],'circle-stroke-width':2.5,'circle-pitch-alignment':'viewport'}});
   // POIs
   if(!map.getSource('poi')) map.addSource('poi',{type:'geojson',data:EMPTY});
-  if(window.LITE_ON) for(const [id,z] of [['tr-road-c',11],['tr-road',11],['tr-track',13],['tr-path',12.5],['tr-mark-c',11],['tr-mark',11],['tr-ferr',12]]) if(map.getLayer(id)) map.setLayerZoomRange(id,z,24);
+  if(window.LITE_ON) for(const [id,z] of [['tr-road-c',11],['tr-road',11],['tr-road1-c',13.5],['tr-road1',13.5],['tr-track',13],['tr-path',12.5],['tr-mark-c',11],['tr-mark',11],['tr-ferr',12]]) if(map.getLayer(id)) map.setLayerZoomRange(id,z,24);
   add({id:'poi-spring',type:'symbol',source:'poi',minzoom:13,filter:['==',['get','t'],'spring'],layout:{'icon-image':'i-spring','icon-size':.55,'icon-allow-overlap':true}});
   add({id:'poi-park',type:'symbol',source:'poi',minzoom:11,filter:['any',['==',['get','t'],'park'],['==',['get','t'],'th']],
     layout:{'icon-image':['concat','i-',['get','t']],'icon-size':.6,'icon-allow-overlap':['step',['zoom'],false,13,true]}});
@@ -759,7 +764,10 @@ async function loadData(force){
     status(ext&&b64.length<=100?'Nalagam podatke o poteh …':'Nalagam vgrajene podatke …');
     try{ let buf;
       if(b64.length>100) buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)).buffer;
-      else { const r=await fetch(ext); if(!r.ok) throw new Error('HTTP '+r.status); buf=await r.arrayBuffer(); } // a server may already have un-gzipped it -> handled below
+      else { let r=null; try{ r=await fetch(ext); }catch(_){}
+        // no answer (no signal, page not under the service worker yet): the copy saved earlier
+        if((!r||!r.ok)&&window.caches){ const h=await caches.match(new URL(ext,location.href).href,{ignoreSearch:true}); if(h) r=h; }
+        if(!r||!r.ok) throw new Error('HTTP '+(r?r.status:'-')); buf=await r.arrayBuffer(); } // a server may already have un-gzipped it -> handled below
       const u8=new Uint8Array(buf,0,2), d=decodePack(u8[0]===0x1f&&u8[1]===0x8b?await gunzipJSON(buf):JSON.parse(new TextDecoder().decode(buf)));
       poi=d.poi; tr=d.trails; src=(b64.length>100?'vgrajeno':'paket')+', OSM '+d.date.slice(0,10); (d.rb||[]).forEach(i=>ROAD_DONE.add(i)); if(d.ext){ EXT_DONE=true; ROAD_BOXES.forEach((_,i)=>ROAD_DONE.add(i)); } }catch(e){ console.warn('pack',e); }
   }
@@ -767,7 +775,8 @@ async function loadData(force){
     status('Nalagam poti in koče iz OSM (prvič ~10–40 s) …');
     [poi,tr]=await Promise.all([overpass(Q_POI,'poi_v1',force), overpass(Q_TRAILS,'trails_v1',force)]);
   }
-  if(!poi||!tr){ status('OSM ni dosegljiv — poskusi kasneje (Osveži).'); loading=false; return; }
+  if(!poi||!tr){ status('OSM ni dosegljiv — poskusim znova, ko bo povezava.'); loading=false;   // try again by itself (signal back / in 30 s)
+    addEventListener('online',()=>loadData(),{once:true}); setTimeout(()=>{ if(!window.__osmRaw) loadData(); },30000); return; }
   window.__osmRaw={poi,tr};
   await build(poi,tr,src);
   loading=false;
@@ -801,12 +810,12 @@ async function build(poi,tr,src){
   const ways=tr.elements.filter(e=>e.type==='way');
   G=null; GRAPHSRC={ways,marked}; GBUILD=null; // routing network is built lazily on first use (keeps page load fast on phones)
   // trails layer
-  const feats=[];
+  const feats=[], lo=[];
   for(const w of ways){ const g=(w.geometry||[]).filter(Boolean); if(g.length<2) continue; const t=w.tags||{}, k=wayKind(t,marked.has(w.id));
     if(t.highway==='footway'&&k!=='m') continue; // urban footways: graph only
     const h=k!=='r'?0:/^(trunk|primary|secondary|tertiary)/.test(t.highway)?3:/^(service|residential|living_street)$/.test(t.highway)?1:2;
-    feats.push({type:'Feature',properties:{k,h,s:SACN[t.sac_scale]||0,v:/^(bad|horrible|no)$/.test(t.trail_visibility||'')?1:0},geometry:{type:'LineString',coordinates:g.map(p=>[p.lon,p.lat])}}); }
-  map.getSource('trails-v').setData({type:'FeatureCollection',features:feats});
+    (k==='t'||(k==='r'&&h===1)?lo:feats).push({type:'Feature',properties:{k,h,s:SACN[t.sac_scale]||0,v:/^(bad|horrible|no)$/.test(t.trail_visibility||'')?1:0},geometry:{type:'LineString',coordinates:g.map(p=>[p.lon,p.lat])}}); }
+  map.getSource('trails-v').setData({type:'FeatureCollection',features:feats}); map.getSource('trails-lo').setData({type:'FeatureCollection',features:lo});
   // via ferrata signs: one per named ferrata (way name, else its hiking route), with difficulty (OSM via_ferrata_scale 1-6 = A-F) and SAC grade
   { const FG={}, VF='ABCDEF';
     // OSM via_ferrata_scale is written many ways ("3", "2+", "2-3", "1.5", "C", "B/C"): numbers 1-6 -> A-F, x.5 -> X/Y
@@ -1286,7 +1295,7 @@ map.on('load',()=>{
   loadData().catch(e=>{ console.error(e); toastErr('poti: '+e.message); loading=false; });
 });
 map.on('click',drawClick);
-el('trv').onchange=e=>['tr-road-c','tr-road','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr'].forEach(id=>vis(id,e.target.checked));
+el('trv').onchange=e=>['tr-road-c','tr-road','tr-road1-c','tr-road1','tr-track','tr-path','tr-mark-c','tr-mark','tr-ferr'].forEach(id=>vis(id,e.target.checked));
 el('huts').onchange=e=>['poi-hut','poi-spring'].forEach(id=>vis(id,e.target.checked));
 el('parks').onchange=e=>vis('poi-park',e.target.checked);
 el('ferrs').onchange=e=>vis('ferr-sign',e.target.checked);

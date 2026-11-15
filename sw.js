@@ -1,7 +1,7 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
 // - map tiles cached as you view them (LRU-trimmed); saved offline areas live in their own caches "dvat-reg-<id>" (extras.js)
-const VER = '174c0836cb';
+const VER = 'a256d42bc2';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
@@ -14,7 +14,11 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('dvat-shell-') && k !== SHELL).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  // a file the new version could not fetch while installing (weak signal: e.g. the 4-5 MB trails pack) is kept from the old copy,
+  // so the app never ends up without trails, huts and routes
+  e.waitUntil((async () => { const ks = (await caches.keys()).filter(k => k.startsWith('dvat-shell-') && k !== SHELL), nc = await caches.open(SHELL);
+    for (const k of ks){ try{ const oc = await caches.open(k); for (const r of await oc.keys()) if (!(await nc.match(r))){ const h = await oc.match(r); if (h) await nc.put(r, h); } }catch(_){} }
+    await Promise.all(ks.map(k => caches.delete(k))); await self.clients.claim(); })());
 });
 const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|tiles\.openfreemap\.org\/(fonts|planet)\//.test(u);
 // Esri satellite comes from two hosts (server. / services.arcgisonline.com - twice the parallel downloads); cached under one name

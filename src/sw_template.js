@@ -14,7 +14,11 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('dvat-shell-') && k !== SHELL).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  // a file the new version could not fetch while installing (weak signal: e.g. the 4-5 MB trails pack) is kept from the old copy,
+  // so the app never ends up without trails, huts and routes
+  e.waitUntil((async () => { const ks = (await caches.keys()).filter(k => k.startsWith('dvat-shell-') && k !== SHELL), nc = await caches.open(SHELL);
+    for (const k of ks){ try{ const oc = await caches.open(k); for (const r of await oc.keys()) if (!(await nc.match(r))){ const h = await oc.match(r); if (h) await nc.put(r, h); } }catch(_){} }
+    await Promise.all(ks.map(k => caches.delete(k))); await self.clients.claim(); })());
 });
 const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|tiles\.openfreemap\.org\/(fonts|planet)\//.test(u);
 // Esri satellite comes from two hosts (server. / services.arcgisonline.com - twice the parallel downloads); cached under one name

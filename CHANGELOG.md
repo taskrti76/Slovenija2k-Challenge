@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.82 — 2026-11-15
+- Trails, huts, parkings, ferratas and routes no longer go missing when the trails pack can't be fetched: the page then uses the
+  copy saved earlier, and a new version keeps the old copy of any file it could not download while installing (weak signal).
+  If nothing works it tries again by itself when the signal is back (and after 30 s).
+- Smoother map on the phone: village streets, service roads and forest tracks have their own layer that is only prepared
+  from zoom 12.5 (tracks 11.5) - the map no longer cuts all of them into tiles when zoomed out (fast moves stalled).
+
 ## web-v0.81 — 2026-11-13
 - App without signal: when the site can't be loaded, the app starts from the copy it saved last time (page, MapLibre, data,
   map tiles and downloaded areas) instead of the "Prvi zagon potrebuje internet" screen - that screen now only shows on the
