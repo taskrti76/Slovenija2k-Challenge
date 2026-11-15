@@ -2,6 +2,10 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.87 — 2026-11-16
+- 360: tile detail one level coarser while turning / zooming / tilting (and while auto-turning); the selected detail ~0.4 s
+  after you stop.
+
 ## web-v0.86 — 2026-11-15
 - 360: zooming in now gets sharper instead of blurrier. The map zoom is at its limit in 360, and MapLibre's pitch rule made
   tiles towards the horizon coarser the narrower the view (-3 levels at 12 km). Tiles are now picked as for the normal

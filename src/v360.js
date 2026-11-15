@@ -155,7 +155,7 @@ function zoomBy(f){ S.zoomK=clamp(S.zoomK*f, 0.3, 1.6); fitFov(); schedule(); }
 // Now tiles are picked as for the normal wide view, plus log2(1/zoomK) levels for the magnification
 // (2× zoom -> 1 level finer; the narrower view needs about as many tiles as before). Satellite + terrain.
 function zoomLod(){ for (const id of ['sat','dem_terrain']){ try{ const src = map.getSource(id); if (!src || !src.calculateTileZoom || src.calculateTileZoom.v360) continue;
-  const f = src.calculateTileZoom, g = (z, d2, dz, dc, fov) => S.on && S.zoomK ? f(z, d2, dz, dc, clamp(fov / S.zoomK, 12, 75)) - 0.6 * Math.log2(S.zoomK) : f(z, d2, dz, dc, fov);
+  const f = src.calculateTileZoom, g = (z, d2, dz, dc, fov) => !S.on ? f(z, d2, dz, dc, fov) : f(z, d2, dz, dc, clamp(fov / (S.zoomK || 1), 12, 75)) - 0.6 * Math.log2(S.zoomK || 1) - (S.lodLo ? 1 : 0);
   g.v360 = 1; src.calculateTileZoom = g; }catch(_){} } }
 function setAuto(on, warm){
   S.auto = on; $$('v360auto').classList.toggle('on', on && !warm); cancelAnimationFrame(S.raf);
@@ -212,7 +212,7 @@ function enter360_(id){
 }
 window.exit360 = () => {
   if (!S.on) return; if (PF.ctl) PF.ctl.abort(); PF.key = null;
-  { const ss = map.getSource('sat'); if (ss && S.satMax) ss.maxzoom = S.satMax; } setSun(0); S.on = false; setAuto(false); stopInertia(); const P = S.prev; movingPR=false;
+  { const ss = map.getSource('sat'); if (ss && S.satMax) ss.maxzoom = S.satMax; } setSun(0); S.on = false; setAuto(false); stopInertia(); const P = S.prev; movingPR=false; S.lodLo=false; clearTimeout(lodT);
   (S.hidden||[]).forEach(id => map.getLayer(id) && map.setLayoutProperty(id,'visibility','visible'));
   if (map.setPixelRatio && S.dpr) map.setPixelRatio(S.dpr);
   try{ map.setSourceTileLodParams(9.314, 3, 'sat'); map.setSourceTileLodParams(9.314, 3, 'dem_terrain'); }catch(_){}
@@ -320,7 +320,13 @@ function rttOn(on){
 let still=0;
 // while turning: Visoka renders at Srednja's resolution (pixel ratio only - the loaded tiles stay, nothing reloads);
 // ~0.35 s after you stop it switches back to full Visoka sharpness. Varčni način: drops to 1×.
-window.__v360moving = () => { if (!S.on) return; const lo = window.LITE_ON ? 1 : (qi===2 ? Q[1].pr : 0); if (!lo) return; clearTimeout(still);
+// tile detail too: one level coarser while turning / zooming / tilting (fewer, already loaded tiles -> smooth), the selected
+// detail ~0.4 s after you stop (the finer tiles load then, the coarse ones show until they are in)
+let lodT = 0;
+function lodMoving(){ if (!S.on) return; clearTimeout(lodT);
+  if (!S.lodLo){ S.lodLo = true; try{ map._update(true); }catch(_){} }
+  lodT = setTimeout(() => { if (!S.on || S.auto) return; S.lodLo = false; try{ map._update(true); }catch(_){} }, 400); }
+window.__v360moving = () => { if (!S.on) return; lodMoving(); const lo = window.LITE_ON ? 1 : (qi===2 ? Q[1].pr : 0); if (!lo) return; clearTimeout(still);
   if (!movingPR){ movingPR=true; setPR(Math.min(devicePixelRatio, lo)); }
   still=setTimeout(()=>{ if (!S.on || S.auto) return; movingPR=false; setPR(Math.min(devicePixelRatio,Q[qi].pr)); }, 350); };
 $$('v360in').onclick = () => zoomBy(1/1.35); $$('v360out').onclick = () => zoomBy(1.35);
