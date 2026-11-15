@@ -7,7 +7,8 @@
 <script>
 // Shown when the site could not be loaded (no signal). This page lives on the site's own address (taskrti76.github.io), so it can
 // read the copy the app saved last time (page, MapLibre, data, map tiles, downloaded areas) and start the app from it.
-// Only when nothing was saved yet (the very first start) the "needs internet" message stays and the app opens once online.
+// Nothing saved yet (a brand-new install without signal): the copy of the site built into the app (tools/app_bundle.py:
+// the page with peaks, trails pack and MapLibre in one file, gzipped below). Only without that the "needs internet" message shows.
 var SITE = 'https://taskrti76.github.io/Slovenija2k-Challenge/';
 var timers = [];
 function hideSplash(){ try{ if (window.Capacitor && Capacitor.nativePromise) Capacitor.nativePromise('SplashScreen', 'hide', {}).catch(function(){}); }catch(e){} }
@@ -22,17 +23,27 @@ async function fromSaved(){
     res = (await c.match(SITE)) || (await c.match(SITE + 'index.html')) || (await c.match(SITE, {ignoreSearch: true})); }
   if (!res) return false;
   var html = await res.text(); if (html.length < 10000) return false;
+  return start(html, true); }
+async function fromBundle(){
+  var el = document.getElementById('bundle'), t = el && el.textContent.trim(); if (!t || t.length < 1000 || !window.DecompressionStream) return false;
+  var bin = atob(t), u8 = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+  var html = await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  window.DVAT_BUNDLE_DATE = el.dataset.date; return start(html, false); }
+async function start(html, saved){
+  if (saved){
   // outside files the page loads by tag (MapLibre script + style): from the saved copies too
   var urls = {}; (html.match(/(?:src|href)="https:\/\/[^"]+"/g) || []).forEach(function(m){ urls[m.replace(/^(src|href)="/, '').slice(0, -1)] = 1; });
-  for (var u in urls){ var h = await caches.match(u, {ignoreVary: true}); if (h){ var bl = URL.createObjectURL(await h.blob()); html = html.split('"' + u + '"').join('"' + bl + '"'); } }
+  for (var u in urls){ var h = await caches.match(u, {ignoreVary: true}); if (h){ var bl = URL.createObjectURL(await h.blob()); html = html.split('"' + u + '"').join('"' + bl + '"'); } } }
   // this page is not under the service worker: data and map tiles that fail on the network come from the saved copies
   var pre = '<script>(function(){var of=window.fetch.bind(window),K=function(u){return u.replace("//services.arcgisonline.com/","//server.arcgisonline.com/");};' +
     'window.fetch=function(i,o){return of(i,o).catch(function(e){var u=new URL(typeof i==="string"?i:i.url,location.href).href,same=u.indexOf(location.origin)===0;' +
-    'return caches.match(K(u),{ignoreVary:true,ignoreSearch:same}).then(function(h){if(h)return h;throw e;});});};window.DVAT_OFFLINE_START=1;})();<\/script>';
+    'if(!window.caches)throw e;return caches.match(K(u),{ignoreVary:true,ignoreSearch:same}).then(function(h){if(h)return h;throw e;});});};window.DVAT_OFFLINE_START=' + (saved ? 1 : 2) + ';})();<\/script>';
   html = html.replace(/<head[^>]*>/i, function(m){ return m + pre; });
   timers.forEach(clearInterval);
   history.replaceState(null, '', SITE);   // the page sees its usual address (same site, so this is allowed)
   document.open(); document.write(html); document.close();
   return true; }
-fromSaved().then(function(ok){ if (!ok) firstStart(); }).catch(function(){ firstStart(); });
-</script></body></html>
+addEventListener('DOMContentLoaded', function(){   // (the built-in copy sits below this script)
+  fromSaved().catch(function(){ return false; }).then(function(ok){ return ok || fromBundle(); }).then(function(ok){ if (!ok) firstStart(); }).catch(function(){ firstStart(); }); });
+</script>
+<script type="text/plain" id="bundle" data-date=""></script></body></html>

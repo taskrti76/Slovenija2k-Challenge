@@ -2,6 +2,12 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## app (APK) — 2026-11-15 (with web-v0.84)
+- The app carries its own copy of the site (page, peaks, trails pack, MapLibre - tools/app_bundle.py, built by the Android
+  Action into app/www/offline.html, ~6 MB): a brand-new install with no signal starts from it (peak list, trails, huts,
+  routes, guide; the map pictures come once there is signal). With signal the app still loads the live site, and without
+  signal it prefers the newer copy it saved last time. The built-in copy is as fresh as the last APK build.
+
 ## web-v0.84 — 2026-11-15
 - Fixed: one admin edit of a hut (14 Nov, "Jamarski bivak na Dleskovški planoti") moved and renamed EVERY hut, parking and
   spring - the trails pack keeps no OSM ids, so all points shared one key ("osm|nundefined"). Without parkings near the
