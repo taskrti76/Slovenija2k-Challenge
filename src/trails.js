@@ -627,11 +627,11 @@ function poiApply0(){ PLI=null; const F0=(window.FIXES&&window.FIXES.poi)||{}, A
     const pf=BASE.pf.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x);
       return {type:'Feature',properties:{...f.properties,name:x.name||f.properties.name,t:x.t?POIT[x.t]||f.properties.t:f.properties.t,hid:x.hide?1:0},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
       .concat(news.filter(([,x])=>x.t!=='ferr'&&x.t!=='cam').map(([k,x])=>({type:'Feature',properties:{t:POIT[x.t]||'hut',name:x.name||'',ele:x.ele||'',web:'',key:k,hid:x.hide?1:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
-    if(map.getSource('poi')) map.getSource('poi').setData({type:'FeatureCollection',features:pf}); }
+    POI_FC=pf; if(map.getSource('poi')) map.getSource('poi').setData({type:'FeatureCollection',features:pf}); }
   if(BASE.ff){ const ff=BASE.ff.filter(f=>!hid(F[f.properties.key])).map(f=>{ const x=F[f.properties.key]; if(!x) return f; const m=mv(null,x), nm=x.name||f.properties.name, gr=x.grade!=null&&x.grade!==''?x.grade:f.properties.grade;
       return {type:'Feature',properties:{...f.properties,name:nm,grade:gr,t:[nm||'Ferata',gr].filter(Boolean).join('\n')},geometry:{type:'Point',coordinates:m.lat!=null?[m.lon,m.lat]:f.geometry.coordinates}}; })
       .concat(news.filter(([,x])=>x.t==='ferr').map(([k,x])=>({type:'Feature',properties:{name:x.name||'',grade:x.grade||'',key:k,t:[x.name||'Ferata',x.grade||''].filter(Boolean).join('\n'),len:0},geometry:{type:'Point',coordinates:[+x.lon,+x.lat]}})));
-    if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); } }
+    FERR_FC=ff; if(map.getSource('ferr')) map.getSource('ferr').setData({type:'FeatureCollection',features:ff}); } routeFocus(); }
 // ---------- 📷 webcams: Windy (list refreshed weekly by a GitHub Action into data/webcams.json; the picture itself is asked for on
 // tap - free-tier image links expire after ~10 min) + cameras an admin adds (fixes kind "poi", t "cam": picture URL + link).
 // Windy's key is meant to live in the page (it only works from this site's domain).
@@ -639,7 +639,7 @@ const WINDY_KEY='VEnkEnRvHPr9DEogeHFm8ofbW81dYsX6';
 const camOn=()=>{ try{ return localStorage.getItem('dvat3d_cams')!=='0'; }catch(_){ return true; } };
 let CAMS=null, camLoading=false; const CAM_KM=8;
 // 360 view: cameras are not shown (they sat on the horizon as icons)
-new MutationObserver(()=>{ if(map.getLayer('cam')) map.setLayoutProperty('cam','visibility',camOn()&&!document.body.classList.contains('in360')?'visible':'none'); }).observe(document.body,{attributes:true,attributeFilter:['class']});
+new MutationObserver(()=>{ if(map.getLayer('cam')) map.setLayoutProperty('cam','visibility',camOn()&&!RFON&&!document.body.classList.contains('in360')?'visible':'none'); }).observe(document.body,{attributes:true,attributeFilter:['class']});
 async function camsLoad(){ if(CAMS||camLoading||!location.protocol.startsWith('http')) return; camLoading=true;
   try{ const r=await fetch('data/webcams.json',{cache:'no-cache'}); if(r.ok){ const j=await r.json(); CAMS=(j.cams||[]).map(c=>({key:'windy|'+c[0],id:c[0],name:c[1],lat:c[2],lon:c[3],city:c[4]||''}));
       // only cameras within 8 km of a peak (2000 m or 1500-2000 m list) - valley-town and motorway cameras are left out
@@ -897,7 +897,24 @@ async function routeProfiles(){ const cur=RT; if(!cur) return;
     // longer than 11 h of walking (DIN 33466) or down > 40 % of up -> remove, unless it is the only way up
     if(r.P&&!r.adm&&(walkTime(r.P.km,r.P.up,r.P.down)>11||r.P.down>0.4*r.P.up)&&cur.routes.length>1){ const keep=cur.routes[cur.sel]; cur.routes=cur.routes.filter(x=>x!==r); cur.sel=Math.max(0,cur.routes.indexOf(keep===r?cur.routes[0]:keep)); if(RT===cur) setRoutesLayer(); }
     if(RT===cur) renderRoutes(); } }
-function setRoutesLayer(){ map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=g?r.coords.slice(0,-1):r.coords;
+// summit routes window open: only its routes + the huts / parkings / springs / ferratas along them; other trails, POIs and cams hidden
+let POI_FC=null, FERR_FC=null, RFON=false; const RF0={};
+const RF_HIDE=['tr-path','tr-mark-c','tr-mark','tr-ferr','tr-track','cam'], RF_POI=['poi-spring','poi-park','poi-hut','ferr-sign'];
+function routeFocus(){ const on=!!(RT&&RT.routes&&RT.routes.length)&&!window.NO_RFOCUS;
+  try{
+    if(on!==RFON){ for(const id of RF_HIDE) if(map.getLayer(id)){   // visibility saved when the focus starts, given back when it ends
+        if(on){ RF0[id]=map.getLayoutProperty(id,'visibility')||'visible'; map.setLayoutProperty(id,'visibility','none'); }
+        else map.setLayoutProperty(id,'visibility',id==='cam'?(camOn()&&!document.body.classList.contains('in360')?'visible':'none'):(RF0[id]||'visible')); }
+      RFON=on; } else if(on) for(const id of RF_HIDE) if(map.getLayer(id)) map.setLayoutProperty(id,'visibility','none');
+    let keys=null;
+    if(on){ const pts=[]; for(const r of RT.routes){ const c=r.coords; for(let i=0;i<c.length;i+=2) pts.push(c[i]); if(c.length) pts.push(c[c.length-1]); }
+      const near=f=>{ const q=f.geometry.coordinates; for(const c of pts) if(Math.abs(c[1]-q[1])<0.003&&hav(q[1],q[0],c[1],c[0])<200) return true; return false; };
+      keys=[...(POI_FC||[]),...(FERR_FC||[])].filter(near).map(f=>f.properties.key).filter(Boolean); }
+    for(const id of RF_POI) if(map.getLayer(id)){ if(!('f:'+id in RF0)) RF0['f:'+id]=map.getFilter(id)||null; const f0=RF0['f:'+id];
+      map.setFilter(id,on?(f0?['all',f0,['in',['get','key'],['literal',keys]]]:['in',['get','key'],['literal',keys]]):f0); }
+  }catch(e){ console.warn('routeFocus',e); } }
+window.routeFocus=routeFocus;
+function setRoutesLayer(){ setTimeout(routeFocus,0); map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=g?r.coords.slice(0,-1):r.coords;
   const f=[{type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:c}}];
   if(g) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true},geometry:{type:'LineString',coordinates:r.coords.slice(-2)}}); return f; })}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start

@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.85 — 2026-11-15
+- Admin: "❄ Sneg · admin" panel on the snow map (admin only, draggable) with live sliders: snow line shift (±800 m), depth ×,
+  slope where snow starts to thin / is nearly gone, aspect (sunny/shady) strength, satellite influence, min depth drawn.
+  The map repaints ~0.25 s after a change; ↺ = defaults; nothing saved (reload = defaults). Hover readout uses the same values.
+- Summit routes window open: only that summit's routes + huts / parkings / springs / ferratas within ~200 m of them;
+  other trails, tracks, ferrata lines and webcams hidden (roads stay). Everything back on close.
+- README brought up to date (files, tools, workflows, admin).
+
 ## app (APK) — 2026-11-15 (with web-v0.84)
 - The app carries its own copy of the site (page, peaks, trails pack, MapLibre - tools/app_bundle.py, built by the Android
   Action into app/www/offline.html, ~6 MB): a brand-new install with no signal starts from it (peak list, trails, huts,
