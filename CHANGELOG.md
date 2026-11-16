@@ -2,6 +2,22 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.94 — 2026-11-17
+- Pathless summits: the "Off-trail grades" Action now also saves the assessed easiest line (data/offtrail.json "l"). Routes go to
+  where that line leaves the mapped path and follow it to the top, drawn dotted purple, with a note in the route card that it is
+  not a path (estimated from terrain + land cover, not marked, not checked). Peaks with no route at all get routes this way too.
+- Route grade shows both parts when the pathless top is harder: "T3+T5" (route card, rows, profile "najtežje").
+- Off-trail tool: summit snapped to the highest point within ~35 m (listed coordinates on a cliff face gave T6); missing z14
+  terrain tiles filled from z13 / z12 instead of a flat fill (false cliffs at tile edges). Run the Action again.
+- Admin route grade: the fixed grade now also shows in the profile ("najtežje" used to keep the OSM grade, so the edit looked lost)
+  and replaces the pathless "T3+T5" split. Saving already reloads the fixes and redraws the routes.
+- Peak photos: the peak window shows a strip of Wikimedia Commons photos (same source as the peak of the week), tap = big view
+  with author and licence; cached per peak for 2 weeks.
+- Saved routes (Moje poti) are on the map only while the drawing window is open, or the one picked with ↗ until the window /
+  route card closes (they used to stay on the map for good).
+- Markacija ⚙ Nastavitve: text bigger again (19 px body, 17 px hints, 18 px buttons / chips, 48 px buttons and inputs).
+- pano_test.yml: the repo copy held the file twice (invalid YAML -> an error mail on every push); clean copy, manual run only.
+
 ## web-v0.93 — 2026-11-16
 - Off-trail grades look for the EASIEST possible line: the smallest slope angle at which gentle-enough ground connects the
   summit with any mapped path (from any side, up to ~2.5 km away), slope averaged over ~20 m so single LiDAR steps don't

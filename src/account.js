@@ -1494,6 +1494,14 @@ async function potw(){ const box = $a('potw'); if (!box) return;
     const dn = new Date(b.day + 'T12:00').toLocaleDateString(window.LANG === 'en' ? 'en-GB' : 'sl-SI', {weekday: 'long', day: 'numeric', month: 'numeric'});
     el.innerHTML = `${L('Najboljši dan','Best day')}: <b>${esc(dn)}</b> · ${L('ocena','rating')} <b style="color:${['#8ee59a', '#ffcc66', '#ff9a9a'][b.r]}">${b.score}</b>`; }).catch(() => {}); }
 // full-screen photo viewer (arrows, swipe, ← → Esc)
+// photos of any peak for its window (same source as the peak of the week), cached per peak for 2 weeks; [] = none found
+const PPIC = new Map();
+window.peakPics = async p => { if (PPIC.has(p.id)) return PPIC.get(p.id); const key = 'dvat3d_pp_' + p.id, c = get(key);
+  if (c && Date.now() - c.t < 14 * 864e5){ PPIC.set(p.id, c.pics); return c.pics; }
+  if (!navigator.onLine) return [];
+  let pics = []; try{ pics = await potwPics(p); }catch(_){ return []; }
+  pics = pics.slice(0, 8); PPIC.set(p.id, pics); put(key, {t: Date.now(), pics}); return pics; };
+window.peakPicsBig = (pics, k, title) => potwBig(pics, k, title);
 function potwBig(pics, k, title, onMove){ let v = document.getElementById('potwLb'); if (v) v.remove();
   v = document.createElement('div'); v.id = 'potwLb';
   v.innerHTML = `<img alt=""><div class="lt"><b>${esc(title)}</b> <span class="n"></span><a class="cr" target="_blank" rel="noopener"></a></div><button class="x" aria-label="${L('Zapri','Close')}">×</button>

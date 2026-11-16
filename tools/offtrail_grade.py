@@ -13,7 +13,9 @@ Ground type (ESA WorldCover 10 m) changes the felt angle before that: forest −
 +4°, snow / ice +6° — steep forest is less serious than steep alpine rock. "deg" is that effective angle, "lc" the ground at the crux.
 Grade from the crux angle (calibration below; hand fixes go to data/tech_overrides.json, they win):
   < 20° T2 (easy pathless)  · < 28° T3 · < 36° T4 (steep grass / easy rock) · < 44° T5 (scrambling) · ≥ 44° T6
-Output data/offtrail.json: {peak_id: {"s": T 2..6, "deg": crux °, "g": pathless metres, "d": straight distance to the path}}
+Output data/offtrail.json: {peak_id: {"s": T 2..6, "deg": crux °, "g": pathless metres, "d": straight distance to the path,
+"lc": ground at the crux, "l": the line summit -> path as [[lon, lat], …]} — the page routes to the path end of "l" and shows "l" as a
+dotted "not a path" line.
 tools/build.py folds it into each peak's difficulty (p.ot, p.tech). Run by the "Off-trail grades" Action (manual).
 
   python tools/offtrail_grade.py [--only id1,id2] [--fake]
@@ -82,7 +84,27 @@ def tile(x, y, fake):
                 if e.code == 404: break
                 time.sleep(2 * (a + 1))
             except Exception: time.sleep(2 * (a + 1))
+    if h is None and not fake:   # no z14 tile (outside the LiDAR coverage / failed): z13 or z12 quarter, upsampled
+        for dz in (1, 2):
+            px, py, f = x >> dz, y >> dz, 1 << dz
+            t = fetch(Z - dz, px, py)
+            if t is not None:
+                ox, oy = (x - px * f) * TS // f, (y - py * f) * TS // f
+                h = np.kron(t[oy:oy + TS // f, ox:ox + TS // f], np.ones((f, f), np.float32)); FALLBACK[0] += 1; break
     CACHE[(x, y)] = h; return h
+
+FALLBACK = [0]
+def fetch(z, x, y):
+    for a in range(4):
+        try:
+            rq = urllib.request.Request(URL.format(z=z, x=x, y=y), headers={'User-Agent': 'Dvatisocaki-offtrail/1.0 (github.com/taskrti76/Slovenija2k-Challenge)'})
+            with urllib.request.urlopen(rq, timeout=30) as r: rgb = np.asarray(Image.open(io.BytesIO(r.read())).convert('RGB')).astype(np.float32)
+            return rgb[..., 0] * 256 + rgb[..., 1] + rgb[..., 2] / 256 - 32768
+        except urllib.error.HTTPError as e:
+            if e.code == 404: return None
+            time.sleep(2 * (a + 1))
+        except Exception: time.sleep(2 * (a + 1))
+    return None
 
 def ways():
     pk = json.load(gzip.open(os.path.join(R, 'dvat-osm.json.gz'))); W = pk['w']; out = []; o = x = y = 0
@@ -119,6 +141,9 @@ def grade(p, W, fake):
                 c = int((mx(o1 + (o2 - o1) * t) - x0) / STEP); rr = int((my(a1 + (a2 - a1) * t) - y0) / STEP)
                 if 0 <= rr < H and 0 <= c < Wd: tgt[rr, c] = True
     sr, sc = int((cy - y0) / STEP), int((cx - x0) / STEP)
+    # the listed coordinate can sit a few metres off the top (on a cliff face): start from the highest cell within ~35 m
+    rr_ = max(1, int(35 / cell)); win = h[max(0, sr - rr_):sr + rr_ + 1, max(0, sc - rr_):sc + rr_ + 1]
+    k = np.unravel_index(np.argmax(win), win.shape); sr, sc = max(0, sr - rr_) + k[0], max(0, sc - rr_) + k[1]
     if not tgt.any(): return {'none': 1}
     ys, xs = np.nonzero(tgt); d0 = float(np.min(np.hypot(ys - sr, xs - sc)) * cell)
     if d0 < MIN_GAP: return {'d': round(d0)}
@@ -152,7 +177,11 @@ def grade(p, W, fake):
     pc = path[np.abs(s3[path[:, 0], path[:, 1]] - crux) <= 1.5] if len(path) else path
     vals = lc[pc[:, 0], pc[:, 1]] if len(pc) else lc[path[:, 0], path[:, 1]]
     lk = int(np.bincount(vals).argmax()) if len(vals) else 0
-    return {'s': T, 'deg': round(crux), 'g': round(L), 'd': round(d0), 'lc': LC_NAME.get(lk, '')}
+    # the line, summit -> path, simplified (~1 cell tolerance), as [lon, lat]
+    from skimage.measure import approximate_polygon
+    sp = approximate_polygon(path.astype(float), tolerance=1.0) if len(path) > 2 else path
+    line = [[round(ilon(x0 + (c + .5) * STEP), 5), round(ilat(y0 + (r + .5) * STEP), 5)] for r, c in sp]
+    return {'s': T, 'deg': round(crux), 'g': round(L), 'd': round(d0), 'lc': LC_NAME.get(lk, ''), 'l': line}
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--only', default=''); ap.add_argument('--fake', action='store_true'); a = ap.parse_args()
@@ -181,5 +210,6 @@ def main():
             print(f"{p['id']:34s} T{r['s']}  crux {r['deg']:2d}°  pathless {r['g']:4d} m  (path {r['d']} m away)", flush=True)
     json.dump(out, open(os.path.join(R, 'data', 'offtrail.json'), 'w', encoding='utf8'), separators=(',', ':'), sort_keys=True, ensure_ascii=False)
     print(len(out), 'off-trail summits; T histogram', dict(sorted(hist.items())))
+    print('z14 tiles missing, filled from z13/z12:', FALLBACK[0])
 
 if __name__ == '__main__': main()

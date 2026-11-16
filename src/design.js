@@ -140,6 +140,14 @@ window.v2PeakBox = (box, p, o) => {
   if (plan) btn(I('🗓'), L('V načrt','Plan'), plan.onclick);
   if (camN) btn(ICON.cam, `${L('Kamere','Webcams')} · ${camN}`, () => { const c = box.querySelector('.v2cams'), md = box.querySelector('.v2more'); if (md) md.open = true; if (c) c.scrollIntoView({block: 'nearest', behavior: 'smooth'}); });
   box.append(a);
+  // photos (Wikimedia Commons, like the peak of the week): a strip of thumbnails, tap = big view with credit
+  if (window.peakPics && p.lat != null){ const ps = document.createElement('div'); ps.className = 'v2pics'; ps.dataset.pk = p.id; box.append(ps);
+    peakPics(p).then(pics => setTimeout(() => {   // after the window is on the page; it may have been redrawn meanwhile
+      const all = [...document.querySelectorAll('.v2pics')].filter(x => x.dataset.pk === p.id && !x.childElementCount); if (!all.length) return;
+      if (!pics.length){ all.forEach(x => x.remove()); return; }
+      for (const ps of all){ ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" aria-label="${L('Fotografija','Photo')} ${i + 1}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/320px-').replace(/"/g, '%22')}"></button>`).join('')
+        + `<small>${L('Foto','Photos')}: Wikimedia Commons</small>`;
+      ps.querySelectorAll('button').forEach(b => b.onclick = () => peakPicsBig(pics, +b.dataset.i, p.name)); } }, 60)); }
   if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
   { const sb = $('snow'), cm = window.snowAt && sb && sb.checked ? snowAt(p.lat, p.lon) : null;   // snow on the summit (snow layer on)
     if (cm != null){ const d = document.createElement('div'); d.className = 'v2snow'; d.textContent = `❄ ${L('Sneg','Snow')} (${L('model','model')}, ${snowDay()}): ~${cm} cm`; box.append(d); } }
@@ -349,6 +357,7 @@ html.v2 .v2ok{font-size:12px;font-weight:600;color:#1F5E3A;background:#E7F2EB;bo
 html.v2 .v2s{font-size:13.5px;color:var(--mute);margin-top:3px}html.v2 .v2s2{font-size:12.5px;color:var(--mute)}
 html.v2 .v2h .wish{float:none!important;margin:0!important;width:36px;height:36px}
 html.v2 .v2act{display:flex;gap:6px;margin:12px 0 4px}
+.v2p .v2pics{display:flex;gap:6px;overflow-x:auto;margin:8px 0 2px;padding-bottom:2px;align-items:flex-end;scrollbar-width:thin}.v2p .v2pics button{flex:none;padding:0;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;background:#0002;height:68px}.v2p .v2pics img{display:block;height:68px;width:auto;min-width:68px;object-fit:cover}.v2p .v2pics small{flex:none;align-self:flex-end;font-size:11px;opacity:.6;white-space:nowrap;padding:0 4px}
 html.v2 .v2act button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 7px;border:0;border-radius:12px;background:rgba(127,127,127,.12);color:var(--ink);font:600 12px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
 html.v2 .v2act button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 html.v2 .v2act button.pri{background:#B42318;color:#fff}html.v2 .v2act svg{width:20px;height:20px}
