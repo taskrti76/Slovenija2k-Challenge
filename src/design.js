@@ -27,10 +27,10 @@ html.v2 #setWin .setcard,html.v2 #accWin .acard{border-radius:16px!important}
 html.v2 .panel h1,html.v2 #dtitle{letter-spacing:-.015em}
 
 /* buttons: primary (red), secondary (outlined), all 10 px corners */
-html.v2 .btn,html.v2 .pbtns button,html.v2 .rb button,html.v2 .sb,html.v2 .alt,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 .tb{border-radius:10px!important;font-weight:600!important}
+html.v2 .btn,html.v2 .pbtns button,html.v2 .rb button,html.v2 .sb,html.v2 .alt,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #dcard .go,html.v2 .tb{border-radius:10px!important;font-weight:600!important}
 html.v2 .pbtns button,html.v2 .rb button{min-height:40px;border:1px solid var(--line)!important;background:var(--solid)!important;color:var(--ink)!important}
 html.v2 .btn:not(.btn2){background:var(--ink);border-color:var(--ink)}
-html.v2 .sb.pri,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #tour .nx,html.v2 .admd .pri{background:var(--v2red)!important;border-color:var(--v2red)!important;color:#fff!important}
+html.v2 .sb.pri,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #dcard .go,html.v2 #tour .nx,html.v2 .admd .pri{background:var(--v2red)!important;border-color:var(--v2red)!important;color:#fff!important}
 html.v2 .pplan{border-radius:10px!important;border-style:solid!important;font-weight:600}
 
 /* chips (pills) and segmented switches */
@@ -145,7 +145,7 @@ window.v2PeakBox = (box, p, o) => {
     peakPics(p).then(pics => setTimeout(() => {   // after the window is on the page; it may have been redrawn meanwhile
       const all = [...document.querySelectorAll('.v2pics')].filter(x => x.dataset.pk === p.id && !x.childElementCount); if (!all.length) return;
       if (!pics.length){ all.forEach(x => x.remove()); return; }
-      for (const ps of all){ ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" aria-label="${L('Fotografija','Photo')} ${i + 1}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/320px-').replace(/"/g, '%22')}"></button>`).join('')
+      for (const ps of all){ ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" aria-label="${L('Fotografija','Photo')} ${i + 1}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/330px-').replace(/"/g, '%22')}" data-full="${(x.img || '').replace(/"/g, '%22')}" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.parentNode.remove()}"></button>`).join('')
         + `<small>${L('Foto','Photos')}: Wikimedia Commons</small>`;
       ps.querySelectorAll('button').forEach(b => b.onclick = () => peakPicsBig(pics, +b.dataset.i, p.name)); } }, 60)); }
   if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
@@ -357,7 +357,7 @@ html.v2 .v2ok{font-size:12px;font-weight:600;color:#1F5E3A;background:#E7F2EB;bo
 html.v2 .v2s{font-size:13.5px;color:var(--mute);margin-top:3px}html.v2 .v2s2{font-size:12.5px;color:var(--mute)}
 html.v2 .v2h .wish{float:none!important;margin:0!important;width:36px;height:36px}
 html.v2 .v2act{display:flex;gap:6px;margin:12px 0 4px}
-.v2p .v2pics{display:flex;gap:6px;overflow-x:auto;margin:8px 0 2px;padding-bottom:2px;align-items:flex-end;scrollbar-width:thin}.v2p .v2pics button{flex:none;padding:0;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;background:#0002;height:68px}.v2p .v2pics img{display:block;height:68px;width:auto;min-width:68px;object-fit:cover}.v2p .v2pics small{flex:none;align-self:flex-end;font-size:11px;opacity:.6;white-space:nowrap;padding:0 4px}
+.v2p .v2pics{display:flex;gap:6px;overflow-x:auto;margin:8px 0 2px;padding-bottom:2px;align-items:flex-end;scrollbar-width:none}.v2p .v2pics::-webkit-scrollbar{display:none}.v2p .v2pics button{flex:none;padding:0;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;background:#0002;height:68px}.v2p .v2pics img{display:block;height:68px;width:auto;min-width:68px;object-fit:cover}.v2p .v2pics small{flex:none;align-self:flex-end;font-size:11px;opacity:.6;white-space:nowrap;padding:0 4px}
 html.v2 .v2act button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 7px;border:0;border-radius:12px;background:rgba(127,127,127,.12);color:var(--ink);font:600 12px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
 html.v2 .v2act button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 html.v2 .v2act button.pri{background:#B42318;color:#fff}html.v2 .v2act svg{width:20px;height:20px}

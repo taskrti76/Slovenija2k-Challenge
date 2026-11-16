@@ -1267,17 +1267,21 @@ function drawRender(){
     tool('drawClear()','✕',LP('Počisti','Clear'),!D.pts.length)+
     tool('drawGPX()','⬇','GPX',c.length<2)+
     tool('drawSave()','💾',LP('Shrani','Save'),c.length<2);
-  const quick=`<div class="plb onlyPeek"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Zadnjo','Last')}</button><button onclick="drawSave()" ${c.length<2?'disabled':''}>💾 ${LP('Shrani','Save')}</button></div>`;
+  const quick=`<div class="plb onlyPeek"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Zadnjo','Last')}</button></div>`;
   card.innerHTML=`${shHandle()}<div class="rh"><b class="pln">${D.edit>=0?esc(MY[D.edit].name):LP('Načrt ture','Trip plan')}</b><button class="x" onclick="drawMin(true)" aria-label="${LP('Skrij (risanje ostane vklopljeno)','Hide (drawing stays on)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" onclick="stopDraw()" aria-label="${LP('Končaj risanje','Stop drawing')}">×</button></div>
     ${pmTabs('draw')}
     ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha.
       <div class="rb"><button class="pri" onclick="adminDrawSave()" ${drawCoords().length<2?'disabled':''}>💾 Shrani za vse</button><button onclick="adminDrawCancel()">Prekliči</button></div>${D.adm.err?`<div class="aerr">${esc(D.adm.err)}</div>`:''}</div>`:''}
     <div class="plsum">${sum}</div>
     ${quick}
-    <div class="sL"><div class="tbar">${tools}</div><label class="sw"><input type="checkbox" id="dfollow" ${D.follow?'checked':''}><i></i> ${LP('Sledi potem in cestam','Follow trails and roads')}</label>
-    <div class="cols">${LP('Barva','Colour')}: ${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
-    ${profBlock}
-    ${D.edit>=0?`<div class="rb"><button onclick="drawSaveNew()">${LP('Shrani kot novo','Save as new')}</button></div>`:''}</div>
+    ${c.length>=2?`<button class="go" onclick="drawSave()">💾 ${D.edit>=0?LP('Shrani spremembe','Save changes'):LP('Shrani med moje poti','Save to my routes')}</button>`:''}
+    <div class="sL"><div class="hint">${LP('Tapaj karto za točke. Vleci točko = premakni, klik na črto = vrini točko.','Tap the map for points. Drag a point = move, click the line = insert.')}${D.pts.length?` · <b>${D.pts.length}</b> ${LP('točk','points')}`:''}</div>
+    <div class="plb"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Izbriši zadnjo','Delete last')}</button><button onclick="drawReverse()" ${D.pts.length<2?'disabled':''}>⇄ ${LP('Obrni','Reverse')}</button><button onclick="drawClear()" ${D.pts.length?'':'disabled'}>✕ ${LP('Počisti','Clear')}</button></div>
+    ${profBlock}</div>
+    <div class="sO"><div class="q">${LP('Risanje','Drawing')}</div>
+    <div class="plo"><label><input type="checkbox" id="dfollow" ${D.follow?'checked':''}> ${LP('sledi potem in cestam','follow trails and roads')}</label></div>
+    <div class="q">${LP('Barva','Colour')}</div><div class="cols">${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
+    <div class="q">${LP('Izvoz','Export')}</div><div class="plb"><button onclick="drawGPX()" ${c.length<2?'disabled':''}>⬇ GPX</button>${D.edit>=0?`<button onclick="drawSaveNew()">${LP('Shrani kot novo','Save as new')}</button>`:''}</div></div>
     <div class="sO"><details class="hlp"><summary>${LP('Pomoč','Help')}</summary>${LP('Vleci točko = premakni · klik na črto = vrini točko · klik na točko = izberi; Delete / desni klik / dvoklik = izbriši · Ctrl+Z razveljavi. Polna črta = po poti, črtkana = ravna črta.','Drag a point = move · click the line = insert a point · click a point = select; Delete / right click / double click = delete · Ctrl+Z undo. Solid line = along a trail, dashed = straight.')}</details>
     ${MY.length?`<div class="rg2">${LP('Moje poti','My routes')}</div>`+MY.map((r,i)=>`<div class="my"><span class="mn" title="${esc(r.name)}"><i>${esc(r.name)}</i></span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}</div>`;
   el('dfollow').onchange=e=>{ D.follow=e.target.checked; };
@@ -1455,6 +1459,10 @@ const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:
 #plCard .pickon{background:#C8102E!important;color:#fff!important;border-color:#C8102E!important}
 `;
 document.head.append(plCss);
+// the drawing window uses the planner's parts (hint, button rows, options, big button) - same look in both modes
+{ const dc=document.createElement('style'); dc.textContent=plCss.textContent.split('\n').filter(l=>!/@media/.test(l)&&/\.(pls|plo|chips|go|hint|plb|warn)\b/.test(l)).join('\n').replaceAll('#plCard','#dcard')
+    +'\n#dcard .q{margin:12px 0 4px}#dcard .cols{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}#dcard .cols .cs{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}#dcard .cols .cs.on{box-shadow:0 0 0 3px #C8102E}';
+  document.head.append(dc); }
 // everything with a name that can be a stop: peaks, huts / bivouacs, trailheads / parkings
 function plIndex(){ const L=[], seen=new Set(), add=(label,o)=>{ if(seen.has(label)) return; seen.add(label); L.push([label,o]); };
   for(const p of (typeof PEAKS!=='undefined'?PEAKS:[])) if(p.lat!=null) add(`${p.name} (${LP('vrh','peak')} ${Math.round(p.elev)} m)`,{name:p.name.split(' (')[0],lat:p.lat,lon:p.lon,k:'peak'});

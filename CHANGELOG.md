@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.95 — 2026-11-17
+- Peak photos: thumbnails asked Wikimedia for a 320 px size it no longer makes (only standard steps: 250, 330, 500 …), so the
+  strip stayed empty. Now 330 px, falls back to the full photo, a photo that fails is dropped; no scrollbar under the strip.
+- Webcams near the peak are always listed in the peak window (the map menu switch only hides the camera icons on the map).
+- ✎ Riši window laid out like »Po točkah« on phone and PC: big red "Shrani med moje poti" button, hint + button rows instead of
+  the old tool grid, options as headed sections (Risanje · Barva · Izvoz), then help and Moje poti. The bottom bar stays visible
+  while drawing (as in the planner); the window sits above it.
+
 ## web-v0.94 — 2026-11-17
 - Pathless summits: the "Off-trail grades" Action now also saves the assessed easiest line (data/offtrail.json "l"). Routes go to
   where that line leaves the mapped path and follow it to the top, drawn dotted purple, with a note in the route card that it is

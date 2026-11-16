@@ -69,7 +69,7 @@ html.mk .maplibregl-ctrl-group{border:2px solid ${INK}!important;border-radius:2
 html.mk #hleg,html.mk #snowleg{border:2px solid ${INK}!important;box-shadow:none!important;border-radius:14px!important}
 html.mk #hleg b,html.mk #snowleg b{font-family:${CD};text-transform:uppercase;letter-spacing:.02em;font-size:1.08em}
 html.mk .btn:not(.btn2){background:var(--mkbtn)!important;border-color:var(--mkbtn)!important}
-html.mk .sb.pri,html.mk #accBox .go,html.mk #plCard .go,html.mk #tour .nx{background:${RED}!important;border-color:${RED}!important}
+html.mk .sb.pri,html.mk #accBox .go,html.mk #plCard .go,html.mk #dcard .go,html.mk #tour .nx{background:${RED}!important;border-color:${RED}!important}
 html.mk #chips button.on,html.mk .chips button.on,html.mk .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
 html.mk #stchips button.on{background:var(--mkbtn)!important;color:#fff!important}
 html.mk .it input[type=checkbox]{accent-color:${RED}}
@@ -90,7 +90,7 @@ html.mk #mkdock{display:none}
 ${PH}{
   html.mk #fabTab{display:none!important}
   html.mk #mkdock{display:block;position:absolute;z-index:8;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:var(--solid);border:2px solid ${INK};border-radius:32px;box-sizing:border-box;overflow:hidden;touch-action:pan-y}
-  html.mk body.menu #mkdock,html.mk body.dopen #mkdock,html.mk body.in360 #mkdock,html.mk body.drawing #mkdock,html.mk body.pop #mkdock{display:none}
+  html.mk body.menu #mkdock,html.mk body.dopen #mkdock,html.mk body.in360 #mkdock,html.mk body.pop #mkdock{display:none}
   html.mk #mkdock .trk{display:flex;height:100%;transition:transform .28s cubic-bezier(.3,.7,.3,1)}
   html.mk #mkdock .pg{flex:0 0 100%;display:flex;align-items:center;padding:0 4px;box-sizing:border-box;position:relative}
   html.mk #mkdock button,html.mk #mkdock .ph{flex:1;min-width:0;height:58px;border:0;background:none;color:${INK};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 11px Inter,system-ui,sans-serif;padding:0;cursor:pointer;position:relative}

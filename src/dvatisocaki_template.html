@@ -1369,7 +1369,8 @@ function openPeak(id,fly){
   const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   // webcams within 15 km (trails.js): the three nearest, tap = picture
-  if(window.camsNear&&$id('cams')&&$id('cams').checked){ const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
+  if(window.camsNear){   // webcams near the peak: always in its window (the map layer switch only hides the map icons)
+     const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
     d.innerHTML='📷 '+cn.map((x,i)=>`<a data-k="${i}">${x.c.name.replace(/[<>&"]/g,'')}</a> <small>${(x.d/1000).toFixed(0)} km</small>`).join(' · ');
     d.querySelectorAll('a').forEach(a=>a.onclick=()=>window.camOpen(cn[+a.dataset.k].c.key)); box.append(d); } }
   if(window.gpsPeakBtn){ const gb=gpsPeakBtn(p); if(gb) box.append(gb); }   // app: confirm this summit with a fresh GPS fix

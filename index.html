@@ -1369,7 +1369,8 @@ function openPeak(id,fly){
   const vb=document.createElement('button'); vb.className='p360'; vb.textContent='360° razgled'; vb.onclick=()=>window.enter360&&window.enter360(id);
   row.append(rb,vb); box.append(row);
   // webcams within 15 km (trails.js): the three nearest, tap = picture
-  if(window.camsNear&&$id('cams')&&$id('cams').checked){ const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
+  if(window.camsNear){   // webcams near the peak: always in its window (the map layer switch only hides the map icons)
+     const cn=camsNear(p.lat,p.lon,15).slice(0,3); if(cn.length){ const d=document.createElement('div'); d.className='pcams';
     d.innerHTML='📷 '+cn.map((x,i)=>`<a data-k="${i}">${x.c.name.replace(/[<>&"]/g,'')}</a> <small>${(x.d/1000).toFixed(0)} km</small>`).join(' · ');
     d.querySelectorAll('a').forEach(a=>a.onclick=()=>window.camOpen(cn[+a.dataset.k].c.key)); box.append(d); } }
   if(window.gpsPeakBtn){ const gb=gpsPeakBtn(p); if(gb) box.append(gb); }   // app: confirm this summit with a fresh GPS fix
@@ -2810,17 +2811,21 @@ function drawRender(){
     tool('drawClear()','✕',LP('Počisti','Clear'),!D.pts.length)+
     tool('drawGPX()','⬇','GPX',c.length<2)+
     tool('drawSave()','💾',LP('Shrani','Save'),c.length<2);
-  const quick=`<div class="plb onlyPeek"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Zadnjo','Last')}</button><button onclick="drawSave()" ${c.length<2?'disabled':''}>💾 ${LP('Shrani','Save')}</button></div>`;
+  const quick=`<div class="plb onlyPeek"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Zadnjo','Last')}</button></div>`;
   card.innerHTML=`${shHandle()}<div class="rh"><b class="pln">${D.edit>=0?esc(MY[D.edit].name):LP('Načrt ture','Trip plan')}</b><button class="x" onclick="drawMin(true)" aria-label="${LP('Skrij (risanje ostane vklopljeno)','Hide (drawing stays on)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" onclick="stopDraw()" aria-label="${LP('Končaj risanje','Stop drawing')}">×</button></div>
     ${pmTabs('draw')}
     ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha.
       <div class="rb"><button class="pri" onclick="adminDrawSave()" ${drawCoords().length<2?'disabled':''}>💾 Shrani za vse</button><button onclick="adminDrawCancel()">Prekliči</button></div>${D.adm.err?`<div class="aerr">${esc(D.adm.err)}</div>`:''}</div>`:''}
     <div class="plsum">${sum}</div>
     ${quick}
-    <div class="sL"><div class="tbar">${tools}</div><label class="sw"><input type="checkbox" id="dfollow" ${D.follow?'checked':''}><i></i> ${LP('Sledi potem in cestam','Follow trails and roads')}</label>
-    <div class="cols">${LP('Barva','Colour')}: ${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
-    ${profBlock}
-    ${D.edit>=0?`<div class="rb"><button onclick="drawSaveNew()">${LP('Shrani kot novo','Save as new')}</button></div>`:''}</div>
+    ${c.length>=2?`<button class="go" onclick="drawSave()">💾 ${D.edit>=0?LP('Shrani spremembe','Save changes'):LP('Shrani med moje poti','Save to my routes')}</button>`:''}
+    <div class="sL"><div class="hint">${LP('Tapaj karto za točke. Vleci točko = premakni, klik na črto = vrini točko.','Tap the map for points. Drag a point = move, click the line = insert.')}${D.pts.length?` · <b>${D.pts.length}</b> ${LP('točk','points')}`:''}</div>
+    <div class="plb"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Izbriši zadnjo','Delete last')}</button><button onclick="drawReverse()" ${D.pts.length<2?'disabled':''}>⇄ ${LP('Obrni','Reverse')}</button><button onclick="drawClear()" ${D.pts.length?'':'disabled'}>✕ ${LP('Počisti','Clear')}</button></div>
+    ${profBlock}</div>
+    <div class="sO"><div class="q">${LP('Risanje','Drawing')}</div>
+    <div class="plo"><label><input type="checkbox" id="dfollow" ${D.follow?'checked':''}> ${LP('sledi potem in cestam','follow trails and roads')}</label></div>
+    <div class="q">${LP('Barva','Colour')}</div><div class="cols">${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
+    <div class="q">${LP('Izvoz','Export')}</div><div class="plb"><button onclick="drawGPX()" ${c.length<2?'disabled':''}>⬇ GPX</button>${D.edit>=0?`<button onclick="drawSaveNew()">${LP('Shrani kot novo','Save as new')}</button>`:''}</div></div>
     <div class="sO"><details class="hlp"><summary>${LP('Pomoč','Help')}</summary>${LP('Vleci točko = premakni · klik na črto = vrini točko · klik na točko = izberi; Delete / desni klik / dvoklik = izbriši · Ctrl+Z razveljavi. Polna črta = po poti, črtkana = ravna črta.','Drag a point = move · click the line = insert a point · click a point = select; Delete / right click / double click = delete · Ctrl+Z undo. Solid line = along a trail, dashed = straight.')}</details>
     ${MY.length?`<div class="rg2">${LP('Moje poti','My routes')}</div>`+MY.map((r,i)=>`<div class="my"><span class="mn" title="${esc(r.name)}"><i>${esc(r.name)}</i></span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}</div>`;
   el('dfollow').onchange=e=>{ D.follow=e.target.checked; };
@@ -2998,6 +3003,10 @@ const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:
 #plCard .pickon{background:#C8102E!important;color:#fff!important;border-color:#C8102E!important}
 `;
 document.head.append(plCss);
+// the drawing window uses the planner's parts (hint, button rows, options, big button) - same look in both modes
+{ const dc=document.createElement('style'); dc.textContent=plCss.textContent.split('\n').filter(l=>!/@media/.test(l)&&/\.(pls|plo|chips|go|hint|plb|warn)\b/.test(l)).join('\n').replaceAll('#plCard','#dcard')
+    +'\n#dcard .q{margin:12px 0 4px}#dcard .cols{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}#dcard .cols .cs{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer}#dcard .cols .cs.on{box-shadow:0 0 0 3px #C8102E}';
+  document.head.append(dc); }
 // everything with a name that can be a stop: peaks, huts / bivouacs, trailheads / parkings
 function plIndex(){ const L=[], seen=new Set(), add=(label,o)=>{ if(seen.has(label)) return; seen.add(label); L.push([label,o]); };
   for(const p of (typeof PEAKS!=='undefined'?PEAKS:[])) if(p.lat!=null) add(`${p.name} (${LP('vrh','peak')} ${Math.round(p.elev)} m)`,{name:p.name.split(' (')[0],lat:p.lat,lon:p.lon,k:'peak'});
@@ -6104,10 +6113,10 @@ html.v2 #setWin .setcard,html.v2 #accWin .acard{border-radius:16px!important}
 html.v2 .panel h1,html.v2 #dtitle{letter-spacing:-.015em}
 
 /* buttons: primary (red), secondary (outlined), all 10 px corners */
-html.v2 .btn,html.v2 .pbtns button,html.v2 .rb button,html.v2 .sb,html.v2 .alt,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 .tb{border-radius:10px!important;font-weight:600!important}
+html.v2 .btn,html.v2 .pbtns button,html.v2 .rb button,html.v2 .sb,html.v2 .alt,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #dcard .go,html.v2 .tb{border-radius:10px!important;font-weight:600!important}
 html.v2 .pbtns button,html.v2 .rb button{min-height:40px;border:1px solid var(--line)!important;background:var(--solid)!important;color:var(--ink)!important}
 html.v2 .btn:not(.btn2){background:var(--ink);border-color:var(--ink)}
-html.v2 .sb.pri,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #tour .nx,html.v2 .admd .pri{background:var(--v2red)!important;border-color:var(--v2red)!important;color:#fff!important}
+html.v2 .sb.pri,html.v2 #accBox .go,html.v2 #plCard .go,html.v2 #dcard .go,html.v2 #tour .nx,html.v2 .admd .pri{background:var(--v2red)!important;border-color:var(--v2red)!important;color:#fff!important}
 html.v2 .pplan{border-radius:10px!important;border-style:solid!important;font-weight:600}
 
 /* chips (pills) and segmented switches */
@@ -6222,7 +6231,7 @@ window.v2PeakBox = (box, p, o) => {
     peakPics(p).then(pics => setTimeout(() => {   // after the window is on the page; it may have been redrawn meanwhile
       const all = [...document.querySelectorAll('.v2pics')].filter(x => x.dataset.pk === p.id && !x.childElementCount); if (!all.length) return;
       if (!pics.length){ all.forEach(x => x.remove()); return; }
-      for (const ps of all){ ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" aria-label="${L('Fotografija','Photo')} ${i + 1}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/320px-').replace(/"/g, '%22')}"></button>`).join('')
+      for (const ps of all){ ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" aria-label="${L('Fotografija','Photo')} ${i + 1}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/330px-').replace(/"/g, '%22')}" data-full="${(x.img || '').replace(/"/g, '%22')}" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.parentNode.remove()}"></button>`).join('')
         + `<small>${L('Foto','Photos')}: Wikimedia Commons</small>`;
       ps.querySelectorAll('button').forEach(b => b.onclick = () => peakPicsBig(pics, +b.dataset.i, p.name)); } }, 60)); }
   if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
@@ -6434,7 +6443,7 @@ html.v2 .v2ok{font-size:12px;font-weight:600;color:#1F5E3A;background:#E7F2EB;bo
 html.v2 .v2s{font-size:13.5px;color:var(--mute);margin-top:3px}html.v2 .v2s2{font-size:12.5px;color:var(--mute)}
 html.v2 .v2h .wish{float:none!important;margin:0!important;width:36px;height:36px}
 html.v2 .v2act{display:flex;gap:6px;margin:12px 0 4px}
-.v2p .v2pics{display:flex;gap:6px;overflow-x:auto;margin:8px 0 2px;padding-bottom:2px;align-items:flex-end;scrollbar-width:thin}.v2p .v2pics button{flex:none;padding:0;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;background:#0002;height:68px}.v2p .v2pics img{display:block;height:68px;width:auto;min-width:68px;object-fit:cover}.v2p .v2pics small{flex:none;align-self:flex-end;font-size:11px;opacity:.6;white-space:nowrap;padding:0 4px}
+.v2p .v2pics{display:flex;gap:6px;overflow-x:auto;margin:8px 0 2px;padding-bottom:2px;align-items:flex-end;scrollbar-width:none}.v2p .v2pics::-webkit-scrollbar{display:none}.v2p .v2pics button{flex:none;padding:0;border:0;border-radius:8px;overflow:hidden;cursor:zoom-in;background:#0002;height:68px}.v2p .v2pics img{display:block;height:68px;width:auto;min-width:68px;object-fit:cover}.v2p .v2pics small{flex:none;align-self:flex-end;font-size:11px;opacity:.6;white-space:nowrap;padding:0 4px}
 html.v2 .v2act button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 7px;border:0;border-radius:12px;background:rgba(127,127,127,.12);color:var(--ink);font:600 12px Inter,system-ui,sans-serif;cursor:pointer;min-height:44px}
 html.v2 .v2act button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 html.v2 .v2act button.pri{background:#B42318;color:#fff}html.v2 .v2act svg{width:20px;height:20px}
@@ -6606,7 +6615,7 @@ html.mk .maplibregl-ctrl-group{border:2px solid ${INK}!important;border-radius:2
 html.mk #hleg,html.mk #snowleg{border:2px solid ${INK}!important;box-shadow:none!important;border-radius:14px!important}
 html.mk #hleg b,html.mk #snowleg b{font-family:${CD};text-transform:uppercase;letter-spacing:.02em;font-size:1.08em}
 html.mk .btn:not(.btn2){background:var(--mkbtn)!important;border-color:var(--mkbtn)!important}
-html.mk .sb.pri,html.mk #accBox .go,html.mk #plCard .go,html.mk #tour .nx{background:${RED}!important;border-color:${RED}!important}
+html.mk .sb.pri,html.mk #accBox .go,html.mk #plCard .go,html.mk #dcard .go,html.mk #tour .nx{background:${RED}!important;border-color:${RED}!important}
 html.mk #chips button.on,html.mk .chips button.on,html.mk .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
 html.mk #stchips button.on{background:var(--mkbtn)!important;color:#fff!important}
 html.mk .it input[type=checkbox]{accent-color:${RED}}
@@ -6627,7 +6636,7 @@ html.mk #mkdock{display:none}
 ${PH}{
   html.mk #fabTab{display:none!important}
   html.mk #mkdock{display:block;position:absolute;z-index:8;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));height:64px;background:var(--solid);border:2px solid ${INK};border-radius:32px;box-sizing:border-box;overflow:hidden;touch-action:pan-y}
-  html.mk body.menu #mkdock,html.mk body.dopen #mkdock,html.mk body.in360 #mkdock,html.mk body.drawing #mkdock,html.mk body.pop #mkdock{display:none}
+  html.mk body.menu #mkdock,html.mk body.dopen #mkdock,html.mk body.in360 #mkdock,html.mk body.pop #mkdock{display:none}
   html.mk #mkdock .trk{display:flex;height:100%;transition:transform .28s cubic-bezier(.3,.7,.3,1)}
   html.mk #mkdock .pg{flex:0 0 100%;display:flex;align-items:center;padding:0 4px;box-sizing:border-box;position:relative}
   html.mk #mkdock button,html.mk #mkdock .ph{flex:1;min-width:0;height:58px;border:0;background:none;color:${INK};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 11px Inter,system-ui,sans-serif;padding:0;cursor:pointer;position:relative}
