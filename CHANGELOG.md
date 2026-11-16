@@ -2,6 +2,15 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.93 — 2026-11-16
+- Off-trail grades look for the EASIEST possible line: the smallest slope angle at which gentle-enough ground connects the
+  summit with any mapped path (from any side, up to ~2.5 km away), slope averaged over ~20 m so single LiDAR steps don't
+  decide it. Before, the cheapest-sum line could take a short steep step instead of a longer easy detour (too many T6).
+- Ground type counts: ESA WorldCover 10 m land cover (CC BY 4.0) shifts the felt angle — forest −8°, shrubs / dwarf pine −3°,
+  grass 0, bare rock / scree +4°, snow / ice +6° — so a steep forest slope grades lower than equally steep alpine rock. The route
+  line and the "no trail" note show the ground at the hardest part ("T4 · skala, melišče, ocena").
+  Run the "Off-trail grades" Action again after uploading.
+
 ## web-v0.92 — 2026-11-16
 - Badges: a click opens the badge big (in colour, with the progress ring), what the challenge asks, how far you are, the peaks
   still missing (click one -> its window) and a few words about the peak drawn on the badge (height, range, rank, difficulty).

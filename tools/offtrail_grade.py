@@ -6,8 +6,11 @@ below the summit were graded by the path part only (often T2), so pathless summi
 
 For every peak whose summit is more than MIN_GAP m from the nearest mapped way (dvat-osm.json.gz: paths, tracks,
 ferratas, roads): Mapterhorn terrain z14 (~3.3 m; Slovenia = ARSO/GURS LiDAR, CC BY 4.0), resampled to ~6.6 m,
-lightly smoothed. The cheapest line from the summit to any path cell, cost per cell = 1 + (tan slope / 0.7)^4
-(steep ground is avoided like a person would). Along that line the crux = steepest 25 m stretch (mean slope).
+slope averaged over ~20 m. Searched for the EASIEST possible line, from any side, to any mapped way within ~2.5 km:
+the smallest angle a for which ground no steeper than a connects the summit with a path (minimax / bottleneck path,
+binary search on a + flood fill). a = crux of the easiest line; its length = shortest way through that ground.
+Ground type (ESA WorldCover 10 m) changes the felt angle before that: forest −8°, shrubs −3°, grass 0, bare rock / scree
++4°, snow / ice +6° — steep forest is less serious than steep alpine rock. "deg" is that effective angle, "lc" the ground at the crux.
 Grade from the crux angle (calibration below; hand fixes go to data/tech_overrides.json, they win):
   < 20° T2 (easy pathless)  · < 28° T3 · < 36° T4 (steep grass / easy rock) · < 44° T5 (scrambling) · ≥ 44° T6
 Output data/offtrail.json: {peak_id: {"s": T 2..6, "deg": crux °, "g": pathless metres, "d": straight distance to the path}}
@@ -24,7 +27,7 @@ from skimage.graph import MCP_Geometric
 
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TS, Z, URL = 512, 14, 'https://tiles.mapterhorn.com/{z}/{x}/{y}.webp'
-MIN_GAP, HALF = 30, 1800          # m: summit this far from a path counts as off-trail; window half size around the summit
+MIN_GAP, HALF = 30, 2500          # m: summit this far from a path counts as off-trail; window half size around the summit
 STEP = 2                          # z14 px per grid cell (~6.6 m)
 BANDS = [(20, 2), (28, 3), (36, 4), (44, 5)]   # crux angle limit -> T
 
@@ -34,6 +37,33 @@ def my(lat):
 def ilat(py):
     n = math.pi - 2 * math.pi * py / ((2 ** Z) * TS); return math.degrees(math.atan(math.sinh(n)))
 def ilon(px): return px / ((2 ** Z) * TS) * 360.0 - 180.0
+
+# land cover: ESA WorldCover 2021 10 m (CC BY 4.0, © ESA WorldCover project / Copernicus Sentinel data), read by window over HTTP.
+# 10 trees · 20 shrubs (incl. dwarf pine) · 30 grass · 40 crops · 50 built · 60 bare / sparse (rock, scree) · 70 snow / ice · 80 water · 100 moss
+WC = 'https://esa-worldcover.s3.eu-central-1.amazonaws.com/v200/2021/map/ESA_WorldCover_10m_2021_v200_N{la:02d}E{lo:03d}_Map.tif'
+# steepness felt on that ground: forest holds soil and gives hand holds (less serious), rock / snow / ice is more serious
+LC_ADJ = {10: -8.0, 20: -3.0, 30: 0.0, 40: 0.0, 50: -5.0, 60: 4.0, 70: 6.0, 80: 0.0, 100: 0.0, 0: 0.0}
+LC_NAME = {10: 'gozd', 20: 'grmovje', 30: 'trava', 60: 'skala', 70: 'sneg'}
+def landcover(lat, lon, fake):
+    """WorldCover classes for a (lat, lon) grid; 0 where unknown."""
+    out = np.zeros(lat.shape, np.uint8)
+    if fake:
+        out[:] = 30; out[(np.sin(lon * 900) > .3)] = 10; out[(np.cos(lat * 700) > .6)] = 60; return out
+    try: import rasterio; from rasterio.windows import from_bounds
+    except Exception as e: print('no rasterio:', e); return out
+    for la0 in range(int(lat.min() // 3 * 3), int(lat.max() // 3 * 3) + 1, 3):
+        for lo0 in range(int(lon.min() // 3 * 3), int(lon.max() // 3 * 3) + 1, 3):
+            m = (lat >= la0) & (lat < la0 + 3) & (lon >= lo0) & (lon < lo0 + 3)
+            if not m.any(): continue
+            try:
+                with rasterio.open('/vsicurl/' + WC.format(la=la0, lo=lo0)) as ds:
+                    w, e_, s_, n_ = lon[m].min(), lon[m].max(), lat[m].min(), lat[m].max()
+                    win = from_bounds(w - .001, s_ - .001, e_ + .001, n_ + .001, ds.transform).round_offsets().round_lengths()
+                    a = ds.read(1, window=win); T = ds.window_transform(win)
+                    c = ((lon[m] - T.c) / T.a).astype(int); r = ((lat[m] - T.f) / T.e).astype(int)
+                    ok = (r >= 0) & (r < a.shape[0]) & (c >= 0) & (c < a.shape[1]); v = np.zeros(r.shape, np.uint8); v[ok] = a[r[ok], c[ok]]; out[m] = v
+            except Exception as e: print('worldcover', la0, lo0, e, flush=True)
+    return out
 
 CACHE = {}
 def tile(x, y, fake):
@@ -92,14 +122,37 @@ def grade(p, W, fake):
     if not tgt.any(): return {'none': 1}
     ys, xs = np.nonzero(tgt); d0 = float(np.min(np.hypot(ys - sr, xs - sc)) * cell)
     if d0 < MIN_GAP: return {'d': round(d0)}
-    cost = 1 + (np.tan(np.radians(sl)) / 0.7) ** 4
+    # easiest possible line = the one whose steepest bit is the gentlest (bottleneck / minimax path), not the cheapest sum:
+    # find the smallest angle a such that ground no steeper than a connects the summit with a mapped path.
+    # Slope is averaged over 3 × 3 cells (~20 m) so one noisy LiDAR cell or a 2 m step does not decide the grade.
+    # ground type per cell -> felt steepness ("effective angle")
+    rows = np.array([ilat(y0 + (i + .5) * STEP) for i in range(h.shape[0])]); cols = np.array([ilon(x0 + (j + .5) * STEP) for j in range(h.shape[1])])
+    LA, LO = np.meshgrid(rows, cols, indexing='ij'); lc = landcover(LA, LO, fake)
+    adj = np.vectorize(lambda v: LC_ADJ.get(int(v), 0.0), otypes=[np.float32])(lc)
+    sl = np.maximum(sl + adj, 0)
+    s3 = ndimage.uniform_filter(sl, 3); seed = np.zeros(h.shape, bool); seed[max(0, sr - 1):sr + 2, max(0, sc - 1):sc + 2] = True
+    def joins(a):
+        lab, _ = ndimage.label((s3 <= a) | seed, structure=np.ones((3, 3)))
+        k = lab[sr, sc]; return k > 0 and bool((lab[tgt] == k).any())
+    lo, hi = 0.0, 80.0
+    if not joins(hi): return {'none': 1, 'd': round(d0)}
+    while hi - lo > 0.5:
+        mid = (lo + hi) / 2
+        if joins(mid): hi = mid
+        else: lo = mid
+    crux = hi
+    # the line itself (for its length): shortest way through the allowed ground, gentler cells preferred
+    ok = (s3 <= crux + 0.01) | seed
+    cost = np.where(ok, 1 + (s3 / max(crux, 1)) ** 2, 1e6)
     m = MCP_Geometric(cost); acc, _ = m.find_costs([(sr, sc)], ends=list(zip(ys, xs)), find_all_ends=False)
     acc = np.where(tgt, acc, np.inf); e = np.unravel_index(np.argmin(acc), acc.shape)
-    path = np.array(m.traceback(e)); seg = np.hypot(*np.diff(path, axis=0).T) * cell; L = float(seg.sum())
-    s = sl[path[:, 0], path[:, 1]]; win = max(1, int(round(25 / cell)))
-    crux = float(np.max(np.convolve(s, np.ones(win) / win, mode='valid'))) if len(s) >= win else float(s.max())
+    path = np.array(m.traceback(e)); L = float((np.hypot(*np.diff(path, axis=0).T) * cell).sum()) if len(path) > 1 else 0.0
     T = next((t for lim, t in BANDS if crux < lim), 6)
-    return {'s': T, 'deg': round(crux), 'g': round(L), 'd': round(d0)}
+    # ground at the crux of that line (most common class along the cells within 1° of the crux)
+    pc = path[np.abs(s3[path[:, 0], path[:, 1]] - crux) <= 1.5] if len(path) else path
+    vals = lc[pc[:, 0], pc[:, 1]] if len(pc) else lc[path[:, 0], path[:, 1]]
+    lk = int(np.bincount(vals).argmax()) if len(vals) else 0
+    return {'s': T, 'deg': round(crux), 'g': round(L), 'd': round(d0), 'lc': LC_NAME.get(lk, '')}
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--only', default=''); ap.add_argument('--fake', action='store_true'); a = ap.parse_args()
