@@ -188,7 +188,7 @@ window.gpsHint = () => { if (!IN_APP || gWatch || get('dvat3d_gpshint') === toda
 // ---------- 📲 home-screen widget "Potrdi vrh" (Android app, app/native): one tap = GPS fix -> nearest summit -> confirmed.
 // It runs without this page, so it gets its own key (supabase/10_widget.sql: widget_key_create); the phone keeps the key.
 const WGP = CAPN ? capPlugin('SummitWidget') : null;
-async function wgFill(){ const E = $a('meWg'); if (!E) return;
+async function wgFill(){ const E = $a('setWg'); if (!E) return;
   const old = () => { E.innerHTML = `<div class="nb">${L('Pripomoček ima nova različica aplikacije — Nastavitve → 📱 Android aplikacija.','The widget needs the new app version — Settings → 📱 Android app.')}</div>`; };
   if (!WGP) return old();
   let st; try{ st = await WGP.status(); }catch(_){ return old(); }
@@ -208,6 +208,7 @@ async function wgFill(){ const E = $a('meWg'); if (!E) return;
     wgFill(); };
   const pin = small => WGP.pin({small}).then(r => { if (!r || !r.ok) toast(L('Dolgo pritisni prazen del domačega zaslona → Pripomočki → 2000-čaki.','Long-press an empty spot on the home screen → Widgets → 2000-čaki.')); }).catch(() => {});
   const p1 = $a('wgPin'), p2 = $a('wgPinS'); if (p1) p1.onclick = () => pin(false); if (p2) p2.onclick = () => pin(true); }
+window.onSettingsOpen = () => { if (IN_APP) wgFill(); };
 async function flushVQ(){ if (!VQ.length) return; const keep = [];
   for (const q of VQ){ try{ await rpc('verify_ascent', q, true); }
     catch(e){ const m = String(e.message || ''); if (/too far|inaccurate|unknown peak|bad time/.test(m)){ delete VER[q.pid]; continue; }   // the server says no
@@ -1047,9 +1048,7 @@ async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC()
     ${ac(`🗺 ${L('Moje poti','My routes')} (${MY.length})`, MY.length ? MY.slice().reverse().slice(0, 30).map((r, j) => { const i = MY.length - 1 - j, km = r.coords && r.coords.length > 1 ? lineKm(r.coords) : 0;
         return `<div class="it"><div><a data-rt="${i}">${esc(r.name || L('Pot','Route'))}</a> <small class="nb">${km.toFixed(1)} km${r.vis && r.vis !== 'private' ? ' · ' + (r.vis === 'public' ? L('javna','public') : L('s povezavo','link')) : ''}</small></div><span><a data-gpx="${i}">GPX</a></span></div>`; }).join('')
         : `<div class="nb">${L('Nariši pot z ✏️ Riši pot in jo shrani.','Draw a route with ✏️ Draw route and save it.')}</div>`)}
-    ${IN_APP ? ac(`📲 ${L('Pripomoček »Potrdi vrh«','Widget “Confirm summit”')}`, `<div id="meWg"><div class="nb">…</div></div>`) : ''}
     <div id="meSoc">${S ? `<div class="nb">…</div>` : ac(`👥 ${L('Prijatelji in skupine','Friends & groups')}`, `<div class="nb">${L('Za prijatelje, skupine in lestvico potrebuješ račun.','Friends, groups and the leaderboard need an account.')}</div>`)}</div>`;
-  if (IN_APP) wgFill();
   const bind = () => { B.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
     B.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, meOpen));
     B.querySelectorAll('[data-g]').forEach(a => a.onclick = () => { soShell('gr'); grView(a.dataset.g); }); };

@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.90 — 2026-11-16
+- One sliding-window behaviour for the trip plan and ✏️ Riši (phone): peek · half · full, swipe all the way down = hidden with a
+  pill above the bar (tap = back). Works the same with or without points; half and full have fixed heights (55 % / all free
+  space) instead of following the content. The handle and title row own the gesture (pointer capture, no page scrolling), and a
+  cancelled touch still counts its last move — the "finicky" swipes. Moving the map shrinks it to peek. PC: always full, ‹ hides.
+- Riši: summary + tools in peek, follow / colours / profile in half, help and My routes in full; ▾ hides it while drawing stays on.
+- Widget "Potrdi vrh" switch moved to ⚙ Nastavitve (app only); texts in the widget point there.
+- Guide brought up to date: routes window hides other trails, Riši window heights, new step 🗓 Načrt ture (search adds stops,
+  day chips, hide to the map), widget step (app only), 360° zoom tip, settings list. 18 steps in the app, 17 on the web.
+
 ## web-v0.89 + app — 2026-11-16
 - Trip planner is one sheet with four heights on the phone: hidden (a pill above the bar: "Načrt · 2 dni · 24,8 km", tap = back),
   peek (name, time / length / ascent / hardest, day chips), half (stops, add, days), full (overnight options, walking per day,

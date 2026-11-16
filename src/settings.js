@@ -58,6 +58,7 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="q" style="margin-top:8px">${L('Tema','Theme')}</div>
   <div class="tchips" id="setTheme" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">${[['auto', L('Samodejno','Automatic')], ['light', L('Svetla','Light')], ['dark', L('Temna','Dark')]].map(([v, t]) =>
     `<button type="button" data-v="${v}" class="${(window.THEME || 'auto') === v ? 'on' : ''}" style="padding:7px 12px;border-radius:16px;border:1px solid var(--line);background:${(window.THEME || 'auto') === v ? 'var(--accent,#1565c0)' : 'transparent'};color:${(window.THEME || 'auto') === v ? '#fff' : 'inherit'};font:inherit;cursor:pointer">${t}</button>`).join('')}</div>
+  ${window.Capacitor || / Dvat2000App/.test(navigator.userAgent) ? `<h4>📲 ${L('Pripomoček »Potrdi vrh«','Widget “Confirm summit”')}</h4><div id="setWg" class="advbox"><div class="hint">…</div></div>` : ''}
   <h4>${L('Napredno','Advanced')}</h4><div class="advbox" id="setAdv"></div></div>`;
 document.body.append(win);
 const paintChips = () => win.querySelectorAll('.chips[data-k]').forEach(c => { const k = c.dataset.k, v = k === 'ferrata' ? (P.ferrata ? 1 : 0) : P[k];
@@ -70,7 +71,7 @@ $s('setTheme').onclick = e => { const b = e.target.closest('button[data-v]'); if
   $s('setTheme').querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.style.background = on ? 'var(--accent,#1565c0)' : 'transparent'; x.style.color = on ? '#fff' : 'inherit'; }); };
 $s('setV2').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; try{ localStorage.setItem('dvat3d_v2', b.dataset.v); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
-const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); };
+const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); window.onSettingsOpen && window.onSettingsOpen(); };
 const close = () => win.classList.remove('on');
 window.openSettings = open; window.closeSettings = close;
 win.querySelector('.x').onclick = close; win.onclick = e => { if (e.target === win) close(); };

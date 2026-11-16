@@ -56,7 +56,7 @@ public class UploadWorker extends Worker {
           if ("key".equals(why)) {
             WidgetStore.sp(c).edit().putBoolean("enabled", false).apply();
             WidgetStore.notify(c, 4802, WidgetStore.t(c, "Pripomoček je treba znova vklopiti", "Turn the widget on again"),
-              WidgetStore.t(c, "V aplikaciji: Jaz → Pripomoček.", "In the app: Me → Widget."));
+              WidgetStore.t(c, "V aplikaciji: Nastavitve → Pripomoček.", "In the app: Settings → Widget."));
             SummitWidget.updateAll(c);
           } else {
             String name = r.optString("name", o.optString("name"));

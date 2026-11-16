@@ -13,7 +13,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
-/** The page's side of the widget (account.js, Jaz → Pripomoček): switch on with a widget key, switch off, status, add to the home screen. */
+/** The page's side of the widget (account.js, Nastavitve → Pripomoček): switch on with a widget key, switch off, status, add to the home screen. */
 @CapacitorPlugin(name = "SummitWidget", permissions = {
   @Permission(alias = "location", strings = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}),
   @Permission(alias = "notifications", strings = {"android.permission.POST_NOTIFICATIONS"})

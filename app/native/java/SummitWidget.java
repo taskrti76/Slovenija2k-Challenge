@@ -23,7 +23,7 @@ public class SummitWidget extends AppWidgetProvider {
     String label, name, line, pill;
     if (!on) {
       label = WidgetStore.t(c, "Izklopljeno", "Off"); name = WidgetStore.t(c, "Potrdi vrh", "Confirm summit");
-      line = WidgetStore.t(c, "Vklopi v aplikaciji: Jaz → Pripomoček", "Turn on in the app: Me → Widget"); pill = "";
+      line = WidgetStore.t(c, "Vklopi v aplikaciji: Nastavitve → Pripomoček", "Turn on in the app: Settings → Widget"); pill = "";
     } else if (!s.contains("kind")) {
       label = WidgetStore.t(c, "Potrdi vrh", "Confirm summit"); name = WidgetStore.t(c, "Tapni markacijo", "Tap the blaze");
       line = WidgetStore.t(c, "na vrhu, do 80 m od njega", "on the summit, within 80 m"); pill = "";

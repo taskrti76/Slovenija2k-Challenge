@@ -16,7 +16,7 @@ import androidx.core.content.ContextCompat;
 public class VerifyActivity extends Activity {
   @Override protected void onCreate(Bundle b) {
     super.onCreate(b);
-    if (!WidgetStore.on(this)) {   // not set up: open the app (Jaz → Pripomoček)
+    if (!WidgetStore.on(this)) {   // not set up: open the app (Nastavitve → Pripomoček)
       startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
       finish(); return;
     }

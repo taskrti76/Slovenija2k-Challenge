@@ -265,7 +265,7 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
         const top = sr ? sr.bottom + 8 : 8; let mh = Math.max(160, H - (bot || 0) - top);
-        if (id === 'plCard' && c.dataset.st === 'half') mh = Math.min(mh, Math.max(260, Math.round(mh * 0.6)));   // trip plan: half height, the map stays above
+        if (c.dataset.st === 'half') mh = Math.min(mh, Math.max(260, Math.round(mh * 0.55)));   // sliding sheets (plan, drawing): half height, the map stays above
         // summit routes upright: at most ~half the screen (it scrolls inside), so the routes stay visible on the map above it
         if (id === 'rcard' && bot != null) mh = Math.min(mh, Math.max(220, Math.round(mh * 0.55)));
         setP(c, 'max-height', mh + 'px'); }
@@ -273,6 +273,7 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
         const r = c.getBoundingClientRect();
         if (r.left < sr.right && sr.left < r.right && r.top < sr.bottom + 6 && r.bottom > sr.top){ c.style.top = Math.round(sr.bottom + 10) + 'px'; c.style.bottom = 'auto';
           c.style.maxHeight = Math.round(H - sr.bottom - 22) + 'px'; } } } };
+  window.dodgeNow = () => setTimeout(dodge, 0);
   setInterval(dodge, 300); addEventListener('resize', () => { CARDS.forEach(id => { const c = $(id); if (c) delete c.dataset.dgs; }); setTimeout(dodge, 60); }); }
 
 // ---------- phone: the peak window is a compact sheet (bottom upright, left side sideways); the peak moves into the free
