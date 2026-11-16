@@ -103,13 +103,52 @@ jobs:
               if (land) { c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE); c.hide(WindowInsetsCompat.Type.systemBars()); }
               else c.show(WindowInsetsCompat.Type.systemBars());
             }
-            @Override public void onCreate(Bundle b) { super.onCreate(b); bars(); }
+            @Override public void onCreate(Bundle b) { registerPlugin(WidgetBridge.class); super.onCreate(b); bars(); }
             @Override public void onConfigurationChanged(Configuration n) { super.onConfigurationChanged(n); bars(); }
             @Override public void onWindowFocusChanged(boolean f) { super.onWindowFocusChanged(f); if (f) bars(); }
           }
           ''')
           PY
           cat "$M"
+          # home-screen widget "Potrdi vrh" (app/native: Java + res; supabase/10_widget.sql): code next to MainActivity, resources,
+          # the app's own peak list for the nearest summit, manifest entries, WorkManager (sends fixes once there is signal)
+          D=$(dirname "$M"); PKG=$(grep -m1 '^package ' "$M")
+          for f in native/java/*.java; do sed "1s/^package .*/$PKG/" "$f" > "$D/$(basename "$f")"; done
+          cp -r native/res/. $A/src/main/res/
+          mkdir -p $A/src/main/assets
+          python3 - <<'PY'
+          import json
+          P = json.load(open('../src/peaks_final.json', encoding='utf8')) + json.load(open('../src/peaks_extra.json', encoding='utf8'))
+          out, seen = [], set()
+          for p in P:
+              if p.get('lat') is None or p['id'] in seen: continue
+              seen.add(p['id']); out.append([p['id'], p['name'], round(p.get('elev') or 0), round(p['lat'], 6), round(p['lon'], 6)])
+          json.dump(out, open('android/app/src/main/assets/summits.json', 'w', encoding='utf8'), ensure_ascii=False, separators=(',', ':'))
+          print('summits.json:', len(out), 'peaks')
+          PY
+          python3 - <<'PY'
+          p = 'android/app/src/main/AndroidManifest.xml'; s = open(p, encoding='utf8').read()
+          perms = ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_LOCATION', 'POST_NOTIFICATIONS', 'INTERNET']
+          add = ''.join(f'    <uses-permission android:name="android.permission.{x}" />\n' for x in perms if f'android.permission.{x}"' not in s)
+          s = s.replace('<application', add + '    <application', 1) if add else s
+          comp = """
+                  <receiver android:name=".SummitWidget" android:exported="false" android:label="@string/w_name">
+                      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+                      <meta-data android:name="android.appwidget.provider" android:resource="@xml/summit_widget_info" />
+                  </receiver>
+                  <receiver android:name=".SummitWidgetSmall" android:exported="false" android:label="@string/w_name_small">
+                      <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+                      <meta-data android:name="android.appwidget.provider" android:resource="@xml/summit_widget_small_info" />
+                  </receiver>
+                  <activity android:name=".VerifyActivity" android:exported="false" android:excludeFromRecents="true" android:taskAffinity=""
+                      android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+                  <service android:name=".VerifyService" android:exported="false" android:foregroundServiceType="location" />
+              </application>"""
+          s = s.replace('</application>', comp, 1)
+          open(p, 'w', encoding='utf8').write(s); print(s)
+          PY
+          sed -i "0,/^dependencies {/s//dependencies {\n    implementation 'androidx.work:work-runtime:2.9.1'/" $A/build.gradle
+          grep -n "work-runtime" $A/build.gradle
       - name: Build + sign
         run: |
           cd app/android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon -q
