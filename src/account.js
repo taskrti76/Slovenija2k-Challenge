@@ -598,8 +598,8 @@ setInterval(() => { const W = innerWidth, H = innerHeight, mk = document.getElem
 const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'), () => { document.getElementById('drawer').classList.remove('open'); if (window.DRAW_ON && window.stopDraw) stopDraw(); document.body.classList.add('menu'); }]] : []),
   ['⚙', L('Nastavitve','Settings'), () => (window.openSettings || (() => {}))()],
   ['👤', L('Moj profil','My profile'), () => meOpen()],
-  ['✏️', window.DRAW_ON ? L('Končaj risanje','Stop drawing') : L('Riši pot','Draw route'), () => window.DRAW_ON ? stopDraw() : startDraw()],
-  ['🗓', L('Načrtovalnik','Trip planner'), () => window.planOpen && planOpen()],
+  // 🗓 Načrt = trip planner + drawing in one tool (two modes, trails.js planTool)
+  ['🗓', L('Načrt','Plan'), () => window.planTool ? planTool() : window.planOpen && planOpen()],
   ['🏆', L('Lestvica','Leaderboard'), () => leaderboard()],
   ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
   ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
@@ -1047,7 +1047,7 @@ async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC()
         : `<div class="nb">${L('Še nobenega — odkljukaj vrh v seznamu ali v oknu vrha.','None yet — tick a peak in the list or in its window.')}</div>`)}
     ${ac(`🗺 ${L('Moje poti','My routes')} (${MY.length})`, MY.length ? MY.slice().reverse().slice(0, 30).map((r, j) => { const i = MY.length - 1 - j, km = r.coords && r.coords.length > 1 ? lineKm(r.coords) : 0;
         return `<div class="it"><div><a data-rt="${i}">${esc(r.name || L('Pot','Route'))}</a> <small class="nb">${km.toFixed(1)} km${r.vis && r.vis !== 'private' ? ' · ' + (r.vis === 'public' ? L('javna','public') : L('s povezavo','link')) : ''}</small></div><span><a data-gpx="${i}">GPX</a></span></div>`; }).join('')
-        : `<div class="nb">${L('Nariši pot z ✏️ Riši pot in jo shrani.','Draw a route with ✏️ Draw route and save it.')}</div>`)}
+        : `<div class="nb">${L('Nariši pot v 🗓 Načrt → ✎ Riši in jo shrani.','Draw a route in 🗓 Plan → ✎ Draw and save it.')}</div>`)}
     <div id="meSoc">${S ? `<div class="nb">…</div>` : ac(`👥 ${L('Prijatelji in skupine','Friends & groups')}`, `<div class="nb">${L('Za prijatelje, skupine in lestvico potrebuješ račun.','Friends, groups and the leaderboard need an account.')}</div>`)}</div>`;
   const bind = () => { B.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
     B.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, meOpen));

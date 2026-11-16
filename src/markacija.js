@@ -32,6 +32,27 @@ html.mk.dk #lbPage .sb.pri,html.mk.dk #accWin .go,html.mk.dk #lbPage .sb.sure{ba
 html.mk.dk .maplibregl-popup .wish{background:#24282A!important;border-color:#3A3F3D!important;color:#ECEBE6!important}
 html.mk.dk .maplibregl-popup-content .v2act button.pri,html.mk.dk .card .go,html.mk.dk .maplibregl-popup-content .v2ok{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}html.mk.dk .maplibregl-popup-content .v2act button.pri svg{color:#fff}html.mk.dk .v2act button:not(.pri){color:#ECEBE6!important}html.mk.dk .v2act button:not(.pri) svg{color:#ECEBE6}
 html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
+/* ⚙ Nastavitve in Markacija: same type, outlines, chips and buttons as the rest (it kept the old light card look) */
+html.mk #setWin .setcard{background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;border:2px solid ${INK};border-radius:20px!important;font:400 15px Inter,system-ui,sans-serif!important;box-shadow:0 10px 40px rgba(0,0,0,.3)!important}
+${PH}{ html.mk #setWin .setcard{border-radius:0!important;border:0} }
+html.mk #setWin h3{font:700 28px ${CD}!important;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px!important;color:var(--ink,#141414)}
+html.mk #setWin h4{font:700 16px ${CD}!important;text-transform:uppercase;letter-spacing:.04em;color:var(--ink,#141414)!important;margin:18px 0 8px!important;padding-top:12px;border-top:1px solid var(--line,#E6E3DC)}
+html.mk #setWin .x{color:var(--ink,#141414)!important;font-size:30px!important}
+html.mk #setWin .q{font:600 14px Inter,system-ui,sans-serif!important;color:var(--ink,#141414)!important;margin:12px 0 6px!important}
+html.mk #setWin .hint,html.mk #setWin .nb,html.mk #setWin .advbox .row,html.mk #setWin .advbox div[style*="color"]{font-size:13px!important;line-height:1.45;color:var(--mute,#626870)!important}
+html.mk #setWin .chips,html.mk #setWin .tchips{display:flex;flex-wrap:wrap;gap:6px!important}
+html.mk #setWin .chips button,html.mk #setWin .tchips button{height:36px!important;padding:0 14px!important;border:2px solid ${INK}!important;border-radius:18px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 14px Inter,system-ui,sans-serif!important}
+html.mk #setWin .chips button.on,html.mk #setWin .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
+html.mk #setWin .advbox,html.mk #setWin .advbox label{color:var(--ink,#141414)!important;font-size:15px}
+html.mk #setWin .advbox .btn,html.mk #setWin .advbox .btn2,html.mk #setWin .sb{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin:6px 0!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:22px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 15px Inter,system-ui,sans-serif!important;box-shadow:none!important}
+html.mk #setWin .sb.pri{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
+html.mk #setWin .advbox .btn:hover,html.mk #setWin .sb:hover{background:rgba(127,127,127,.08)!important}html.mk #setWin .sb.pri:hover{background:#A50D26!important}
+html.mk #setWin input[type=checkbox],html.mk #setWin input[type=radio],html.mk #setWin input[type=range]{accent-color:${RED}}
+html.mk #setWin input[type=text],html.mk #setWin input[type=email],html.mk #setWin input[type=password],html.mk #setWin input:not([type]),html.mk #setWin select{min-height:44px;border:2px solid ${INK}!important;border-radius:12px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:400 15px Inter,system-ui,sans-serif!important;padding:0 12px!important;box-sizing:border-box}
+html.mk #setWin #setWg .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line,#E6E3DC);background:none!important;font-size:15px}
+html.mk #setWin #setWg .it b{font-weight:600}html.mk #setWin #setWg label.it b{font:700 18px ${CD};text-transform:uppercase;letter-spacing:.02em}
+html.mk #setWin #setWg input[type=checkbox]{width:22px;height:22px}
+html.mk #setWin #setWg .sb{flex:1 1 auto;margin:0!important}
 html.mk{--acc:${RED};--v2red:${RED};--v2float:0 0 0 2px ${INK};--v2sheet:0 0 0 2px ${INK}}
 html.mk .maplibregl-popup-content{--acc:${RED};border:2px solid ${INK}!important;box-shadow:0 6px 0 rgba(20,20,20,.12)!important;border-radius:18px!important}
 html.mk .maplibregl-popup-tip{display:none}
@@ -160,11 +181,10 @@ dock.onclick = e => { const b = e.target.closest('button'); if (!b) return; cons
   dock.addEventListener('pointerup', e => { if (x0 == null) return; const vert = matchMedia('(max-height:500px) and (pointer:coarse) and (orientation:landscape)').matches;
     const d = vert ? e.clientY - y0 : e.clientX - x0; if (Math.abs(d) > 40) go(PG + (d < 0 ? 1 : -1)); x0 = null; });
   addEventListener('resize', () => go(PG, true)); }
-// the blaze: tap = GPS summit check on/off (it glows while on), hold = the full round menu; the buttons change by swiping the bar
+// the blaze: tap = GPS summit check on/off (it glows while on); the buttons change by swiping the bar
 const fab = $('fab'), fb = fab && fab.querySelector('.fb'); let hold = null, held = false;
 if (fb){
-  fb.addEventListener('pointerdown', () => { held = false; clearTimeout(hold); hold = setTimeout(() => { if (!window.PHONE_UI || !PHONE_UI() || B.classList.contains('touring')) return; held = true; window.__fabOpen && __fabOpen(); }, 550); });
-  addEventListener('pointerup', () => clearTimeout(hold));
+  // (holding the blaze used to open the old round menu; the bar has every item, so the hold does nothing now)
   fab.addEventListener('click', e => { if (!window.PHONE_UI || !PHONE_UI() || fab.classList.contains('open') || B.classList.contains('touring')) return;
     if (!e.target.closest('.fb')) return; e.stopPropagation(); e.preventDefault(); if (held){ held = false; return; } window.gpsToggle && gpsToggle(); }, true);
   // keep the blaze exactly in the middle of the bar's gap (phone upright or sideways, any safe-area)

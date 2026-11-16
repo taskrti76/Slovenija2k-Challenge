@@ -2,6 +2,19 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.91 — 2026-11-16
+- 🗓 Načrt is one tool with two modes (tabs at the top of the window): »Po točkah« (stops -> routed trip, days, overnights) and
+  »✎ Riši« (free drawing). One entry in the bottom bar / left column / round menu instead of Riši + Načrtovalnik; it opens the
+  mode used last. Switching keeps both: the plan stays drawn while you draw, the drawing stays on the map in plan mode.
+- Riši laid out like the plan: name, time · length · ascent · hardest, quick Undo / Delete / Save in the small height, tools +
+  follow + colours + profile in the middle, help + My routes in the full height. Texts in English too.
+- PC: hiding a window (‹) folds it into a narrow strip at the left edge of the map (mode, length, ›) instead of a pill at the
+  bottom; a click opens it again. Phone keeps the pill above the bar.
+- Markacija: holding the blaze no longer opens the old round menu (the bar has every item).
+- Markacija: ⚙ Nastavitve restyled — Barlow headings, 2 px outlines, red chips, round outline buttons, same sizes as the rest,
+  inputs and the widget block included; dark theme follows.
+- Guide: one step for 🗓 Načrt (both modes, hiding on phone and PC); menu lists without ✏️ Riši; no "long press" any more.
+
 ## web-v0.90 — 2026-11-16
 - One sliding-window behaviour for the trip plan and ✏️ Riši (phone): peek · half · full, swipe all the way down = hidden with a
   pill above the bar (tap = back). Works the same with or without points; half and full have fixed heights (55 % / all free

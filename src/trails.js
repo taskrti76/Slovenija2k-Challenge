@@ -1187,7 +1187,10 @@ const sheetCss=document.createElement('style'); sheetCss.textContent=`.card .shh
 #sheetPill{display:none;position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));align-items:center;gap:8px;height:44px;padding:0 6px 0 14px;border-radius:22px;border:2px solid #141414;background:var(--solid,#fff);color:var(--ink,#141414);font:600 13.5px Inter,system-ui,sans-serif;box-shadow:0 4px 14px rgba(16,24,32,.18);cursor:pointer;white-space:nowrap;max-width:calc(100vw - 32px)}
 #sheetPill.on{display:flex}#sheetPill .d{width:10px;height:10px;border-radius:50%;flex:none}#sheetPill .t{overflow:hidden;text-overflow:ellipsis}
 #sheetPill .u{width:30px;height:30px;border-radius:15px;background:#C8102E;color:#fff;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px}
-@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){#sheetPill{left:calc(var(--lw,0px) + 50px);transform:none;bottom:24px}}`;
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){
+  #sheetPill{left:calc(var(--lw,0px) + 14px);top:50%;bottom:auto;transform:translateY(-50%);flex-direction:column;height:auto;width:46px;padding:12px 0;gap:10px;border-radius:23px;max-height:calc(100vh - 140px);max-width:none}
+  #sheetPill b,#sheetPill .t{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap}#sheetPill .t{max-height:220px}
+  #sheetPill .u{transform:rotate(90deg)}#sheetPill:hover{box-shadow:0 6px 18px rgba(16,24,32,.26)}}`;
 document.head.append(sheetCss);
 const SHEETS={}, PILLS={};
 const sheetPill=document.createElement('button'); sheetPill.id='sheetPill'; sheetPill.type='button'; document.body.append(sheetPill);
@@ -1212,43 +1215,64 @@ function sheetize(card,o){ const S={st:'peek'}; try{ const v=localStorage.getIte
   map.on('dragstart',()=>{ if(!DESK()&&card.offsetWidth&&S.st!=='peek'){ S.st='peek'; S.apply(); } });
   SHEETS[o.key]=S; S.apply(); return S; }
 
+// ---------- 🗓 Načrt = one tool, two modes: »Po točkah« (stops -> routed trip with days, the planner) and »Riši« (free drawing) ----------
+const PMK='dvat3d_pmode'; const pmGet=()=>{ try{ return localStorage.getItem(PMK)==='draw'?'draw':'plan'; }catch(_){ return 'plan'; } };
+const pmSet=m=>{ try{ localStorage.setItem(PMK,m); }catch(_){} };
+function pmTabs(cur){ return `<div class="pmode" role="tablist" aria-label="Način"><button role="tab" data-pm="plan" aria-selected="${cur==='plan'}" class="${cur==='plan'?'on':''}">${LP('Po točkah','By stops')}</button><button role="tab" data-pm="draw" aria-selected="${cur==='draw'}" class="${cur==='draw'?'on':''}">✎ ${LP('Riši','Draw')}</button></div>`; }
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('.pmode button[data-pm]'); if(!b||b.classList.contains('on')) return; e.preventDefault(); pmSwitch(b.dataset.pm); });
+function pmSwitch(m){ if(m==='draw'){ startDraw(); } else { if(window.DRAW_ON) stopDraw(); planOpen(); } }
+// menus (bottom bar, left column, round menu): one entry, opens the mode used last
+window.planTool=()=>{ if(pmGet()==='draw') startDraw(); else planOpen(); };
+window.planToolOn=()=>!!(window.DRAW_ON||(window.planActive&&planActive()));
+const pmCss=document.createElement('style'); pmCss.textContent=`.card .pmode{display:flex;gap:4px;padding:3px;margin:2px 0 8px;border-radius:12px;background:rgba(127,127,127,.12)}
+.card .pmode button{flex:1;border:0;border-radius:9px;background:transparent;color:inherit;font:600 .92em Inter,system-ui,sans-serif;padding:7px 6px;cursor:pointer;opacity:.75}
+.card .pmode button.on{background:var(--solid,#fff);opacity:1;box-shadow:0 1px 3px rgba(16,24,32,.18)}
+html.mk .card .pmode{background:transparent;border:2px solid var(--ink,#141414);border-radius:20px;padding:2px}html.mk .card .pmode button{border-radius:16px}
+html.mk .card .pmode button.on{background:var(--ink,#141414);color:var(--solid,#fff);box-shadow:none}
+.card .plsum{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin:2px 0 6px}.card .plsum b{display:block;font-size:1.1em;white-space:nowrap}.card .plsum small{color:var(--mute);font-size:.78em}.card .plsum .one{flex:1 1 100%;color:var(--mute);font-size:.92em}
+#dcard .plb{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}#dcard .plb button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:8px;padding:6px 9px;font:inherit;cursor:pointer}#dcard .plb button:disabled{opacity:.45}
+.card:not(.s-peek) .onlyPeek{display:none!important}`; document.head.append(pmCss);
 function drawRender(){
   setDrawData();
   const card=el('dcard'), strip=el('dprof');
   if(!window.DRAW_ON){ card.style.display='none'; strip.style.display='none'; pillSet('draw',null); return; }
   card.style.display=D.hid?'none':'block'; if(DSH) DSH.apply();
   const c=drawCoords(); let km=0; for(let i=1;i<c.length;i++) km+=hav(c[i-1][1],c[i-1][0],c[i][1],c[i][0])/1000; const P=D.P;
-  const stats=D.pts.length?`<span><b>${km.toFixed(2)}</b> km</span>${P?`<span>↑ <b>${Math.round(P.up)}</b> m</span><span>↓ <b>${Math.round(P.down)}</b> m</span><span>⏱ <b>${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}</b></span>`:''}`:'<span>Klik na karto = nova točka</span>';
-  // desktop: elevation profile as a strip along the bottom (gpx.studio style)
-  strip.style.display='none'; // profile now lives inside the drawing window
-  const statBlock=`<div class="ps">${stats}</div>`, profBlock=(c.length>1?`<div class="phd"><button class="lnk pt" onclick="profToggle()">${PROFMIN?'▸ Pokaži profil':'▾ Višinski profil'}</button></div>`+
-      (PROFMIN?'':(P?`<div class="prof">${profileSVG(P,DESK()?316:300,84)}${profStats(P)}</div>`:'<div class="pw">Računam profil …</div>')):'');
-  pillSet('draw',D.hid?`<b>✎ ${LP('Riši','Draw')}</b><span class="t">${D.pts.length?km.toFixed(2)+' km':LP('ni točk','no points')}</span>`:null,()=>drawMin(false),LP('Odpri risanje','Open drawing'));
+  const fk=(window.PROFILE&&window.PROFILE.fitK)||1, sac=P&&P.sac?Math.max(0,...P.sac):0;
+  // summary like the trip plan: time · length · ascent · hardest
+  const sum=D.pts.length>1?`<div><b>${P?fmtT(profT(P)*fk):'…'}</b><small>${LP('hoje','walking')}</small></div><div><b>${km.toFixed(2)} km</b><small>${LP('dolžina','length')}</small></div><div><b>${P?'↑ '+Math.round(P.up)+' m':'…'}</b><small>${LP('vzpon','ascent')}</small></div><div><b>${sac?SACT[sac]:'–'}</b><small>${LP('najtežje','hardest')}</small></div>`
+    :`<div class="one">${D.pts.length?LP('Tapni še eno točko — pot sama sledi potem in cestam.','Tap one more point — the line follows trails and roads.'):LP('Tapni karto za prvo točko.','Tap the map for the first point.')}</div>`;
+  strip.style.display='none'; // profile lives inside the window
+  const profBlock=(c.length>1?`<div class="phd"><button class="lnk pt" onclick="profToggle()">${PROFMIN?'▸ '+LP('Pokaži profil','Show profile'):'▾ '+LP('Višinski profil','Height profile')}</button></div>`+
+      (PROFMIN?'':(P?`<div class="prof">${profileSVG(P,DESK()?316:300,84)}${profStats(P)}</div>`:`<div class="pw">${LP('Računam profil …','Working out the profile …')}</div>`)):'');
+  pillSet('draw',D.hid?`<b>${LP('Načrt','Plan')}</b><span class="t">✎ ${D.pts.length?km.toFixed(2)+' km':LP('ni točk','no points')}</span>`:null,()=>drawMin(false),LP('Odpri risanje','Open drawing'));
   const tool=(fn,ic,lab,dis,extra='')=>`<button class="tb" onclick="${fn}" ${dis?'disabled':''} title="${lab}" ${extra}><span>${ic}</span><em>${lab}</em></button>`;
-  const tools=tool('drawUndo()','↶','Razveljavi',!D.hist.length)+
-    tool('drawDelSel()','🗑',D.sel>=0?'Izbriši izbrano':'Izbriši zadnjo',!D.pts.length)+
-    tool('drawReverse()','⇄','Obrni',D.pts.length<2)+
-    tool('drawClear()','✕','Počisti',!D.pts.length)+
+  const tools=tool('drawUndo()','↶',LP('Razveljavi','Undo'),!D.hist.length)+
+    tool('drawDelSel()','🗑',D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Izbriši zadnjo','Delete last'),!D.pts.length)+
+    tool('drawReverse()','⇄',LP('Obrni','Reverse'),D.pts.length<2)+
+    tool('drawClear()','✕',LP('Počisti','Clear'),!D.pts.length)+
     tool('drawGPX()','⬇','GPX',c.length<2)+
-    tool('drawSave()','💾',D.edit>=0?'Shrani':'Shrani',c.length<2);
-  card.innerHTML=`${shHandle()}<div class="rh"><b class="pln">${D.edit>=0?'✎ '+esc(MY[D.edit].name):'✎ Risanje poti'}</b><button class="x" onclick="drawMin(true)" aria-label="Skrij (risanje ostane vklopljeno)" title="Skrij">${DESK()?'‹':'▾'}</button><button class="x" onclick="stopDraw()" aria-label="Končaj risanje">×</button></div>
+    tool('drawSave()','💾',LP('Shrani','Save'),c.length<2);
+  const quick=`<div class="plb onlyPeek"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Zadnjo','Last')}</button><button onclick="drawSave()" ${c.length<2?'disabled':''}>💾 ${LP('Shrani','Save')}</button></div>`;
+  card.innerHTML=`${shHandle()}<div class="rh"><b class="pln">${D.edit>=0?esc(MY[D.edit].name):LP('Načrt ture','Trip plan')}</b><button class="x" onclick="drawMin(true)" aria-label="${LP('Skrij (risanje ostane vklopljeno)','Hide (drawing stays on)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" onclick="stopDraw()" aria-label="${LP('Končaj risanje','Stop drawing')}">×</button></div>
+    ${pmTabs('draw')}
     ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha.
       <div class="rb"><button class="pri" onclick="adminDrawSave()" ${drawCoords().length<2?'disabled':''}>💾 Shrani za vse</button><button onclick="adminDrawCancel()">Prekliči</button></div>${D.adm.err?`<div class="aerr">${esc(D.adm.err)}</div>`:''}</div>`:''}
-    ${statBlock}
-    <div class="tbar">${tools}</div>
-    <div class="sL"><label class="sw"><input type="checkbox" id="dfollow" ${D.follow?'checked':''}><i></i> Sledi potem in cestam</label>
-    <div class="cols">Barva: ${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
+    <div class="plsum">${sum}</div>
+    ${quick}
+    <div class="sL"><div class="tbar">${tools}</div><label class="sw"><input type="checkbox" id="dfollow" ${D.follow?'checked':''}><i></i> ${LP('Sledi potem in cestam','Follow trails and roads')}</label>
+    <div class="cols">${LP('Barva','Colour')}: ${DCOLS.map(([c,n])=>`<button class="cs${c===DCOL?' on':''}" style="background:${c}" title="${n}" aria-label="${n}" onclick="setDrawColor('${c}')"></button>`).join('')}</div>
     ${profBlock}
-    ${D.edit>=0?'<div class="rb"><button onclick="drawSaveNew()">Shrani kot novo</button></div>':''}</div>
-    <div class="sO"><details class="hlp"><summary>Pomoč</summary>Vleci točko = premakni · klik na črto = vrini točko · klik na točko = izberi; Delete / desni klik / dvoklik = izbriši · Ctrl+Z razveljavi. Polna črta = po poti, črtkana = ravna črta.</details>
-    ${MY.length?`<div class="rg2">Moje poti</div>`+MY.map((r,i)=>`<div class="my"><span class="mn" title="${esc(r.name)}"><i>${esc(r.name)}</i></span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}</div>`;
+    ${D.edit>=0?`<div class="rb"><button onclick="drawSaveNew()">${LP('Shrani kot novo','Save as new')}</button></div>`:''}</div>
+    <div class="sO"><details class="hlp"><summary>${LP('Pomoč','Help')}</summary>${LP('Vleci točko = premakni · klik na črto = vrini točko · klik na točko = izberi; Delete / desni klik / dvoklik = izbriši · Ctrl+Z razveljavi. Polna črta = po poti, črtkana = ravna črta.','Drag a point = move · click the line = insert a point · click a point = select; Delete / right click / double click = delete · Ctrl+Z undo. Solid line = along a trail, dashed = straight.')}</details>
+    ${MY.length?`<div class="rg2">${LP('Moje poti','My routes')}</div>`+MY.map((r,i)=>`<div class="my"><span class="mn" title="${esc(r.name)}"><i>${esc(r.name)}</i></span><button title="Pokaži" onclick="myShow(${i})">↗</button><button title="Uredi" onclick="myEdit(${i})">✎</button><button onclick="myGPX(${i})">GPX</button><button title="Deli (povezava / javno)" onclick="myShare&&myShare(${i})">${r.vis==='public'?'🌐':r.vis==='link'?'🔗':'⤴'}</button><button title="Izbriši" onclick="myDel(${i})">✕</button></div>`).join(''):''}</div>`;
   el('dfollow').onchange=e=>{ D.follow=e.target.checked; };
 }
 addEventListener('resize',()=>{ if(window.DRAW_ON) drawRender(); });
 let profTimer=null;
 function drawChanged(){ D.P=null; drawRender(); clearTimeout(profTimer); const c=drawCoords(); if(c.length<2) return;
   profTimer=setTimeout(async()=>{ D.P=await profile(c); drawRender(); },300); }
-window.startDraw=()=>{ ensureGraph(); window.DRAW_ON=true; D.hid=false; document.body.classList.add('drawing'); document.body.classList.remove('menu'); if(popup) popup.remove(); map.getCanvas().style.cursor='crosshair'; map.doubleClickZoom.disable(); el('drawBtn').textContent='Končaj risanje'; drawRender(); };
+window.startDraw=()=>{ pmSet('draw'); if(window.planActive&&planActive()) planQuiet(); ensureGraph(); window.DRAW_ON=true; D.hid=false; document.body.classList.add('drawing'); document.body.classList.remove('menu'); if(popup) popup.remove(); map.getCanvas().style.cursor='crosshair'; map.doubleClickZoom.disable(); el('drawBtn').textContent='Končaj risanje'; drawRender(); };
 window.stopDraw=()=>{ D.adm=null; window.DRAW_ON=false; document.body.classList.remove('drawing'); D.sel=-1; map.getCanvas().style.cursor=''; map.doubleClickZoom.enable(); el('drawBtn').textContent='Riši pot'; drawRender(); };
 window.drawMin=v=>{ D.hid=!!v; if(!v&&DSH&&DSH.st==='peek'&&!DESK()) DSH.apply(); drawRender(); };
 let DSH=null; setTimeout(()=>{ DSH=sheetize(el('dcard'),{key:'draw',hide:()=>drawMin(true)}); },0);
@@ -1405,9 +1429,7 @@ const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:
 #plCard .plb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}#plCard .tot{font-weight:600;margin:6px 0}
 /* one sheet, four heights (phone): hidden (pill) · peek (summary) · half (stops + days) · full (options, profiles, export); PC: always full, ‹ folds it to the pill */
 #plCard .rh b.pln{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#plCard .plsum{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin:2px 0 6px}
-#plCard .plsum b{display:block;font-size:1.1em;white-space:nowrap}#plCard .plsum small{color:var(--mute);font-size:.78em}
-#plCard .plsum .one{flex:1 1 100%;color:var(--mute);font-size:.92em}
+
 #plCard .pldays{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}#plCard .pldays button{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:transparent;color:inherit;border-radius:16px;padding:5px 11px;font:inherit;font-size:.9em;font-weight:600;cursor:pointer}
 #plCard .pldays button.on{background:#1d2321;color:#fff;border-color:#1d2321}#plCard .pldays i{width:10px;height:10px;border-radius:50%;flex:none}
 #plCard .pday b{white-space:normal;overflow-wrap:anywhere}#plCard .pday .st,#plCard .pday .sl{overflow-wrap:anywhere}
@@ -1427,8 +1449,10 @@ let PLI=null;
 const nearNamed=(la,lo)=>{ let b=null,bd=400; for(const [,o] of (PLI||(PLI=plIndex()))){ const d=hav(la,lo,o.lat,o.lon); if(d<bd){ bd=d; b=o; } } return b; };
 window.planAdd=o=>{ if(!o) return; PL.stops.push({name:o.name,lat:+o.lat.toFixed(6),lon:+o.lon.toFixed(6),k:o.k||'pt'}); PL.stops=PL.stops.slice(0,12); PLR=null; plSave(); planOpen(); plDraw(); };
 window.planAddPeak=id=>{ const p=byId[id]; if(p) planAdd({name:p.name.split(' (')[0],lat:p.lat,lon:p.lon,k:'peak'}); };
-window.planOpen=()=>{ plHid=false; plCard.classList.add('on'); document.body.classList.remove('menu'); if(popup) popup.remove(); PLS.apply(); plRender(); plPillUpd(); window.searchPh&&searchPh(LP('Dodaj točko: vrh, koča, kraj','Add a stop: peak, hut, place')); };
+window.planOpen=()=>{ pmSet('plan'); if(window.DRAW_ON) stopDraw(); plHid=false; plCard.classList.add('on'); document.body.classList.remove('menu'); if(popup) popup.remove(); PLS.apply(); plRender(); plPillUpd(); window.searchPh&&searchPh(LP('Dodaj točko: vrh, koča, kraj','Add a stop: peak, hut, place')); };
 window.planActive=()=>plCard.classList.contains('on');
+// switching to »Riši«: the window goes, the plan stays drawn on the map (no pill: the drawing window is the one open)
+window.planQuiet=()=>{ plCard.classList.remove('on'); plHid=false; plPick=false; map.getCanvas().style.cursor=''; pillSet('plan',null); window.searchPh&&searchPh(); };
 // hide: the sheet goes, the plan stays drawn on the map, the pill brings it back
 const plHide=()=>{ plCard.classList.remove('on'); plHid=true; plPick=false; map.getCanvas().style.cursor=''; plPillUpd(); window.searchPh&&searchPh(); };
 const plClose=()=>{ plCard.classList.remove('on'); plHid=false; plPick=false; map.getCanvas().style.cursor=''; plClear(); plPillUpd(); window.searchPh&&searchPh(); };
@@ -1440,7 +1464,8 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
   const sum=Rr?(()=>{ const D=Rr.days, km=D.reduce((a,d)=>a+d.km,0), up=D.reduce((a,d)=>a+d.up,0), t=D.reduce((a,d)=>a+d.t,0), sac=Math.max(0,...D.map(d=>d.sac||0));
       return `<div><b>${fmtT(t)}</b><small>${LP('hoje','walking')}</small></div><div><b>${km.toFixed(1)} km</b><small>${LP('dolžina','length')}</small></div><div><b>↑ ${Math.round(up)} m</b><small>${LP('vzpon','ascent')}</small></div><div><b>${sac?SACT[sac]:'–'}</b><small>${LP('najtežje','hardest')}</small></div>`; })()
     :`<div class="one">${S.length<2?LP('Dodaj vsaj dve točki: prva je izhodišče.','Add at least two stops: the first is the start.'):`${S.length} ${LP('točk','stops')}`}</div>`;
-  plCard.innerHTML=`${shHandle()}<div class="rh"><b class="pln" title="${esc(nm0)}">${esc(nm0)}</b><button class="x hd" aria-label="${LP('Skrij (načrt ostane na karti)','Hide (the plan stays on the map)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
+  plCard.innerHTML=`${shHandle()}<div class="rh"><b class="pln" title="${esc(nm0)}">${esc(S.length?nm0:LP('Načrt ture','Trip plan'))}</b><button class="x hd" aria-label="${LP('Skrij (načrt ostane na karti)','Hide (the plan stays on the map)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
+    ${pmTabs('plan')}
     <div class="plsum">${sum}</div>
     ${Rr&&Rr.days.length>1?`<div class="pldays"><button data-day="-1" class="${PLSEL<0?'on':''}">${LP('Vse','All')}</button>${Rr.days.map((_,i)=>`<button data-day="${i}" class="${PLSEL===i?'on':''}"><i style="background:${DAYC[i%DAYC.length]}"></i>${LP('Dan','Day')} ${i+1}</button>`).join('')}</div>`:''}
     ${!Rr?`<button class="go" id="plGo" ${S.length<2?'disabled':''}>${LP('Izračunaj turo','Plan the trip')}</button>`:''}
