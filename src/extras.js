@@ -359,7 +359,7 @@ async function regDownload(r, fresh){
   if (!REG.includes(r)){ r.at = Date.now(); REG.push(r); saveReg(); }
   job = {id: r.id, done: 0, n: urls.length, fail: 0, bytes: 0, net: 0, stop: false}; offRender();
   const q = [...urls];
-  await Promise.all(Array.from({length: 6}, async () => { while (q.length && !job.stop){ const u = q.shift();
+  await Promise.all(Array.from({length: 4}, async () => { while (q.length && !job.stop){ const u = q.shift();
     try{ const have = await k.match(u); let res = null;
       if (have && !fresh) res = have;   // already saved for another area (or earlier)
       else { const seen = fresh ? null : await caches.match(u);   // looked at before (viewed-tiles cache): copy instead of downloading

@@ -1132,7 +1132,7 @@ map.on('click',e=>{
     const obsWhen=v=>{ if(!v) return ''; const d=new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(v)?v:(v.length<=16?v+':00':v)+'Z'); if(isNaN(d)) return '';
       const t=d.toLocaleTimeString('sl-SI',{hour:'2-digit',minute:'2-digit'}); return ' · '+(iso(d)===iso(new Date())?t:`${d.getDate()}. ${d.getMonth()+1}. ${t}`); };
     const fc={type:'FeatureCollection',features:O.filter(o=>o.alt>=700).map(o=>({type:'Feature',properties:{t:`${o.name} ${Math.round(o.alt)} m\n${Math.round(o.cm)} cm${obsWhen(o.valid)}${o.after!=null?` (model ${o.after})`:''}`},geometry:{type:'Point',coordinates:[o.lon,o.lat]}}))};
-    if(!map.getSource('snowobs')){ if(!on) return; map.addSource('snowobs',{type:'geojson',data:fc,attribution:'Meritve snega: ARSO'});
+    if(!map.getSource('snowobs')){ if(!on) return; map.addSource('snowobs',{type:'geojson',data:fc,attribution:'Meritve snega: Javne informacije Slovenije, ARSO – meteo.si'});
       map.addLayer({id:'snowobs',type:'circle',source:'snowobs',paint:{'circle-radius':5,'circle-color':'#fff','circle-stroke-color':'#2d63d8','circle-stroke-width':2.5,'circle-pitch-alignment':'viewport'}});
       map.addLayer({id:'snowobs-lbl',type:'symbol',source:'snowobs',minzoom:8.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Bold'],'text-size':11*(window.MAPK?window.MAPK():1),'text-anchor':'top','text-offset':[0,0.7]},
         paint:{'text-color':'#1f3f8f','text-halo-color':'rgba(255,255,255,.95)','text-halo-width':1.6}}); }
@@ -1143,7 +1143,7 @@ map.on('click',e=>{
     setupProto();
     const url=`snowpx://{z}/{x}/{y}?d=${day}&t=${DATA.times?DATA.times[0]:''}&s=${satDayOK(day)?SAT.m.date:''}&p=${spDay(day)?1:0}&g=${SP?SP.gen:''}&L=${LMAX}&q=${SNPQ()}`;
     if(!map.getSource('snowpx')){ map.addSource('snowpx',{type:'raster',tiles:[url],tileSize:512,minzoom:7,maxzoom:window.LITE_ON?10:12,bounds:[Math.min(LO0,13.0),Math.min(LA0,45.35),Math.max(LO1,16.1),Math.max(LA1,46.95)],
-        attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0), razporejeno po višini; satelit: vsebuje spremenjene podatke Copernicus Sentinel-2 (CDSE)'});
+        attribution:'Sneg: DWD ICON-D2 · Open-Meteo (CC BY 4.0), razporejeno po višini; satelit: vsebuje spremenjene podatke Copernicus Sentinel ['+new Date().getFullYear()+'] (CDSE)'});
       map.addLayer({id:'snowpx',type:'raster',source:'snowpx',paint:{'raster-opacity':0.82,'raster-fade-duration':0}},'hs'); }
     else map.getSource('snowpx').setTiles([url]);
   }
@@ -2209,7 +2209,7 @@ window.camOpen=async key=>{ const c=(window.CAMLIST||[]).find(x=>x.key===key); i
     const when=j.lastUpdatedOn?new Date(j.lastUpdatedOn).toLocaleString('sl-SI',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     B.innerHTML=`${src?`<a href="${esc(link)}" target="_blank" rel="noopener" title="Odpri na windy.com"><img src="${esc(src)}" alt=""></a>`:'<div>Slika trenutno ni na voljo.</div>'}
       <div class="camf"><span>${esc([j.location&&j.location.city,when].filter(Boolean).join(' · '))}${j.status&&j.status!=='active'?' · neaktivna':''}</span>
-      ${pl.day?`<button class="camtl">▶ Časovni potek</button>`:''}<a href="${esc(link)}" target="_blank" rel="noopener">Windy.com ↗</a>${adm}</div><div class="camp"></div>`;
+      ${pl.day?`<button class="camtl">▶ Časovni potek</button>`:''}<a href="${esc(link)}" target="_blank" rel="noopener">Kamere: windy.com ↗</a>${adm}</div><div class="camp"></div>`;
     const tl=o.querySelector('.camtl'); if(tl) tl.onclick=()=>{ o.querySelector('.camp').innerHTML=`<iframe src="${esc(pl.day)}" allowfullscreen loading="lazy"></iframe>`; tl.remove(); };
     bindAdm(); }
   catch(e){ B.innerHTML=`<div>Kamere ni bilo mogoče naložiti (${esc(e.message)}).</div><div class="camf"><a href="https://www.windy.com/webcams/${c.id}" target="_blank" rel="noopener">Odpri na windy.com ↗</a>${adm}</div>`; bindAdm(); } };
@@ -3823,7 +3823,7 @@ async function regDownload(r, fresh){
   if (!REG.includes(r)){ r.at = Date.now(); REG.push(r); saveReg(); }
   job = {id: r.id, done: 0, n: urls.length, fail: 0, bytes: 0, net: 0, stop: false}; offRender();
   const q = [...urls];
-  await Promise.all(Array.from({length: 6}, async () => { while (q.length && !job.stop){ const u = q.shift();
+  await Promise.all(Array.from({length: 4}, async () => { while (q.length && !job.stop){ const u = q.shift();
     try{ const have = await k.match(u); let res = null;
       if (have && !fresh) res = have;   // already saved for another area (or earlier)
       else { const seen = fresh ? null : await caches.match(u);   // looked at before (viewed-tiles cache): copy instead of downloading

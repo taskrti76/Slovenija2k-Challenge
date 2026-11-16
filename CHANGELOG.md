@@ -2,6 +2,11 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.88 — 2026-11-16
+- Terms housekeeping (from the deep dive, claude/deep-dive-2026-11.md): offline area download uses 4 parallel requests
+  (OpenFreeMap terms: at most 4); ARSO credit in the wording their re-use notice asks for; Copernicus credit with the year;
+  camera window says "Kamere: windy.com" (visible source credit). No behaviour change.
+
 ## web-v0.87 — 2026-11-16
 - 360: tile detail one level coarser while turning / zooming / tilting (and while auto-turning); the selected detail ~0.4 s
   after you stop.

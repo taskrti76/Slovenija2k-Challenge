@@ -666,7 +666,7 @@ window.camOpen=async key=>{ const c=(window.CAMLIST||[]).find(x=>x.key===key); i
     const when=j.lastUpdatedOn?new Date(j.lastUpdatedOn).toLocaleString('sl-SI',{day:'numeric',month:'numeric',hour:'2-digit',minute:'2-digit'}):'';
     B.innerHTML=`${src?`<a href="${esc(link)}" target="_blank" rel="noopener" title="Odpri na windy.com"><img src="${esc(src)}" alt=""></a>`:'<div>Slika trenutno ni na voljo.</div>'}
       <div class="camf"><span>${esc([j.location&&j.location.city,when].filter(Boolean).join(' · '))}${j.status&&j.status!=='active'?' · neaktivna':''}</span>
-      ${pl.day?`<button class="camtl">▶ Časovni potek</button>`:''}<a href="${esc(link)}" target="_blank" rel="noopener">Windy.com ↗</a>${adm}</div><div class="camp"></div>`;
+      ${pl.day?`<button class="camtl">▶ Časovni potek</button>`:''}<a href="${esc(link)}" target="_blank" rel="noopener">Kamere: windy.com ↗</a>${adm}</div><div class="camp"></div>`;
     const tl=o.querySelector('.camtl'); if(tl) tl.onclick=()=>{ o.querySelector('.camp').innerHTML=`<iframe src="${esc(pl.day)}" allowfullscreen loading="lazy"></iframe>`; tl.remove(); };
     bindAdm(); }
   catch(e){ B.innerHTML=`<div>Kamere ni bilo mogoče naložiti (${esc(e.message)}).</div><div class="camf"><a href="https://www.windy.com/webcams/${c.id}" target="_blank" rel="noopener">Odpri na windy.com ↗</a>${adm}</div>`; bindAdm(); } };
