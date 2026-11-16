@@ -2,6 +2,14 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.96 — 2026-11-17
+- Peak photos: photos found only by position (within 1.5 km) must look like mountain photos (title / categories / description
+  name a mountain word, a range or the peak) and are dropped if they are specimens, insects, labels … (Malo Špičje showed museum
+  photos of ants collected there). Old cached lists are ignored.
+- Web app hint: GPS summit check works in the browser / web app while the page is open (tap the blaze); only background checks
+  and the widget need the Android app (also on iPhone the web app can confirm summits).
+- tools/cron-worker: Cloudflare Worker that starts the weather / snow Actions on time (GitHub's schedule drops most runs).
+
 ## web-v0.95 — 2026-11-17
 - Peak photos: thumbnails asked Wikimedia for a 320 px size it no longer makes (only standard steps: 250, 330, 500 …), so the
   strip stayed empty. Now 330 px, falls back to the full photo, a photo that fails is dropped; no scrollbar under the strip.

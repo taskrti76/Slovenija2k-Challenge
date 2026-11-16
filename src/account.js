@@ -1453,13 +1453,19 @@ async function potwPics(p){ const J = u => fetch(u).then(r => r.json()), txt = h
     const qid = pg.pageprops && pg.pageprops.wikibase_item;
     if (qid) try{ const w = await J(`https://www.wikidata.org/w/api.php?action=wbgetclaims&entity=${qid}&property=P373&format=json&origin=*`), c = ((w.claims || {}).P373 || [])[0]; cat = c && c.mainsnak.datavalue && c.mainsnak.datavalue.value; }catch(_){} }
   const CM = 'https://commons.wikimedia.org/w/api.php?format=json&origin=*&action=query&prop=imageinfo&iiprop=url|extmetadata|size|mime&iiurlwidth=1280&', out = [], seen = new Set();
-  const add = pages => { for (const x of Object.values(pages || {}).sort((a, b) => (a.index ?? 0) - (b.index ?? 0))){ const i = x.imageinfo && x.imageinfo[0]; if (!i || seen.has(x.title)) continue;
+  // photos found only by position (geosearch) must look like a mountain photo: Malo Špičje got museum photos of ants collected there
+  const BAD = /specimen|casent|antweb|insect|formic|camponot|lasius|myrmic|beetle|coleopt|spider|arane|herbari|label|DNA|microscop|fossil|museum|lepidopt|butterfl|moth\b|diptera|hymenopt/i;
+  const GOOD = new RegExp(['mountain', 'alps?\\b', 'peak', 'summit', 'gora', 'gore', 'vrh', 'greben', 'ridge', 'hik', 'climb', 'landscape', 'panoram', 'view', 'razgled', 'valley', 'dolina', 'snow', 'sneg',
+    'julij', 'julian', 'kamni', 'karavank', 'savinj', 'pohorj', 'snežnik', 'sneznik', ...names.map(n => n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))].join('|'), 'i');
+  const add = (pages, strict) => { for (const x of Object.values(pages || {}).sort((a, b) => (a.index ?? 0) - (b.index ?? 0))){ const i = x.imageinfo && x.imageinfo[0]; if (!i || seen.has(x.title)) continue;
+      if (strict){ const m = i.extmetadata || {}, t = [x.title, m.Categories && m.Categories.value, m.ImageDescription && m.ImageDescription.value, m.ObjectName && m.ObjectName.value].filter(Boolean).join(' ');
+        if (BAD.test(t) || !GOOD.test(t)) continue; }
       if (i.mime !== 'image/jpeg' || i.width < 900 || i.width > i.height * 3.2 || i.height > i.width * 1.6) continue;
       const md = i.extmetadata || {}, lic = txt(md.LicenseShortName && md.LicenseShortName.value); if (!lic || /fair|non-free/i.test(lic)) continue;
       seen.add(x.title); out.push({img: i.thumburl || i.url, big: i.width > 1920 && i.thumburl ? i.thumburl.replace('/1280px-', '/1920px-') : i.url, page: i.descriptionurl, artist: txt(md.Artist && md.Artist.value).slice(0, 60), lic}); } };
   if (files.length) try{ add((await J(CM + 'titles=' + encodeURIComponent(files.join('|')))).query?.pages); }catch(_){}
   if (cat) try{ add((await J(CM + `generator=categorymembers&gcmtype=file&gcmlimit=30&gcmtitle=${encodeURIComponent('Category:' + cat)}`)).query?.pages); }catch(_){}
-  if (out.length < 12) try{ add((await J(CM + `generator=geosearch&ggscoord=${p.lat}|${p.lon}&ggsradius=1500&ggsnamespace=6&ggslimit=30`)).query?.pages); }catch(_){}
+  if (out.length < 12) try{ add((await J(CM + `generator=geosearch&ggscoord=${p.lat}|${p.lon}&ggsradius=1500&ggsnamespace=6&ggslimit=30`)).query?.pages, true); }catch(_){}
   return out.slice(0, 12); }
 async function potw(){ const box = $a('potw'); if (!box) return;
   const P = PEAKS.filter(p => isP2(p) && p.lat != null).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999));
@@ -1496,7 +1502,7 @@ async function potw(){ const box = $a('potw'); if (!box) return;
 // full-screen photo viewer (arrows, swipe, ← → Esc)
 // photos of any peak for its window (same source as the peak of the week), cached per peak for 2 weeks; [] = none found
 const PPIC = new Map();
-window.peakPics = async p => { if (PPIC.has(p.id)) return PPIC.get(p.id); const key = 'dvat3d_pp_' + p.id, c = get(key);
+window.peakPics = async p => { if (PPIC.has(p.id)) return PPIC.get(p.id); const key = 'dvat3d_pp2_' + p.id, c = get(key);
   if (c && Date.now() - c.t < 14 * 864e5){ PPIC.set(p.id, c.pics); return c.pics; }
   if (!navigator.onLine) return [];
   let pics = []; try{ pics = await potwPics(p); }catch(_){ return []; }

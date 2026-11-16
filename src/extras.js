@@ -266,7 +266,7 @@ const grp = document.createElement('div'); grp.id = 'appgrp';
 grp.innerHTML = `<b style="display:block;margin:10px 0 4px;font-size:.86em;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)">Aplikacija in brez signala</b>
   <div class="appbtns"><a class="btn" id="apkBtn" style="display:none" href="https://github.com/taskrti76/Slovenija2k-Challenge/releases/latest/download/dvatisocaki.apk">📱 Android aplikacija</a><button class="btn btn2" id="instBtn" style="display:none">⭐ Spletna aplikacija</button></div>
   <div id="apkHint" class="apph" style="display:none">📱 Android aplikacija (APK): GPS sam potrdi vrh, ko stojiš na njem (✓), tudi z ugasnjenim zaslonom. Ni iz Google Play — ob namestitvi dovoli »nameščanje iz neznanih virov«.</div>
-  <div id="pwaHint" class="apph" style="display:none">⭐ Spletna aplikacija: ikona na začetnem zaslonu kar iz brskalnika — brez prenosa, tudi za iPhone in računalnik. Vse deluje, razen potrjevanja vrhov z GPS.</div><div id="instHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0"></div>
+  <div id="pwaHint" class="apph" style="display:none">⭐ Spletna aplikacija: ikona na začetnem zaslonu kar iz brskalnika — brez prenosa, tudi za iPhone in računalnik. GPS potrdi vrh, dokler je stran odprta (tapni markacijo v spodnji vrstici); v ozadju in s pripomočkom le Android aplikacija.</div><div id="instHint" style="display:none;font-size:.82em;color:var(--mute);margin:4px 0"></div>
   <div id="offMgr"></div>
   <button class="btn btn2" id="tourBtn" style="margin-top:8px">Vodič</button>`;
 const adv = document.querySelector('details.adv'); if (adv) adv.insertBefore(grp, adv.querySelector('#tstatus'));
@@ -280,7 +280,7 @@ if (!standalone && !inApp){ $x('instBtn').style.display = ''; $x('pwaHint').styl
 if (!inApp && !/iphone|ipad|ipod/i.test(navigator.userAgent)){ $x('apkBtn').style.display = ''; $x('apkHint').style.display = ''; }   // Android + computers (to send to a phone)
 Object.assign(EN, {'📱 Android aplikacija':'📱 Android app', '⭐ Spletna aplikacija':'⭐ Web app',
   '📱 Android aplikacija (APK): GPS sam potrdi vrh, ko stojiš na njem (✓), tudi z ugasnjenim zaslonom. Ni iz Google Play — ob namestitvi dovoli »nameščanje iz neznanih virov«.':'📱 Android app (APK): GPS confirms a summit by itself when you stand on it (✓), also with the screen off. Not from Google Play — allow "install unknown apps" when installing.',
-  '⭐ Spletna aplikacija: ikona na začetnem zaslonu kar iz brskalnika — brez prenosa, tudi za iPhone in računalnik. Vse deluje, razen potrjevanja vrhov z GPS.':'⭐ Web app: a home-screen icon straight from the browser — no download, also for iPhone and computers. Everything works except confirming summits by GPS.'});
+  '⭐ Spletna aplikacija: ikona na začetnem zaslonu kar iz brskalnika — brez prenosa, tudi za iPhone in računalnik. GPS potrdi vrh, dokler je stran odprta (tapni markacijo v spodnji vrstici); v ozadju in s pripomočkom le Android aplikacija.':'⭐ Web app: a home-screen icon straight from the browser — no download, also for iPhone and computers. GPS confirms summits while the page is open (tap the blaze in the bottom bar); in the background and with the widget only the Android app.'});
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; });
 addEventListener('appinstalled', () => { deferred = null; const h=$x('instHint'); h.style.display=''; h.textContent=T('Aplikacija je nameščena — najdeš jo na začetnem zaslonu.'); });
 $x('instBtn').onclick = async () => {
