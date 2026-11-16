@@ -2114,10 +2114,10 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
 const DCOLS=[['#2979ff','modra'],['#00b8d4','cian'],['#ff6d00','oranžna'],['#aa00ff','vijolična'],['#00c853','zelena'],['#ffd600','rumena'],['#111111','črna']];
 let DCOL='#2979ff'; try{ const c=localStorage.getItem('dvat3d_dcol'); if(c&&DCOLS.some(x=>x[0]===c)) DCOL=c; }catch(_){}
 // in-page dialog (text input, or yes/no when def===null) - replaces the browser's prompt()/confirm() boxes
-window.askText=(title,def)=>new Promise(res=>{ const d=document.createElement('div'); d.className='dlg';
-  d.innerHTML=`<form class="dlgc"><b>${title}</b>${def!==null?`<input type="text" maxlength="80">`:''}<div class="dlgb"><button type="button" class="c">Prekliči</button><button type="submit" class="o">${def!==null?'Shrani':'Izbriši'}</button></div></form>`;
+window.askText=(title,def,ok)=>new Promise(res=>{ const d=document.createElement('div'); d.className='dlg';
+  d.innerHTML=`<form class="dlgc"><b>${title}</b>${def!==null?`<input type="text" maxlength="80">`:''}<div class="dlgb"><button type="button" class="c">Prekliči</button><button type="submit" class="o">${ok||(def!==null?'Shrani':'Izbriši')}</button></div></form>`;
   document.body.append(d); const inp=d.querySelector('input'); if(inp){ inp.value=def; setTimeout(()=>{ inp.focus(); inp.select(); },30); } else setTimeout(()=>d.querySelector('.o').focus(),30);
-  const done=v=>{ d.remove(); res(v); };
+  d.classList.add('on'); const done=v=>{ d.remove(); res(v); };
   d.querySelector('form').onsubmit=e=>{ e.preventDefault(); done(inp?inp.value.trim():true); };
   d.querySelector('.c').onclick=()=>done(null); d.onclick=e=>{ if(e.target===d) done(null); };
   d.addEventListener('keydown',e=>{ if(e.key==='Escape') done(null); }); });
@@ -2478,11 +2478,12 @@ window.peakRoutesUI = async function(id){
   const ADD=Object.entries(FXR).filter(([k,f])=>k.startsWith(p.id+'|new|')&&f.geom&&f.geom.length>1&&(!f.hide||window.ADMIN)).map(([k,f])=>admRoute(k,f));
   if((!res||!res.routes.length)&&!ADD.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
-      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button>${window.ADMIN?` · <button class="lnk" onclick="adminRedraw(byId['${p.id}'],null)">＋ Nova pot (admin)</button>`:''}</div>`; return; }
+      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}${p.ot?`<br><b>${LP('Ocena brezpotja','Pathless estimate')}: ${SACT[p.ot.s]}</b> — ${LP(`najbolj strm odsek ~${p.ot.deg}°, ~${p.ot.g} m od najbližje poti (iz reliefa, brez zagotovila).`,`steepest stretch ~${p.ot.deg}°, ~${p.ot.g} m from the nearest path (from terrain, no guarantee).`)}`:''}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button>${window.ADMIN?` · <button class="lnk" onclick="adminRedraw(byId['${p.id}'],null)">＋ Nova pot (admin)</button>`:''}</div>`; return; }
   const res0=res; res=res0&&res0.routes.length?res0:{routes:[]};
   const MAXKM=22; // > ~11 h walking: dropped (checked again with the height profile)
   res.routes=res.routes.filter((r,i,a)=>r.stats.len/1000<=MAXKM||a.length===1);
   res.routes.forEach(r=>{ const pk=[p.lon,p.lat], last=r.coords[r.coords.length-1]; r.gap=Math.round(hav(last[1],last[0],p.lat,p.lon)); r.coords=[...r.coords,pk];
+    if(r.gap>25&&p.ot&&p.ot.s>(r.stats.sac||0)){ r.stats.sac0=r.stats.sac||0; r.stats.sac=p.ot.s; r.stats.ot=1; }   // pathless last bit is harder than the path (tools/offtrail_grade.py)
     if(r.start.kind==='rel'){ const ns=nearStart(r.start.lat,r.start.lon); if(ns) r.start={...ns,node:r.start.node}; }
     // join the drawn line to the actual parking / hut point
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
@@ -2601,17 +2602,17 @@ function renderRoutes(){
       return `<div class="ri${i===RT.sel?' on':''}${f.hide?' rhid':''}" data-i="${i}"><div><b>iz ${ed('start',stN,'izhodišče')}</b>${via||A?` <span class="via">čez ${ed('via',via,'koče na poti')}</span>`:''}${window.ADMIN&&f.hide?' <span class="via">(skrita — admin)</span>':''}${window.ADMIN&&r.fix?' <span class="afx" title="Popravljeno (vidijo samo admini)">✎</span>':''}</div>
         ${f.note||A?`<div class="rnote2">ⓘ ${ed('note',f.note||'','opomba (ključna mesta, nevarnosti)')}</div>`:''}
         ${rn||pz||A?`<div class="rp">${pz?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span> ':(!R&&r.fname&&!f.name?'⛓ ':'')}${rn||A?ed('name',rn,'ime poti'):'markirana pot'}${R&&R.ref&&R.name&&!f.name?` <span class="via">(${esc(R.ref)})</span>`:''}</div>`:''}
-        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
+        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta${p.ot?`; ocena brezpotja iz reliefa: naklon do ${p.ot.deg}°`:''}">${LP(`zadnjih ${r.gap} m brez poti`,`last ${r.gap} m pathless`)}${p.ot?` (${SACT[p.ot.s]}, ${LP('ocena','estimate')})`:''}</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}${profStats(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb">${window.ADMIN?'<button onclick="adminRoute()">🛠 Uredi pot</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button><button onclick="routeClimbed()" title="Odkljukaj vrh in shrani to pot kot tvojo">✓ Šel sem po tej poti</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
   c.querySelectorAll('.ri .ed').forEach(x=>{ const v0=x.textContent; x.onclick=e=>e.stopPropagation(); x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); x.blur(); } if(e.key==='Escape'){ x.textContent=v0; x.blur(); } };
     x.onblur=async()=>{ const v=x.textContent.trim(); if(v===v0.trim()) return; const r=RT.routes[RT.sel];
-      try{ await window.adminRoutePatch(r,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
+      try{ await window.adminRoutePatch(r,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; (window.toastErr||alert)(err.message||err); } }; });
   c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }
 // new look (design.js): sort switch; the selected route as a card with big numbers, its profile and buttons; the others as short rows
-function renderRoutesV2(c,hd){
+function renderRoutesV2(c,hd){ const p=RT.peak;
   const PR=window.PROFILE||{}, fk=PR.fitK||1;
   const info=(r,i)=>{ const s=r.stats, ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null, f=r.fix||{}, A=!!window.ADMIN&&i===RT.sel;
     const ed=(k,v,ph)=>A?`<span class="ed" data-k="${k}" data-ph="${ph}" contenteditable="plaintext-only" spellcheck="false">${esc(v)}</span>`:esc(v);
@@ -2626,7 +2627,7 @@ function renderRoutesV2(c,hd){
     ${o.f.note||o.A?`<div class="rnote2">ⓘ ${o.ed('note',o.f.note||'','opomba (ključna mesta, nevarnosti)')}</div>`:''}
     <div class="v2m"><div><b>${o.t}</b><span>${LP('tvoj čas','your time')}</span></div><div><b>${(s.len/1000).toFixed(1)} km</b><span>${LP('dolžina','length')}</span></div><div><b>↑ ${o.up!=null?o.up:'…'} m</b><span>${LP('vzpon','ascent')}</span></div>
       <div><b><i class="v2tb${o.over?' w':''}">${SACT[s.sac]||'T?'}</i></b><span>${o.over?LP('nad tvojo mejo','above your limit'):s.ferrata?LP('ferata','via ferrata'):LP('težavnost','grade')}</span></div></div>
-    <div class="v2x">${Math.round(s.marked*100)} % ${LP('markirano','marked')}${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · zadnjih ${r.gap} m brez poti`:''}</div>
+    <div class="v2x">${Math.round(s.marked*100)} % ${LP('markirano','marked')}${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · ${LP('zadnjih','last')} ${r.gap} m ${LP('brez poti','pathless')}${p.ot?` (${SACT[p.ot.s]}, ${LP('ocena','estimate')} · ${p.ot.deg}°)`:''}`:''}</div>
     ${r.P?`<div class="prof">${profileSVG(r.P)}${profStats(r.P)}</div>`:''}
     <div class="rb">${window.ADMIN?'<button onclick="adminRoute()">Uredi (admin)</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">${LP('Uredi kot svojo','Edit as my own')}</button><button onclick="sideView()">${LP('Od strani','Side view')}</button><button class="pri" onclick="routeClimbed()">✓ ${LP('Šel sem po tej poti','I took this route')}</button></div></div>`;
   h+=RT.routes.map((x,i)=>{ if(i===RT.sel) return ''; const q=info(x,i);
@@ -2639,7 +2640,7 @@ function renderRoutesV2(c,hd){
     RT.sel=RT.routes.indexOf(cur); setRoutesLayer(); renderRoutes(); });
   c.querySelectorAll('.ri .ed').forEach(x=>{ const v0=x.textContent; x.onclick=e=>e.stopPropagation(); x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); x.blur(); } if(e.key==='Escape'){ x.textContent=v0; x.blur(); } };
     x.onblur=async()=>{ const v=x.textContent.trim(); if(v===v0.trim()) return; const rr=RT.routes[RT.sel];
-      try{ await window.adminRoutePatch(rr,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
+      try{ await window.adminRoutePatch(rr,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; (window.toastErr||alert)(err.message||err); } }; });
   c.querySelectorAll('.ri.v2c').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); renderRoutes(); c.scrollTop=0; sideView(); routeProfiles(); }); }
 window.routeClimbed=()=>{ if(!RT) return; const r=RT.routes[RT.sel]; window.climbedVia&&window.climbedVia(RT.peak.id, routeLabel(r)); };
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };
@@ -3985,7 +3986,7 @@ async function offRender(){ const M = $x('offMgr'); if (!M) return;
   M.querySelectorAll('.offr button').forEach(bt => bt.onclick = () => { const r = REG[+bt.dataset.i], a = bt.dataset.a;
     if (a === 'legacy'){ caches.delete('dvat-region').then(offRender); return; }
     if (a === 'show') regShow(r); else if (a === 'upd') regDownload(r, true);
-    else if (a === 'ren'){ const n = prompt(LL('Ime območja','Area name'), r.name); if (n && n.trim()){ r.name = n.trim().slice(0, 40); saveReg(); offRender(); } }
+    else if (a === 'ren'){ askText(LL('Ime območja','Area name'), r.name || '').then(n => { if (n && n.trim()){ r.name = n.trim().slice(0, 40); saveReg(); offRender(); } }); }
     else if (a === 'del'){ if (bt.dataset.sure){ regDelete(r); } else { bt.dataset.sure = 1; bt.textContent = LL('Res?','Sure?'); setTimeout(() => { if (bt.isConnected){ delete bt.dataset.sure; bt.textContent = '🗑'; } }, 3000); } } });
   const ask = async (r, urls) => { const i = $x('offInfo'); i.textContent = '…'; let miss = urls;   // only what is not saved yet counts
     try{ const k = await caches.open(OCN), m = []; for (const u of urls) if (!(await k.match(u))) m.push(u); miss = m; }catch(_){}
@@ -4211,7 +4212,7 @@ document.head.append(css);
 
 const SACT_ = ['', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
 function clsLine(p, o){ const sel = window.selRouteClass && window.selRouteClass(p.id), tc = p.tech, pr = window.PROFILE || {};
-  const src = sel ? L('izbrana pot', 'selected route') : tc ? (tc.s ? SACT_[tc.s] + ', ' : '') + L('najlažja pot', 'easiest route') : L('ocena', 'estimate');
+  const src = sel ? L('izbrana pot', 'selected route') : tc ? (tc.s ? SACT_[tc.s] + ', ' : '') + (tc.x ? (tc.ot ? L('brezpotje, ocena iz reliefa', 'pathless, estimate from terrain') : L('brezpotje, groba ocena', 'pathless, rough estimate')) : tc.ot ? L('najlažja pot + brezpotje do vrha', 'easiest route + pathless top') : L('najlažja pot', 'easiest route')) : L('ocena', 'estimate');
   const over = tc && ((tc.s && pr.maxT && tc.s > pr.maxT) || (tc.f && pr.ferrata === false));
   return `<div style="font-size:.88em;color:#555;margin-bottom:3px">${L('Zahtevnost','Difficulty')}: <b>${CLS_N()[o.cls - 1]}</b> (${src})${over ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('nad tvojo mejo','above your limit')}</span>` : ''}</div>`; }
 // --- big window: all days, the score with every deduction, hourly table 06–21 h
@@ -5151,12 +5152,22 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #potwLb button:hover{background:rgba(255,255,255,.28)}#potwLb .x{top:calc(12px + env(safe-area-inset-top));right:12px}#potwLb .pv{left:12px;top:50%;transform:translateY(-50%)}#potwLb .nx{right:12px;top:50%;transform:translateY(-50%)}
 #lbPage .bdw{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:20px 12px}#lbPage .bdg2{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
 #lbPage .bdg2 b{font-size:.76em;line-height:1.2;margin-top:4px;max-width:100%;overflow-wrap:anywhere;hyphens:auto}#lbPage .bdg2 small{font-size:.7em;color:#5b6461}#lbPage .bdg2.got small{color:#2e7d32;font-weight:600}
+#lbPage .bdg2[data-bk]{cursor:pointer;border-radius:12px;padding:4px 2px;transition:background .15s}#lbPage .bdg2[data-bk]:hover{background:rgba(127,127,127,.1)}
+.bdgdlg{z-index:2000;align-items:center;padding:16px 0}.bdgdlg .dlgc{position:relative;width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;text-align:center;font-size:16px;line-height:1.45}
+.bdgdlg .x{position:absolute;top:6px;right:10px;border:0;background:none;color:inherit;font-size:30px;line-height:1;cursor:pointer}
+.bdgdlg .bdbig svg{max-width:52vw;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))}.bdgdlg h3{margin:6px 0 0;font-size:1.4em}.bdgdlg .bdk{opacity:.7;font-size:.9em}
+.bdgdlg .bdhow{margin:12px 0 8px}.bdgdlg .bdbar{height:8px;border-radius:4px;background:rgba(127,127,127,.2);overflow:hidden}.bdgdlg .bdbar i{display:block;height:100%;background:#c62f28;border-radius:4px}
+.bdgdlg b{display:inline;margin:0;font-size:inherit}.bdgdlg .bdpk .h{display:block}.bdgdlg .bdst{margin:6px 0 10px}.bdgdlg .bdl{text-align:left;font-size:.92em;margin:8px 0;line-height:1.7}.bdgdlg .bdl span{opacity:.75}.bdgdlg .bdl small{opacity:.6}
+.bdgdlg a[data-pk]{cursor:pointer;text-decoration:underline;text-underline-offset:2px;color:inherit;font-weight:600}
+.bdgdlg .bdpk{text-align:left;border-top:1px solid var(--line,#ddd);margin-top:12px;padding-top:12px}.bdgdlg .bdpk .h{font-weight:700}.bdgdlg .bdpk .m{opacity:.75;font-size:.92em;margin:2px 0 6px}.bdgdlg .bdpk p{margin:0}
+html.mk .bdgdlg .dlgc{background:var(--solid,#fff);border:2px solid var(--ink,#141414);border-radius:20px;font-family:Inter,system-ui,sans-serif}
+html.mk .bdgdlg h3{font:700 28px "Barlow Condensed",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.02em}
 @media (max-width:980px){ #lbPage .bdw{grid-template-columns:repeat(4,1fr)} #potw .pt{max-width:100%} }
 #lbPage .lba{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;padding-top:14px}
 #lbPage .ac2{background:#f7f9f8;border:1px solid #e3e8e5;border-radius:12px;padding:10px 12px}
 #lbPage .ac2 h4{margin:0 0 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:#5b6461}
 #lbPage .ac2 .it{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #edf0ee;font-size:.92em}#lbPage .ac2 .it:last-child{border-bottom:0}
-#lbPage .ac2 .it span{color:#5b6461;white-space:nowrap}#lbPage .ac2 a{color:#1565c0;cursor:pointer}
+#lbPage .ac2 .it span{color:#5b6461;white-space:nowrap}#lbPage .ac2 .it span.wr{white-space:normal;text-align:right;min-width:0}#lbPage .ac2 .it span.wr i{font-style:normal;white-space:nowrap}#lbPage .ac2 .it .nw{flex:none;white-space:nowrap}#lbPage .ac2 .it:has(.wr){align-items:baseline}#lbPage .ac2 a{color:#1565c0;cursor:pointer}
 #lbPage .ac2 .pr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:.9em;margin:5px 0}#lbPage .ac2 .pr .bar{grid-column:1/3;margin:0}
 #lbPage .ac2 .big{display:flex;gap:10px;align-items:baseline;margin:2px 0 6px}#lbPage .ac2 .big b{font-size:1.9em;font-variant-numeric:tabular-nums}
 #lbPage .ac2 .nb{color:#5b6461;font-size:.86em}
@@ -5461,7 +5472,7 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
   $a('grMap').onclick = () => { lbClose(); ringsShow(`${G.name}: ${done} / ${BP.length}`, Object.fromEntries(Object.entries(cnt).map(([p, s]) => [p, {n: s.size, of: N}]))); };
   const inv = $a('grInv'); if (inv) inv.onclick = () => { const u = [...B.querySelectorAll('.pick input:checked')].map(i => i.value); if (!u.length) return;
     busy(inv, async () => { const n = await rpc('group_invite', {gid, unames: u}, true); toast(L(`Poslanih povabil: ${n}`, `Invitations sent: ${n}`)); }, again); };
-  const ren = $a('grRen'); if (ren) ren.onclick = () => { const n = prompt(L('Novo ime skupine', 'New group name'), G.name); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
+  const ren = $a('grRen'); if (ren) ren.onclick = async () => { const n = await askText(L('Novo ime skupine', 'New group name'), G.name || ''); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
   const del = $a('grDel'); if (del) del.onclick = () => { if (confirmTwice(del)) busy(del, () => rpc('group_delete', {gid}, true), grList); };
   $a('grLeave').onclick = () => { if (confirmTwice($a('grLeave'))) busy($a('grLeave'), () => rpc('group_leave', {gid}, true), async () => { SO.circle = null; await grList(); }); }; }
 // ---------- 👤 my page: numbers, GPS ✓, wishlist, latest climbs, my routes, friends, groups (works without an account too) ----------
@@ -5648,7 +5659,7 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
   $a('adClose').onclick = () => { closeModal(); toast(L('Klikni na pot, ki je zaprta …','Click the closed path …')); map.getCanvas().style.cursor = 'crosshair';
     map.once('click', async e => { map.getCanvas().style.cursor = ''; const w = window.adminWayAt && adminWayAt(e.lngLat.lat, e.lngLat.lng);
       if (!w){ toastErr(L('Tu ni poti (približaj se in klikni na črto poti).','No path here (zoom in and click the line).')); return; }
-      if (!confirm(L(`Zapri pot »${w.name || 'brez imena'}« (#${w.id}) za vse?`, `Close path "${w.name || 'unnamed'}" (#${w.id}) for everybody?`))) return;
+      if (!(await askText(L(`Zapri pot »${esc(w.name || 'brez imena')}« (#${w.id}) za vse?`, `Close path "${esc(w.name || 'unnamed')}" (#${w.id}) for everybody?`), null, L('Zapri', 'Close')))) return;
       try{ await saveFix('closed', String(w.id), {name: w.name, lat: +w.lat.toFixed(6), lon: +w.lon.toFixed(6)}); toast(L('Pot zaprta — poti na vrh se preračunajo.','Path closed — routes are recomputed.')); }catch(err){ toastErr(errText(err)); } }); }; };
 { const c = document.createElement('style'); c.textContent = `.admbox{margin-top:6px;font-size:.9em}.admbox summary{cursor:pointer;color:#8a5a00}.admbox label{display:block;margin:4px 0}.admbox input{width:100%;box-sizing:border-box;font:inherit;padding:3px 5px}
 .admbox .ll{display:flex;gap:4px}.admbox .ab{display:flex;gap:6px;margin:6px 0}.admbox button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:4px 8px;font:inherit;cursor:pointer}.admbox .am{color:#c62828}
@@ -5750,7 +5761,7 @@ async function asideFR(){ SO.aside = asideFR; const A = $a('lbAside'); if (!A) r
   const sug = [...cnt].sort((a, b) => b[1].size - a[1].size || byId[b[0]].elev - byId[a[0]].elev).slice(0, 6);
   A.innerHTML = progressCard()
     + ac(L('Zadnji vzponi prijateljev','Friends\' latest climbs'), recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join(''))
-    + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div>${pkA(id)}</div><span>${[...u].slice(0, 3).map(x => '@' + esc(x)).join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
+    + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div class="nw">${pkA(id)}</div><span class="wr">${[...u].slice(0, 3).map(x => '<i>@' + esc(x) + '</i>').join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
   asideBind(); }
 async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
   let P = null; try{ P = await rpc('my_plans', {}, true); }catch(_){ return; } if (!Array.isArray(P) || lb.dataset.p !== 'gr') return;
@@ -5773,16 +5784,19 @@ function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = 
   const nP2 = P2.filter(p => T0.has(p.id)).length;
   for (const n of [10, 25, 50, P2.length]){ const k = 'c' + (n >= P2.length ? 98 : n), pk = silPeak(k);
     out.push({k, pk, col: n >= P2.length ? '#b8860b' : n >= 50 ? '#c0392b' : n >= 25 ? '#6a1b9a' : '#1565c0', ring: n >= P2.length ? 'gold' : 'silver',
-      t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : ''}); }
+      t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : '', ids: P2.map(p => p.id),
+      how: n >= P2.length ? L('Osvoji vseh 98 prominentnih dvatisočakov.','Climb all 98 prominent 2000ers.') : L(`Osvoji katerih koli ${n} od 98 prominentnih dvatisočakov.`, `Climb any ${n} of the 98 prominent 2000ers.`)}); }
   // the 10 highest peaks of Slovenia (prominent or not) - gold Triglav
   { const T10 = PEAKS.filter(p => p.tier !== '1500' && p.lat != null).sort((a, b) => b.elev - a.elev).slice(0, 10), pk = silPeak('c98');
     out.push({k: 'top10', pk, emb: ['triglav_gold', 55.5], col: '#b8860b', ring: 'gold', t: L('10 najvišjih','10 highest'), big: 'TOP 10', d: T10.filter(p => T0.has(p.id)).length, n: T10.length, sub: [],
-      kind: T10.map(p => sname(p)).join(', ')}); }
+      kind: T10.map(p => sname(p)).join(', '), ids: T10.map(p => p.id), how: L('Osvoji 10 najvišjih vrhov Slovenije.','Climb the 10 highest peaks of Slovenia.')}); }
   for (const r of RANGE_ORDER){ const alp = PEAKS.some(p => p.range === r && p.tier !== '1500'), set = PEAKS.filter(p => p.range === r && (alp ? p.tier !== '1500' : p.tier === '1500'));
     if (!set.length) continue; const main = set.filter(alp ? isP2 : isP15), top = main.filter(p => !/^Vrh \d|^\d/.test(p.name)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 2).map(sname);
     const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555', p1 = silPeak(r + '*', r), p2 = silPeak(r, r);
-    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [BN(sname(p1))] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
-    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [BN(sname(p2))] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
+    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [BN(sname(p1))] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent'), ids: main.map(p => p.id),
+      how: L(`Osvoji vse prominentne vrhove (${alp ? 'nad 2000 m' : '1500–2000 m'}) v pogorju ${tr(r)}.`, `Climb all prominent peaks (${alp ? 'over 2000 m' : '1500–2000 m'}) in ${tr(r)}.`)});
+    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [BN(sname(p2))] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks'), ids: set.map(p => p.id),
+      how: L(`Osvoji vse vrhove (${alp ? 'nad 2000 m, s podvrhovi' : '1500–2000 m'}) v pogorju ${tr(r)}.`, `Climb every peak (${alp ? 'over 2000 m, incl. subpeaks' : '1500–2000 m'}) in ${tr(r)}.`)}); }
   return out; }
 
 let BID = 0;
@@ -5834,9 +5848,47 @@ function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.
     ${band ? `<text x="50" y="${b.big ? 81 : 76.5}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="${b.big ? 900 : 700}" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(band)}</text>` : ''}
     ${gold && !b.big ? `<text x="50" y="21" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:9px" fill="#b8860b">★</text>` : ''}
     </g>${done ? '' : `<circle cx="50" cy="50" r="46" fill="none" stroke="#e3e8e5" stroke-width="4"/><circle cx="50" cy="50" r="46" fill="none" stroke="${b.col}" stroke-width="4" stroke-dasharray="${(f * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>`}</svg>`; }
-const bdwInner = B => B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('');
+const bdwInner = B => B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" data-bk="${esc(b.k)}" role="button" tabindex="0" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('');
 function badgeCard(){ const B = badgeDefs(), got = B.filter(b => b.d >= b.n).length;
   return ac(`🏅 ${L('Značke','Badges')} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${got} / ${B.length}</span>`, `<div class="bdw">${bdwInner(B)}</div>`); }
+
+// a click on a badge: the emblem big, what the challenge asks, how far you are, what is left, and a few words on the peak drawn on it
+const PKTXT = {
+  Triglav: ['Najvišji vrh Slovenije in njen simbol (grb, zastava). Na vrhu stoji Aljažev stolp, ki ga je leta 1895 postavil župnik Jakob Aljaž.', 'The highest peak of Slovenia and its symbol (coat of arms, flag). On top stands Aljaž Tower, set up in 1895 by the priest Jakob Aljaž.'],
+  'Škrlatica': ['Drugi najvišji vrh Slovenije, nad dolino Vrata. Nanj ni lahke poti — vse vodijo čez zavarovane skalne odseke.', 'The second highest peak of Slovenia, above the Vrata valley. No easy way up — every route crosses protected rock sections.'],
+  Mangart: ['Mejni vrh z Italijo. Mangartska cesta pod njim je najvišje ležeča cesta v Sloveniji.', 'A border peak with Italy. The Mangart road below it is the highest road in Slovenia.'],
+  Jalovec: ['Ostra piramida nad Planico in Trento — njegova silhueta je v znaku Planinske zveze Slovenije.', 'The sharp pyramid above Planica and Trenta — its outline is in the emblem of the Alpine Association of Slovenia.'],
+  Razor: ['Mogočen vrh med Trento in dolino Krnice; pod njim na Kriških podih stoji Pogačnikov dom.', 'A massive peak between Trenta and the Krnica valley; Pogačnik hut stands below it on Kriški podi.'],
+  'Visoki Kanin': ['Najvišji vrh Kaninskega pogorja na meji z Italijo, nad Bovcem; na pobočju je najvišje smučišče v Sloveniji.', 'The highest peak of the Kanin group on the Italian border, above Bovec; the highest ski area in Slovenia is on its slopes.'],
+  Grintovec: ['Najvišji vrh Kamniško-Savinjskih Alp. Pod njim na Kokrskem sedlu stoji Cojzova koča.', 'The highest peak of the Kamnik–Savinja Alps. Cojz hut stands below it on Kokra saddle.'],
+  Ojstrica: ['Ostra skalna gora nad Logarsko dolino in Robanovim kotom; prepoznavna od daleč.', 'A sharp rock peak above Logar valley and Robanov kot; easy to recognise from afar.'],
+  Stol: ['Najvišji vrh Karavank. Tik pod vrhom stoji Prešernova koča.', 'The highest peak of the Karavanke. Prešeren hut stands just below the top.'],
+  'Košutnikov turn': ['Najvišji vrh dolgega grebena Košute na meji z Avstrijo.', 'The highest point of the long Košuta ridge on the Austrian border.'],
+  'Črni vrh': ['Najvišji vrh Pohorja, sredi gozdov.', 'The highest peak of Pohorje, in the middle of the forests.'],
+  Rogla: ['Pohorski vrh s športnim središčem in razglednim stolpom.', 'A Pohorje summit with a sports centre and a lookout tower.'],
+  'Veliki Snežnik': ['Najvišji vrh Slovenije zunaj Alp, dinarski kras. Tik pod vrhom stoji koča.', 'The highest peak of Slovenia outside the Alps, Dinaric karst. A hut stands just below the top.'],
+  Altemaver: ['Najvišja točka Ratitovca v Škofjeloškem hribovju; pod njo stoji Krekova koča.', 'The highest point of Ratitovec in the Škofja Loka hills; Krek hut stands below it.'],
+  Porezen: ['Razgledni vrh Cerkljanskega hribovja s kočo in spomenikom NOB.', 'A viewpoint of the Cerkno hills with a hut and a WWII memorial.']};
+window.badgeOpen = k => { const b = badgeDefs().find(x => x.k === k); if (!b) return; const T0 = new Set(window.TICKS ? TICKS.get() : []);
+  const done = b.d >= b.n, pk = b.pk, tx = pk && PKTXT[sname(pk)], left = (b.ids || []).filter(id => !T0.has(id) && byId[id]).map(id => byId[id]).sort((a, c) => c.elev - a.elev);
+  const need = Math.max(0, b.n - b.d), cls = pk && pk.tech ? ['', L('lahka','easy'), L('zahtevna','difficult'), L('zelo zahtevna','very difficult')][pk.tech.c] : '';
+  const d = document.createElement('div'); d.className = 'dlg on bdgdlg';
+  d.innerHTML = `<div class="dlgc" role="dialog" aria-modal="true"><button class="x" aria-label="${L('Zapri','Close')}">×</button>
+    <div class="bdbig">${badgeSVG(b).replace('width="76" height="76"', 'width="190" height="190"').replace(' style="filter:grayscale(1);opacity:.5"', '')}</div>
+    <h3>${esc(b.t)}</h3><div class="bdk">${esc(b.kind || '')}</div>
+    <p class="bdhow">${esc(b.how || '')}</p>
+    <div class="bdbar"><i style="width:${Math.round(100 * Math.min(1, b.d / b.n))}%"></i></div>
+    <div class="bdst">${done ? '✓ ' + L('Osvojeno!','Earned!') : `<b>${b.d} / ${b.n}</b> · ${L('še','to go')} ${need}`}</div>
+    ${!done && left.length ? `<div class="bdl"><span>${L('Še nisi bil','Not climbed yet')}${left.length > 12 ? ` (${left.length})` : ''}:</span> ${left.slice(0, 12).map(p => `<a data-pk="${esc(p.id)}">${esc(sname(p))}</a> <small>${Math.round(p.elev)}</small>`).join(' · ')}${left.length > 12 ? ' …' : ''}</div>` : ''}
+    ${pk ? `<div class="bdpk"><div class="h">⛰ ${L('Na znački','On the badge')}: <a data-pk="${esc(pk.id)}">${esc(sname(pk))}</a></div>
+      <div class="m">${Math.round(pk.elev)} m · ${esc((window.T || (x => x))(pk.range || ''))}${pk.rank ? ` · ${L('prominentni','prominent')} #${pk.rank}` : ''}${cls ? ' · ' + cls : ''}${T0.has(pk.id) ? ' · ✓ ' + L('bil si že','climbed') : ''}</div>
+      ${tx ? `<p>${esc(L(tx[0], tx[1]))}</p>` : ''}</div>` : ''}</div>`;
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc_); }, esc_ = e => { if (e.key === 'Escape') close(); };
+  d.onclick = e => { if (e.target === d || e.target.closest('.x')) close(); };
+  d.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { close(); lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
+  document.addEventListener('keydown', esc_); document.body.append(d); };
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.bdg2[data-bk]'); if (t) badgeOpen(t.dataset.bk); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches && e.target.matches('.bdg2[data-bk]')) badgeOpen(e.target.dataset.bk); });
 
 // ---------- 📸 peak of the week (a Slovenian prominent 2000er, photo from Wikimedia Commons, best day of the next days) ----------
 // photos: the Slovenian Wikipedia article (picked by its coordinates, so "Vrtača" is the peak and not the sinkhole), its Commons
@@ -6485,23 +6537,24 @@ html.mk.dk .maplibregl-popup .wish{background:#24282A!important;border-color:#3A
 html.mk.dk .maplibregl-popup-content .v2act button.pri,html.mk.dk .card .go,html.mk.dk .maplibregl-popup-content .v2ok{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}html.mk.dk .maplibregl-popup-content .v2act button.pri svg{color:#fff}html.mk.dk .v2act button:not(.pri){color:#ECEBE6!important}html.mk.dk .v2act button:not(.pri) svg{color:#ECEBE6}
 html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
 /* ⚙ Nastavitve in Markacija: same type, outlines, chips and buttons as the rest (it kept the old light card look) */
-html.mk #setWin .setcard{background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;border:2px solid ${INK};border-radius:20px!important;font:400 15px Inter,system-ui,sans-serif!important;box-shadow:0 10px 40px rgba(0,0,0,.3)!important}
+html.mk #setWin .setcard{background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;border:2px solid ${INK};border-radius:20px!important;font:400 17px Inter,system-ui,sans-serif!important;line-height:1.45;box-shadow:0 10px 40px rgba(0,0,0,.3)!important}
 ${PH}{ html.mk #setWin .setcard{border-radius:0!important;border:0} }
-html.mk #setWin h3{font:700 28px ${CD}!important;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px!important;color:var(--ink,#141414)}
-html.mk #setWin h4{font:700 16px ${CD}!important;text-transform:uppercase;letter-spacing:.04em;color:var(--ink,#141414)!important;margin:18px 0 8px!important;padding-top:12px;border-top:1px solid var(--line,#E6E3DC)}
+html.mk #setWin h3{font:700 32px ${CD}!important;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px!important;color:var(--ink,#141414)}
+html.mk #setWin h4{font:700 20px ${CD}!important;text-transform:uppercase;letter-spacing:.04em;color:var(--ink,#141414)!important;margin:18px 0 8px!important;padding-top:12px;border-top:1px solid var(--line,#E6E3DC)}
 html.mk #setWin .x{color:var(--ink,#141414)!important;font-size:30px!important}
-html.mk #setWin .q{font:600 14px Inter,system-ui,sans-serif!important;color:var(--ink,#141414)!important;margin:12px 0 6px!important}
-html.mk #setWin .hint,html.mk #setWin .nb,html.mk #setWin .advbox .row,html.mk #setWin .advbox div[style*="color"]{font-size:13px!important;line-height:1.45;color:var(--mute,#626870)!important}
+html.mk #setWin .q{font:600 17px Inter,system-ui,sans-serif!important;color:var(--ink,#141414)!important;margin:12px 0 6px!important}
+html.mk #setWin .hint,html.mk #setWin .nb,html.mk #setWin .advbox .row,html.mk #setWin .advbox div[style*="color"],html.mk #setWin .ah,html.mk #setWin .apph{font-size:15px!important;line-height:1.45;color:var(--mute,#626870)!important}
 html.mk #setWin .chips,html.mk #setWin .tchips{display:flex;flex-wrap:wrap;gap:6px!important}
-html.mk #setWin .chips button,html.mk #setWin .tchips button{height:36px!important;padding:0 14px!important;border:2px solid ${INK}!important;border-radius:18px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 14px Inter,system-ui,sans-serif!important}
+html.mk #setWin .chips button,html.mk #setWin .tchips button{height:40px!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:20px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 16px Inter,system-ui,sans-serif!important}
 html.mk #setWin .chips button.on,html.mk #setWin .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
-html.mk #setWin .advbox,html.mk #setWin .advbox label{color:var(--ink,#141414)!important;font-size:15px}
-html.mk #setWin .advbox .btn,html.mk #setWin .advbox .btn2,html.mk #setWin .sb{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin:6px 0!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:22px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 15px Inter,system-ui,sans-serif!important;box-shadow:none!important}
+html.mk #setWin .advbox,html.mk #setWin .advbox label{color:var(--ink,#141414)!important;font-size:17px}
+html.mk #setWin .setcard :is(div,span,label,b,a,small,p,li,td){font-size:max(15px,1em)}html.mk #setWin .setcard label,html.mk #setWin .setcard label.f{font-size:16px!important}
+html.mk #setWin .advbox .btn,html.mk #setWin .advbox .btn2,html.mk #setWin .sb{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin:6px 0!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:22px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 16px Inter,system-ui,sans-serif!important;box-shadow:none!important}
 html.mk #setWin .sb.pri{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
 html.mk #setWin .advbox .btn:hover,html.mk #setWin .sb:hover{background:rgba(127,127,127,.08)!important}html.mk #setWin .sb.pri:hover{background:#A50D26!important}
 html.mk #setWin input[type=checkbox],html.mk #setWin input[type=radio],html.mk #setWin input[type=range]{accent-color:${RED}}
-html.mk #setWin input[type=text],html.mk #setWin input[type=email],html.mk #setWin input[type=password],html.mk #setWin input:not([type]),html.mk #setWin select{min-height:44px;border:2px solid ${INK}!important;border-radius:12px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:400 15px Inter,system-ui,sans-serif!important;padding:0 12px!important;box-sizing:border-box}
-html.mk #setWin #setWg .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line,#E6E3DC);background:none!important;font-size:15px}
+html.mk #setWin input[type=text],html.mk #setWin input[type=email],html.mk #setWin input[type=password],html.mk #setWin input:not([type]),html.mk #setWin select{min-height:44px;border:2px solid ${INK}!important;border-radius:12px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:400 17px Inter,system-ui,sans-serif!important;padding:0 12px!important;box-sizing:border-box}
+html.mk #setWin #setWg .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line,#E6E3DC);background:none!important;font-size:17px}
 html.mk #setWin #setWg .it b{font-weight:600}html.mk #setWin #setWg label.it b{font:700 18px ${CD};text-transform:uppercase;letter-spacing:.02em}
 html.mk #setWin #setWg input[type=checkbox]{width:22px;height:22px}
 html.mk #setWin #setWg .sb{flex:1 1 auto;margin:0!important}

@@ -420,7 +420,7 @@ async function offRender(){ const M = $x('offMgr'); if (!M) return;
   M.querySelectorAll('.offr button').forEach(bt => bt.onclick = () => { const r = REG[+bt.dataset.i], a = bt.dataset.a;
     if (a === 'legacy'){ caches.delete('dvat-region').then(offRender); return; }
     if (a === 'show') regShow(r); else if (a === 'upd') regDownload(r, true);
-    else if (a === 'ren'){ const n = prompt(LL('Ime območja','Area name'), r.name); if (n && n.trim()){ r.name = n.trim().slice(0, 40); saveReg(); offRender(); } }
+    else if (a === 'ren'){ askText(LL('Ime območja','Area name'), r.name || '').then(n => { if (n && n.trim()){ r.name = n.trim().slice(0, 40); saveReg(); offRender(); } }); }
     else if (a === 'del'){ if (bt.dataset.sure){ regDelete(r); } else { bt.dataset.sure = 1; bt.textContent = LL('Res?','Sure?'); setTimeout(() => { if (bt.isConnected){ delete bt.dataset.sure; bt.textContent = '🗑'; } }, 3000); } } });
   const ask = async (r, urls) => { const i = $x('offInfo'); i.textContent = '…'; let miss = urls;   // only what is not saved yet counts
     try{ const k = await caches.open(OCN), m = []; for (const u of urls) if (!(await k.match(u))) m.push(u); miss = m; }catch(_){}

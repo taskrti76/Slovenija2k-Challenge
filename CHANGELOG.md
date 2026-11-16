@@ -2,6 +2,17 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.92 — 2026-11-16
+- Badges: a click opens the badge big (in colour, with the progress ring), what the challenge asks, how far you are, the peaks
+  still missing (click one -> its window) and a few words about the peak drawn on the badge (height, range, rank, difficulty).
+- Pathless summits: new tools/offtrail_grade.py + "Off-trail grades" Action. For every summit away from mapped paths it finds
+  the easiest line over the terrain (LiDAR relief) from the nearest path and grades the steepest 25 m (T2–T6). Peaks with no
+  route get that grade instead of a flat "zahtevna"; routes that end below the summit are graded at least as hard as the
+  pathless top ("zadnjih 300 m brez poti (T4, ocena)"). Hand fixes in data/tech_overrides.json still win.
+- Markacija ⚙ Nastavitve: bigger text everywhere (17 px body, 15 px hints, bigger chips, buttons, inputs, headings).
+- Group rename, admin "close path" and offline area rename use the in-app window instead of the browser's prompt box.
+- Profile: "Bili so tam, ti še ne" — long name lists wrap instead of running out of the card.
+
 ## web-v0.91 — 2026-11-16
 - 🗓 Načrt is one tool with two modes (tabs at the top of the window): »Po točkah« (stops -> routed trip, days, overnights) and
   »✎ Riši« (free drawing). One entry in the bottom bar / left column / round menu instead of Riši + Načrtovalnik; it opens the

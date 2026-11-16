@@ -571,10 +571,10 @@ function icon(kind){ const S=48, c=mkCtx(S,S);
 const DCOLS=[['#2979ff','modra'],['#00b8d4','cian'],['#ff6d00','oranžna'],['#aa00ff','vijolična'],['#00c853','zelena'],['#ffd600','rumena'],['#111111','črna']];
 let DCOL='#2979ff'; try{ const c=localStorage.getItem('dvat3d_dcol'); if(c&&DCOLS.some(x=>x[0]===c)) DCOL=c; }catch(_){}
 // in-page dialog (text input, or yes/no when def===null) - replaces the browser's prompt()/confirm() boxes
-window.askText=(title,def)=>new Promise(res=>{ const d=document.createElement('div'); d.className='dlg';
-  d.innerHTML=`<form class="dlgc"><b>${title}</b>${def!==null?`<input type="text" maxlength="80">`:''}<div class="dlgb"><button type="button" class="c">Prekliči</button><button type="submit" class="o">${def!==null?'Shrani':'Izbriši'}</button></div></form>`;
+window.askText=(title,def,ok)=>new Promise(res=>{ const d=document.createElement('div'); d.className='dlg';
+  d.innerHTML=`<form class="dlgc"><b>${title}</b>${def!==null?`<input type="text" maxlength="80">`:''}<div class="dlgb"><button type="button" class="c">Prekliči</button><button type="submit" class="o">${ok||(def!==null?'Shrani':'Izbriši')}</button></div></form>`;
   document.body.append(d); const inp=d.querySelector('input'); if(inp){ inp.value=def; setTimeout(()=>{ inp.focus(); inp.select(); },30); } else setTimeout(()=>d.querySelector('.o').focus(),30);
-  const done=v=>{ d.remove(); res(v); };
+  d.classList.add('on'); const done=v=>{ d.remove(); res(v); };
   d.querySelector('form').onsubmit=e=>{ e.preventDefault(); done(inp?inp.value.trim():true); };
   d.querySelector('.c').onclick=()=>done(null); d.onclick=e=>{ if(e.target===d) done(null); };
   d.addEventListener('keydown',e=>{ if(e.key==='Escape') done(null); }); });
@@ -935,11 +935,12 @@ window.peakRoutesUI = async function(id){
   const ADD=Object.entries(FXR).filter(([k,f])=>k.startsWith(p.id+'|new|')&&f.geom&&f.geom.length>1&&(!f.hide||window.ADMIN)).map(([k,f])=>admRoute(k,f));
   if((!res||!res.routes.length)&&!ADD.length){ RT=null; setRoutesLayer();
     c.innerHTML=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m<button class="x" onclick="closeRoutes()">×</button></div>
-      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button>${window.ADMIN?` · <button class="lnk" onclick="adminRedraw(byId['${p.id}'],null)">＋ Nova pot (admin)</button>`:''}</div>`; return; }
+      <div class="rm">${res?'Ni izhodišča v dosegu.':'Do vrha v OSM ni vrisane poti (brezpotje).'}${p.ot?`<br><b>${LP('Ocena brezpotja','Pathless estimate')}: ${SACT[p.ot.s]}</b> — ${LP(`najbolj strm odsek ~${p.ot.deg}°, ~${p.ot.g} m od najbližje poti (iz reliefa, brez zagotovila).`,`steepest stretch ~${p.ot.deg}°, ~${p.ot.g} m from the nearest path (from terrain, no guarantee).`)}`:''}<br>Pot lahko vrišeš sam: <button class="lnk" onclick="startDraw()">Riši pot</button>${window.ADMIN?` · <button class="lnk" onclick="adminRedraw(byId['${p.id}'],null)">＋ Nova pot (admin)</button>`:''}</div>`; return; }
   const res0=res; res=res0&&res0.routes.length?res0:{routes:[]};
   const MAXKM=22; // > ~11 h walking: dropped (checked again with the height profile)
   res.routes=res.routes.filter((r,i,a)=>r.stats.len/1000<=MAXKM||a.length===1);
   res.routes.forEach(r=>{ const pk=[p.lon,p.lat], last=r.coords[r.coords.length-1]; r.gap=Math.round(hav(last[1],last[0],p.lat,p.lon)); r.coords=[...r.coords,pk];
+    if(r.gap>25&&p.ot&&p.ot.s>(r.stats.sac||0)){ r.stats.sac0=r.stats.sac||0; r.stats.sac=p.ot.s; r.stats.ot=1; }   // pathless last bit is harder than the path (tools/offtrail_grade.py)
     if(r.start.kind==='rel'){ const ns=nearStart(r.start.lat,r.start.lon); if(ns) r.start={...ns,node:r.start.node}; }
     // join the drawn line to the actual parking / hut point
     const c0=r.coords[0]; if(r.start.lat!=null&&hav(r.start.lat,r.start.lon,c0[1],c0[0])>10) r.coords.unshift([r.start.lon,r.start.lat]);
@@ -1058,17 +1059,17 @@ function renderRoutes(){
       return `<div class="ri${i===RT.sel?' on':''}${f.hide?' rhid':''}" data-i="${i}"><div><b>iz ${ed('start',stN,'izhodišče')}</b>${via||A?` <span class="via">čez ${ed('via',via,'koče na poti')}</span>`:''}${window.ADMIN&&f.hide?' <span class="via">(skrita — admin)</span>':''}${window.ADMIN&&r.fix?' <span class="afx" title="Popravljeno (vidijo samo admini)">✎</span>':''}</div>
         ${f.note||A?`<div class="rnote2">ⓘ ${ed('note',f.note||'','opomba (ključna mesta, nevarnosti)')}</div>`:''}
         ${rn||pz||A?`<div class="rp">${pz?'<span class="pzs" title="Markirana planinska pot (Knafelčeva markacija)">PZS</span> ':(!R&&r.fname&&!f.name?'⛓ ':'')}${rn||A?ed('name',rn,'ime poti'):'markirana pot'}${R&&R.ref&&R.name&&!f.name?` <span class="via">(${esc(R.ref)})</span>`:''}</div>`:''}
-        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta">zadnjih ${r.gap} m brez poti</span>`:''}</div></div>`; }).join('')+
+        <div class="rs">${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:' · …'} · ${SACT[s.sac]||'T?'}${s.ferrata?' · ferata':''}${window.PROFILE&&((window.PROFILE.maxT&&s.sac>window.PROFILE.maxT)||(s.ferrata&&window.PROFILE.ferrata===false))?' · <span style="color:#c62f28;font-weight:700" title="Težje od meje v tvojem profilu (⚙ Nastavitve)">⚠ nad tvojo mejo</span>':''} · ${Math.round(s.marked*100)}% markirano${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · <span title="Do vrha ni vrisane poti - zadnji del (črtkano) je ravna črta${p.ot?`; ocena brezpotja iz reliefa: naklon do ${p.ot.deg}°`:''}">${LP(`zadnjih ${r.gap} m brez poti`,`last ${r.gap} m pathless`)}${p.ot?` (${SACT[p.ot.s]}, ${LP('ocena','estimate')})`:''}</span>`:''}</div></div>`; }).join('')+
     (RT.routes[RT.sel].P?`<div class="prof">${profileSVG(RT.routes[RT.sel].P)}${profStats(RT.routes[RT.sel].P)}</div>`:'')+
     `<div class="rb">${window.ADMIN?'<button onclick="adminRoute()">🛠 Uredi pot</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">Uredi kot svojo</button><button onclick="sideView()" title="Pogled na izbrano pot od strani">⛰ Od strani</button><button onclick="routeClimbed()" title="Odkljukaj vrh in shrani to pot kot tvojo">✓ Šel sem po tej poti</button></div>
      <div class="rnote">Samodejno iz OSM: preveri pred turo. T-lestvica = SAC.</div>`;
   c.querySelectorAll('.ri .ed').forEach(x=>{ const v0=x.textContent; x.onclick=e=>e.stopPropagation(); x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); x.blur(); } if(e.key==='Escape'){ x.textContent=v0; x.blur(); } };
     x.onblur=async()=>{ const v=x.textContent.trim(); if(v===v0.trim()) return; const r=RT.routes[RT.sel];
-      try{ await window.adminRoutePatch(r,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
+      try{ await window.adminRoutePatch(r,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; (window.toastErr||alert)(err.message||err); } }; });
   c.querySelectorAll('.ri').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); if(!DESK()) RT.min=true; renderRoutes(); sideView(); routeProfiles(); });
 }
 // new look (design.js): sort switch; the selected route as a card with big numbers, its profile and buttons; the others as short rows
-function renderRoutesV2(c,hd){
+function renderRoutesV2(c,hd){ const p=RT.peak;
   const PR=window.PROFILE||{}, fk=PR.fitK||1;
   const info=(r,i)=>{ const s=r.stats, ri=r.rel!=null?r.rel:s.rels&&s.rels[0], R=ri!=null?RELS[ri]:null, f=r.fix||{}, A=!!window.ADMIN&&i===RT.sel;
     const ed=(k,v,ph)=>A?`<span class="ed" data-k="${k}" data-ph="${ph}" contenteditable="plaintext-only" spellcheck="false">${esc(v)}</span>`:esc(v);
@@ -1083,7 +1084,7 @@ function renderRoutesV2(c,hd){
     ${o.f.note||o.A?`<div class="rnote2">ⓘ ${o.ed('note',o.f.note||'','opomba (ključna mesta, nevarnosti)')}</div>`:''}
     <div class="v2m"><div><b>${o.t}</b><span>${LP('tvoj čas','your time')}</span></div><div><b>${(s.len/1000).toFixed(1)} km</b><span>${LP('dolžina','length')}</span></div><div><b>↑ ${o.up!=null?o.up:'…'} m</b><span>${LP('vzpon','ascent')}</span></div>
       <div><b><i class="v2tb${o.over?' w':''}">${SACT[s.sac]||'T?'}</i></b><span>${o.over?LP('nad tvojo mejo','above your limit'):s.ferrata?LP('ferata','via ferrata'):LP('težavnost','grade')}</span></div></div>
-    <div class="v2x">${Math.round(s.marked*100)} % ${LP('markirano','marked')}${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · zadnjih ${r.gap} m brez poti`:''}</div>
+    <div class="v2x">${Math.round(s.marked*100)} % ${LP('markirano','marked')}${s.road>300?` · ${(s.road/1000).toFixed(1)} km ceste`:''}${r.gap>25?` · ${LP('zadnjih','last')} ${r.gap} m ${LP('brez poti','pathless')}${p.ot?` (${SACT[p.ot.s]}, ${LP('ocena','estimate')} · ${p.ot.deg}°)`:''}`:''}</div>
     ${r.P?`<div class="prof">${profileSVG(r.P)}${profStats(r.P)}</div>`:''}
     <div class="rb">${window.ADMIN?'<button onclick="adminRoute()">Uredi (admin)</button>':''}<button onclick="routeGPX()">GPX</button><button onclick="routeToDraw()">${LP('Uredi kot svojo','Edit as my own')}</button><button onclick="sideView()">${LP('Od strani','Side view')}</button><button class="pri" onclick="routeClimbed()">✓ ${LP('Šel sem po tej poti','I took this route')}</button></div></div>`;
   h+=RT.routes.map((x,i)=>{ if(i===RT.sel) return ''; const q=info(x,i);
@@ -1096,7 +1097,7 @@ function renderRoutesV2(c,hd){
     RT.sel=RT.routes.indexOf(cur); setRoutesLayer(); renderRoutes(); });
   c.querySelectorAll('.ri .ed').forEach(x=>{ const v0=x.textContent; x.onclick=e=>e.stopPropagation(); x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); x.blur(); } if(e.key==='Escape'){ x.textContent=v0; x.blur(); } };
     x.onblur=async()=>{ const v=x.textContent.trim(); if(v===v0.trim()) return; const rr=RT.routes[RT.sel];
-      try{ await window.adminRoutePatch(rr,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; alert(err.message||err); } }; });
+      try{ await window.adminRoutePatch(rr,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; (window.toastErr||alert)(err.message||err); } }; });
   c.querySelectorAll('.ri.v2c').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); renderRoutes(); c.scrollTop=0; sideView(); routeProfiles(); }); }
 window.routeClimbed=()=>{ if(!RT) return; const r=RT.routes[RT.sel]; window.climbedVia&&window.climbedVia(RT.peak.id, routeLabel(r)); };
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; };

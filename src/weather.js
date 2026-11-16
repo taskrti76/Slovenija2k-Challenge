@@ -153,7 +153,7 @@ document.head.append(css);
 
 const SACT_ = ['', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
 function clsLine(p, o){ const sel = window.selRouteClass && window.selRouteClass(p.id), tc = p.tech, pr = window.PROFILE || {};
-  const src = sel ? L('izbrana pot', 'selected route') : tc ? (tc.s ? SACT_[tc.s] + ', ' : '') + L('najlažja pot', 'easiest route') : L('ocena', 'estimate');
+  const src = sel ? L('izbrana pot', 'selected route') : tc ? (tc.s ? SACT_[tc.s] + ', ' : '') + (tc.x ? (tc.ot ? L('brezpotje, ocena iz reliefa', 'pathless, estimate from terrain') : L('brezpotje, groba ocena', 'pathless, rough estimate')) : tc.ot ? L('najlažja pot + brezpotje do vrha', 'easiest route + pathless top') : L('najlažja pot', 'easiest route')) : L('ocena', 'estimate');
   const over = tc && ((tc.s && pr.maxT && tc.s > pr.maxT) || (tc.f && pr.ferrata === false));
   return `<div style="font-size:.88em;color:#555;margin-bottom:3px">${L('Zahtevnost','Difficulty')}: <b>${CLS_N()[o.cls - 1]}</b> (${src})${over ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('nad tvojo mejo','above your limit')}</span>` : ''}</div>`; }
 // --- big window: all days, the score with every deduction, hourly table 06–21 h

@@ -701,12 +701,22 @@ const lbCss = document.createElement('style'); lbCss.textContent = `
 #potwLb button:hover{background:rgba(255,255,255,.28)}#potwLb .x{top:calc(12px + env(safe-area-inset-top));right:12px}#potwLb .pv{left:12px;top:50%;transform:translateY(-50%)}#potwLb .nx{right:12px;top:50%;transform:translateY(-50%)}
 #lbPage .bdw{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:20px 12px}#lbPage .bdg2{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
 #lbPage .bdg2 b{font-size:.76em;line-height:1.2;margin-top:4px;max-width:100%;overflow-wrap:anywhere;hyphens:auto}#lbPage .bdg2 small{font-size:.7em;color:#5b6461}#lbPage .bdg2.got small{color:#2e7d32;font-weight:600}
+#lbPage .bdg2[data-bk]{cursor:pointer;border-radius:12px;padding:4px 2px;transition:background .15s}#lbPage .bdg2[data-bk]:hover{background:rgba(127,127,127,.1)}
+.bdgdlg{z-index:2000;align-items:center;padding:16px 0}.bdgdlg .dlgc{position:relative;width:min(420px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;text-align:center;font-size:16px;line-height:1.45}
+.bdgdlg .x{position:absolute;top:6px;right:10px;border:0;background:none;color:inherit;font-size:30px;line-height:1;cursor:pointer}
+.bdgdlg .bdbig svg{max-width:52vw;height:auto;filter:drop-shadow(0 6px 14px rgba(0,0,0,.25))}.bdgdlg h3{margin:6px 0 0;font-size:1.4em}.bdgdlg .bdk{opacity:.7;font-size:.9em}
+.bdgdlg .bdhow{margin:12px 0 8px}.bdgdlg .bdbar{height:8px;border-radius:4px;background:rgba(127,127,127,.2);overflow:hidden}.bdgdlg .bdbar i{display:block;height:100%;background:#c62f28;border-radius:4px}
+.bdgdlg b{display:inline;margin:0;font-size:inherit}.bdgdlg .bdpk .h{display:block}.bdgdlg .bdst{margin:6px 0 10px}.bdgdlg .bdl{text-align:left;font-size:.92em;margin:8px 0;line-height:1.7}.bdgdlg .bdl span{opacity:.75}.bdgdlg .bdl small{opacity:.6}
+.bdgdlg a[data-pk]{cursor:pointer;text-decoration:underline;text-underline-offset:2px;color:inherit;font-weight:600}
+.bdgdlg .bdpk{text-align:left;border-top:1px solid var(--line,#ddd);margin-top:12px;padding-top:12px}.bdgdlg .bdpk .h{font-weight:700}.bdgdlg .bdpk .m{opacity:.75;font-size:.92em;margin:2px 0 6px}.bdgdlg .bdpk p{margin:0}
+html.mk .bdgdlg .dlgc{background:var(--solid,#fff);border:2px solid var(--ink,#141414);border-radius:20px;font-family:Inter,system-ui,sans-serif}
+html.mk .bdgdlg h3{font:700 28px "Barlow Condensed",system-ui,sans-serif;text-transform:uppercase;letter-spacing:.02em}
 @media (max-width:980px){ #lbPage .bdw{grid-template-columns:repeat(4,1fr)} #potw .pt{max-width:100%} }
 #lbPage .lba{position:sticky;top:12px;display:flex;flex-direction:column;gap:12px;padding-top:14px}
 #lbPage .ac2{background:#f7f9f8;border:1px solid #e3e8e5;border-radius:12px;padding:10px 12px}
 #lbPage .ac2 h4{margin:0 0 6px;font-size:.78em;text-transform:uppercase;letter-spacing:.06em;color:#5b6461}
 #lbPage .ac2 .it{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid #edf0ee;font-size:.92em}#lbPage .ac2 .it:last-child{border-bottom:0}
-#lbPage .ac2 .it span{color:#5b6461;white-space:nowrap}#lbPage .ac2 a{color:#1565c0;cursor:pointer}
+#lbPage .ac2 .it span{color:#5b6461;white-space:nowrap}#lbPage .ac2 .it span.wr{white-space:normal;text-align:right;min-width:0}#lbPage .ac2 .it span.wr i{font-style:normal;white-space:nowrap}#lbPage .ac2 .it .nw{flex:none;white-space:nowrap}#lbPage .ac2 .it:has(.wr){align-items:baseline}#lbPage .ac2 a{color:#1565c0;cursor:pointer}
 #lbPage .ac2 .pr{display:grid;grid-template-columns:1fr auto;gap:2px 8px;font-size:.9em;margin:5px 0}#lbPage .ac2 .pr .bar{grid-column:1/3;margin:0}
 #lbPage .ac2 .big{display:flex;gap:10px;align-items:baseline;margin:2px 0 6px}#lbPage .ac2 .big b{font-size:1.9em;font-variant-numeric:tabular-nums}
 #lbPage .ac2 .nb{color:#5b6461;font-size:.86em}
@@ -1011,7 +1021,7 @@ async function grView(gid){ SO.re = () => grView(gid); const B = $a('lbBody');
   $a('grMap').onclick = () => { lbClose(); ringsShow(`${G.name}: ${done} / ${BP.length}`, Object.fromEntries(Object.entries(cnt).map(([p, s]) => [p, {n: s.size, of: N}]))); };
   const inv = $a('grInv'); if (inv) inv.onclick = () => { const u = [...B.querySelectorAll('.pick input:checked')].map(i => i.value); if (!u.length) return;
     busy(inv, async () => { const n = await rpc('group_invite', {gid, unames: u}, true); toast(L(`Poslanih povabil: ${n}`, `Invitations sent: ${n}`)); }, again); };
-  const ren = $a('grRen'); if (ren) ren.onclick = () => { const n = prompt(L('Novo ime skupine', 'New group name'), G.name); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
+  const ren = $a('grRen'); if (ren) ren.onclick = async () => { const n = await askText(L('Novo ime skupine', 'New group name'), G.name || ''); if (n && n.trim()) busy(ren, () => rpc('group_rename', {gid, gname: n.trim()}, true), again); };
   const del = $a('grDel'); if (del) del.onclick = () => { if (confirmTwice(del)) busy(del, () => rpc('group_delete', {gid}, true), grList); };
   $a('grLeave').onclick = () => { if (confirmTwice($a('grLeave'))) busy($a('grLeave'), () => rpc('group_leave', {gid}, true), async () => { SO.circle = null; await grList(); }); }; }
 // ---------- 👤 my page: numbers, GPS ✓, wishlist, latest climbs, my routes, friends, groups (works without an account too) ----------
@@ -1198,7 +1208,7 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
   $a('adClose').onclick = () => { closeModal(); toast(L('Klikni na pot, ki je zaprta …','Click the closed path …')); map.getCanvas().style.cursor = 'crosshair';
     map.once('click', async e => { map.getCanvas().style.cursor = ''; const w = window.adminWayAt && adminWayAt(e.lngLat.lat, e.lngLat.lng);
       if (!w){ toastErr(L('Tu ni poti (približaj se in klikni na črto poti).','No path here (zoom in and click the line).')); return; }
-      if (!confirm(L(`Zapri pot »${w.name || 'brez imena'}« (#${w.id}) za vse?`, `Close path "${w.name || 'unnamed'}" (#${w.id}) for everybody?`))) return;
+      if (!(await askText(L(`Zapri pot »${esc(w.name || 'brez imena')}« (#${w.id}) za vse?`, `Close path "${esc(w.name || 'unnamed')}" (#${w.id}) for everybody?`), null, L('Zapri', 'Close')))) return;
       try{ await saveFix('closed', String(w.id), {name: w.name, lat: +w.lat.toFixed(6), lon: +w.lon.toFixed(6)}); toast(L('Pot zaprta — poti na vrh se preračunajo.','Path closed — routes are recomputed.')); }catch(err){ toastErr(errText(err)); } }); }; };
 { const c = document.createElement('style'); c.textContent = `.admbox{margin-top:6px;font-size:.9em}.admbox summary{cursor:pointer;color:#8a5a00}.admbox label{display:block;margin:4px 0}.admbox input{width:100%;box-sizing:border-box;font:inherit;padding:3px 5px}
 .admbox .ll{display:flex;gap:4px}.admbox .ab{display:flex;gap:6px;margin:6px 0}.admbox button{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:4px 8px;font:inherit;cursor:pointer}.admbox .am{color:#c62828}
@@ -1300,7 +1310,7 @@ async function asideFR(){ SO.aside = asideFR; const A = $a('lbAside'); if (!A) r
   const sug = [...cnt].sort((a, b) => b[1].size - a[1].size || byId[b[0]].elev - byId[a[0]].elev).slice(0, 6);
   A.innerHTML = progressCard()
     + ac(L('Zadnji vzponi prijateljev','Friends\' latest climbs'), recent.map(r => `<div class="it"><div><a data-u="${esc(r.username)}">${esc(r.display_name || r.username)}</a> · ${pkA(r.peak_id)}</div><span>${esc(fmtD(r.climbed_on))}</span></div>`).join(''))
-    + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div>${pkA(id)}</div><span>${[...u].slice(0, 3).map(x => '@' + esc(x)).join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
+    + ac(L('Bili so tam, ti še ne','They were there, you not yet'), sug.map(([id, u]) => `<div class="it"><div class="nw">${pkA(id)}</div><span class="wr">${[...u].slice(0, 3).map(x => '<i>@' + esc(x) + '</i>').join(', ')}${u.size > 3 ? ' +' + (u.size - 3) : ''}</span></div>`).join(''));
   asideBind(); }
 async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) return; A.innerHTML = progressCard(); asideBind(); if (!S) return;
   let P = null; try{ P = await rpc('my_plans', {}, true); }catch(_){ return; } if (!Array.isArray(P) || lb.dataset.p !== 'gr') return;
@@ -1323,16 +1333,19 @@ function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = 
   const nP2 = P2.filter(p => T0.has(p.id)).length;
   for (const n of [10, 25, 50, P2.length]){ const k = 'c' + (n >= P2.length ? 98 : n), pk = silPeak(k);
     out.push({k, pk, col: n >= P2.length ? '#b8860b' : n >= 50 ? '#c0392b' : n >= 25 ? '#6a1b9a' : '#1565c0', ring: n >= P2.length ? 'gold' : 'silver',
-      t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : ''}); }
+      t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : '', ids: P2.map(p => p.id),
+      how: n >= P2.length ? L('Osvoji vseh 98 prominentnih dvatisočakov.','Climb all 98 prominent 2000ers.') : L(`Osvoji katerih koli ${n} od 98 prominentnih dvatisočakov.`, `Climb any ${n} of the 98 prominent 2000ers.`)}); }
   // the 10 highest peaks of Slovenia (prominent or not) - gold Triglav
   { const T10 = PEAKS.filter(p => p.tier !== '1500' && p.lat != null).sort((a, b) => b.elev - a.elev).slice(0, 10), pk = silPeak('c98');
     out.push({k: 'top10', pk, emb: ['triglav_gold', 55.5], col: '#b8860b', ring: 'gold', t: L('10 najvišjih','10 highest'), big: 'TOP 10', d: T10.filter(p => T0.has(p.id)).length, n: T10.length, sub: [],
-      kind: T10.map(p => sname(p)).join(', ')}); }
+      kind: T10.map(p => sname(p)).join(', '), ids: T10.map(p => p.id), how: L('Osvoji 10 najvišjih vrhov Slovenije.','Climb the 10 highest peaks of Slovenia.')}); }
   for (const r of RANGE_ORDER){ const alp = PEAKS.some(p => p.range === r && p.tier !== '1500'), set = PEAKS.filter(p => p.range === r && (alp ? p.tier !== '1500' : p.tier === '1500'));
     if (!set.length) continue; const main = set.filter(alp ? isP2 : isP15), top = main.filter(p => !/^Vrh \d|^\d/.test(p.name)).sort((a, b) => (a.rank ?? 999) - (b.rank ?? 999) || b.elev - a.elev).slice(0, 2).map(sname);
     const col = (typeof RCOL !== 'undefined' && RCOL[r]) || '#555', p1 = silPeak(r + '*', r), p2 = silPeak(r, r);
-    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [BN(sname(p1))] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent')});
-    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [BN(sname(p2))] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks')}); }
+    if (main.length) out.push({k: r + '*', pk: p1, col, ring: 'gold', t: tr(r) + ' ★', sub: p1 ? [BN(sname(p1))] : top, d: main.filter(p => T0.has(p.id)).length, n: main.length, rng: r, kind: L('prominentni','prominent'), ids: main.map(p => p.id),
+      how: L(`Osvoji vse prominentne vrhove (${alp ? 'nad 2000 m' : '1500–2000 m'}) v pogorju ${tr(r)}.`, `Climb all prominent peaks (${alp ? 'over 2000 m' : '1500–2000 m'}) in ${tr(r)}.`)});
+    if (set.length > main.length) out.push({k: r, pk: p2, col, ring: 'silver', t: tr(r), sub: p2 ? [BN(sname(p2))] : top, d: set.filter(p => T0.has(p.id)).length, n: set.length, rng: r, kind: L('vsi vrhovi','all peaks'), ids: set.map(p => p.id),
+      how: L(`Osvoji vse vrhove (${alp ? 'nad 2000 m, s podvrhovi' : '1500–2000 m'}) v pogorju ${tr(r)}.`, `Climb every peak (${alp ? 'over 2000 m, incl. subpeaks' : '1500–2000 m'}) in ${tr(r)}.`)}); }
   return out; }
 
 let BID = 0;
@@ -1384,9 +1397,47 @@ function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.
     ${band ? `<text x="50" y="${b.big ? 81 : 76.5}" text-anchor="middle" font-family="system-ui,sans-serif" font-weight="${b.big ? 900 : 700}" style="font-size:${fs.toFixed(1)}px" fill="#fff">${esc(band)}</text>` : ''}
     ${gold && !b.big ? `<text x="50" y="21" text-anchor="middle" font-family="system-ui,sans-serif" style="font-size:9px" fill="#b8860b">★</text>` : ''}
     </g>${done ? '' : `<circle cx="50" cy="50" r="46" fill="none" stroke="#e3e8e5" stroke-width="4"/><circle cx="50" cy="50" r="46" fill="none" stroke="${b.col}" stroke-width="4" stroke-dasharray="${(f * C).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>`}</svg>`; }
-const bdwInner = B => B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('');
+const bdwInner = B => B.map(b => `<div class="bdg2${b.d >= b.n ? ' got' : ''}" data-bk="${esc(b.k)}" role="button" tabindex="0" title="${esc(b.t)}${b.kind ? ' · ' + esc(b.kind) : ''}: ${b.d} / ${b.n}">${badgeSVG(b)}<b>${esc(b.t)}</b><small>${b.d >= b.n ? '✓ ' + L('osvojeno','earned') : `${b.d} / ${b.n}`}</small></div>`).join('');
 function badgeCard(){ const B = badgeDefs(), got = B.filter(b => b.d >= b.n).length;
   return ac(`🏅 ${L('Značke','Badges')} <span style="text-transform:none;letter-spacing:0;font-weight:400">· ${got} / ${B.length}</span>`, `<div class="bdw">${bdwInner(B)}</div>`); }
+
+// a click on a badge: the emblem big, what the challenge asks, how far you are, what is left, and a few words on the peak drawn on it
+const PKTXT = {
+  Triglav: ['Najvišji vrh Slovenije in njen simbol (grb, zastava). Na vrhu stoji Aljažev stolp, ki ga je leta 1895 postavil župnik Jakob Aljaž.', 'The highest peak of Slovenia and its symbol (coat of arms, flag). On top stands Aljaž Tower, set up in 1895 by the priest Jakob Aljaž.'],
+  'Škrlatica': ['Drugi najvišji vrh Slovenije, nad dolino Vrata. Nanj ni lahke poti — vse vodijo čez zavarovane skalne odseke.', 'The second highest peak of Slovenia, above the Vrata valley. No easy way up — every route crosses protected rock sections.'],
+  Mangart: ['Mejni vrh z Italijo. Mangartska cesta pod njim je najvišje ležeča cesta v Sloveniji.', 'A border peak with Italy. The Mangart road below it is the highest road in Slovenia.'],
+  Jalovec: ['Ostra piramida nad Planico in Trento — njegova silhueta je v znaku Planinske zveze Slovenije.', 'The sharp pyramid above Planica and Trenta — its outline is in the emblem of the Alpine Association of Slovenia.'],
+  Razor: ['Mogočen vrh med Trento in dolino Krnice; pod njim na Kriških podih stoji Pogačnikov dom.', 'A massive peak between Trenta and the Krnica valley; Pogačnik hut stands below it on Kriški podi.'],
+  'Visoki Kanin': ['Najvišji vrh Kaninskega pogorja na meji z Italijo, nad Bovcem; na pobočju je najvišje smučišče v Sloveniji.', 'The highest peak of the Kanin group on the Italian border, above Bovec; the highest ski area in Slovenia is on its slopes.'],
+  Grintovec: ['Najvišji vrh Kamniško-Savinjskih Alp. Pod njim na Kokrskem sedlu stoji Cojzova koča.', 'The highest peak of the Kamnik–Savinja Alps. Cojz hut stands below it on Kokra saddle.'],
+  Ojstrica: ['Ostra skalna gora nad Logarsko dolino in Robanovim kotom; prepoznavna od daleč.', 'A sharp rock peak above Logar valley and Robanov kot; easy to recognise from afar.'],
+  Stol: ['Najvišji vrh Karavank. Tik pod vrhom stoji Prešernova koča.', 'The highest peak of the Karavanke. Prešeren hut stands just below the top.'],
+  'Košutnikov turn': ['Najvišji vrh dolgega grebena Košute na meji z Avstrijo.', 'The highest point of the long Košuta ridge on the Austrian border.'],
+  'Črni vrh': ['Najvišji vrh Pohorja, sredi gozdov.', 'The highest peak of Pohorje, in the middle of the forests.'],
+  Rogla: ['Pohorski vrh s športnim središčem in razglednim stolpom.', 'A Pohorje summit with a sports centre and a lookout tower.'],
+  'Veliki Snežnik': ['Najvišji vrh Slovenije zunaj Alp, dinarski kras. Tik pod vrhom stoji koča.', 'The highest peak of Slovenia outside the Alps, Dinaric karst. A hut stands just below the top.'],
+  Altemaver: ['Najvišja točka Ratitovca v Škofjeloškem hribovju; pod njo stoji Krekova koča.', 'The highest point of Ratitovec in the Škofja Loka hills; Krek hut stands below it.'],
+  Porezen: ['Razgledni vrh Cerkljanskega hribovja s kočo in spomenikom NOB.', 'A viewpoint of the Cerkno hills with a hut and a WWII memorial.']};
+window.badgeOpen = k => { const b = badgeDefs().find(x => x.k === k); if (!b) return; const T0 = new Set(window.TICKS ? TICKS.get() : []);
+  const done = b.d >= b.n, pk = b.pk, tx = pk && PKTXT[sname(pk)], left = (b.ids || []).filter(id => !T0.has(id) && byId[id]).map(id => byId[id]).sort((a, c) => c.elev - a.elev);
+  const need = Math.max(0, b.n - b.d), cls = pk && pk.tech ? ['', L('lahka','easy'), L('zahtevna','difficult'), L('zelo zahtevna','very difficult')][pk.tech.c] : '';
+  const d = document.createElement('div'); d.className = 'dlg on bdgdlg';
+  d.innerHTML = `<div class="dlgc" role="dialog" aria-modal="true"><button class="x" aria-label="${L('Zapri','Close')}">×</button>
+    <div class="bdbig">${badgeSVG(b).replace('width="76" height="76"', 'width="190" height="190"').replace(' style="filter:grayscale(1);opacity:.5"', '')}</div>
+    <h3>${esc(b.t)}</h3><div class="bdk">${esc(b.kind || '')}</div>
+    <p class="bdhow">${esc(b.how || '')}</p>
+    <div class="bdbar"><i style="width:${Math.round(100 * Math.min(1, b.d / b.n))}%"></i></div>
+    <div class="bdst">${done ? '✓ ' + L('Osvojeno!','Earned!') : `<b>${b.d} / ${b.n}</b> · ${L('še','to go')} ${need}`}</div>
+    ${!done && left.length ? `<div class="bdl"><span>${L('Še nisi bil','Not climbed yet')}${left.length > 12 ? ` (${left.length})` : ''}:</span> ${left.slice(0, 12).map(p => `<a data-pk="${esc(p.id)}">${esc(sname(p))}</a> <small>${Math.round(p.elev)}</small>`).join(' · ')}${left.length > 12 ? ' …' : ''}</div>` : ''}
+    ${pk ? `<div class="bdpk"><div class="h">⛰ ${L('Na znački','On the badge')}: <a data-pk="${esc(pk.id)}">${esc(sname(pk))}</a></div>
+      <div class="m">${Math.round(pk.elev)} m · ${esc((window.T || (x => x))(pk.range || ''))}${pk.rank ? ` · ${L('prominentni','prominent')} #${pk.rank}` : ''}${cls ? ' · ' + cls : ''}${T0.has(pk.id) ? ' · ✓ ' + L('bil si že','climbed') : ''}</div>
+      ${tx ? `<p>${esc(L(tx[0], tx[1]))}</p>` : ''}</div>` : ''}</div>`;
+  const close = () => { d.remove(); document.removeEventListener('keydown', esc_); }, esc_ = e => { if (e.key === 'Escape') close(); };
+  d.onclick = e => { if (e.target === d || e.target.closest('.x')) close(); };
+  d.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { close(); lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
+  document.addEventListener('keydown', esc_); document.body.append(d); };
+document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('.bdg2[data-bk]'); if (t) badgeOpen(t.dataset.bk); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches && e.target.matches('.bdg2[data-bk]')) badgeOpen(e.target.dataset.bk); });
 
 // ---------- 📸 peak of the week (a Slovenian prominent 2000er, photo from Wikimedia Commons, best day of the next days) ----------
 // photos: the Slovenian Wikipedia article (picked by its coordinates, so "Vrtača" is the peak and not the sinkhole), its Commons

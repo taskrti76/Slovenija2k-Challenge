@@ -33,23 +33,24 @@ html.mk.dk .maplibregl-popup .wish{background:#24282A!important;border-color:#3A
 html.mk.dk .maplibregl-popup-content .v2act button.pri,html.mk.dk .card .go,html.mk.dk .maplibregl-popup-content .v2ok{background:#C8102E!important;border-color:#C8102E!important;color:#fff!important}html.mk.dk .maplibregl-popup-content .v2act button.pri svg{color:#fff}html.mk.dk .v2act button:not(.pri){color:#ECEBE6!important}html.mk.dk .v2act button:not(.pri) svg{color:#ECEBE6}
 html.mk.dk .v2snow{color:#8EC0F5!important;border-color:#6EA8F0!important}
 /* ⚙ Nastavitve in Markacija: same type, outlines, chips and buttons as the rest (it kept the old light card look) */
-html.mk #setWin .setcard{background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;border:2px solid ${INK};border-radius:20px!important;font:400 15px Inter,system-ui,sans-serif!important;box-shadow:0 10px 40px rgba(0,0,0,.3)!important}
+html.mk #setWin .setcard{background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;border:2px solid ${INK};border-radius:20px!important;font:400 17px Inter,system-ui,sans-serif!important;line-height:1.45;box-shadow:0 10px 40px rgba(0,0,0,.3)!important}
 ${PH}{ html.mk #setWin .setcard{border-radius:0!important;border:0} }
-html.mk #setWin h3{font:700 28px ${CD}!important;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px!important;color:var(--ink,#141414)}
-html.mk #setWin h4{font:700 16px ${CD}!important;text-transform:uppercase;letter-spacing:.04em;color:var(--ink,#141414)!important;margin:18px 0 8px!important;padding-top:12px;border-top:1px solid var(--line,#E6E3DC)}
+html.mk #setWin h3{font:700 32px ${CD}!important;text-transform:uppercase;letter-spacing:.02em;margin:0 0 8px!important;color:var(--ink,#141414)}
+html.mk #setWin h4{font:700 20px ${CD}!important;text-transform:uppercase;letter-spacing:.04em;color:var(--ink,#141414)!important;margin:18px 0 8px!important;padding-top:12px;border-top:1px solid var(--line,#E6E3DC)}
 html.mk #setWin .x{color:var(--ink,#141414)!important;font-size:30px!important}
-html.mk #setWin .q{font:600 14px Inter,system-ui,sans-serif!important;color:var(--ink,#141414)!important;margin:12px 0 6px!important}
-html.mk #setWin .hint,html.mk #setWin .nb,html.mk #setWin .advbox .row,html.mk #setWin .advbox div[style*="color"]{font-size:13px!important;line-height:1.45;color:var(--mute,#626870)!important}
+html.mk #setWin .q{font:600 17px Inter,system-ui,sans-serif!important;color:var(--ink,#141414)!important;margin:12px 0 6px!important}
+html.mk #setWin .hint,html.mk #setWin .nb,html.mk #setWin .advbox .row,html.mk #setWin .advbox div[style*="color"],html.mk #setWin .ah,html.mk #setWin .apph{font-size:15px!important;line-height:1.45;color:var(--mute,#626870)!important}
 html.mk #setWin .chips,html.mk #setWin .tchips{display:flex;flex-wrap:wrap;gap:6px!important}
-html.mk #setWin .chips button,html.mk #setWin .tchips button{height:36px!important;padding:0 14px!important;border:2px solid ${INK}!important;border-radius:18px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 14px Inter,system-ui,sans-serif!important}
+html.mk #setWin .chips button,html.mk #setWin .tchips button{height:40px!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:20px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 16px Inter,system-ui,sans-serif!important}
 html.mk #setWin .chips button.on,html.mk #setWin .tchips button.on{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
-html.mk #setWin .advbox,html.mk #setWin .advbox label{color:var(--ink,#141414)!important;font-size:15px}
-html.mk #setWin .advbox .btn,html.mk #setWin .advbox .btn2,html.mk #setWin .sb{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin:6px 0!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:22px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 15px Inter,system-ui,sans-serif!important;box-shadow:none!important}
+html.mk #setWin .advbox,html.mk #setWin .advbox label{color:var(--ink,#141414)!important;font-size:17px}
+html.mk #setWin .setcard :is(div,span,label,b,a,small,p,li,td){font-size:max(15px,1em)}html.mk #setWin .setcard label,html.mk #setWin .setcard label.f{font-size:16px!important}
+html.mk #setWin .advbox .btn,html.mk #setWin .advbox .btn2,html.mk #setWin .sb{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;margin:6px 0!important;padding:0 16px!important;border:2px solid ${INK}!important;border-radius:22px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:600 16px Inter,system-ui,sans-serif!important;box-shadow:none!important}
 html.mk #setWin .sb.pri{background:${RED}!important;border-color:${RED}!important;color:#fff!important}
 html.mk #setWin .advbox .btn:hover,html.mk #setWin .sb:hover{background:rgba(127,127,127,.08)!important}html.mk #setWin .sb.pri:hover{background:#A50D26!important}
 html.mk #setWin input[type=checkbox],html.mk #setWin input[type=radio],html.mk #setWin input[type=range]{accent-color:${RED}}
-html.mk #setWin input[type=text],html.mk #setWin input[type=email],html.mk #setWin input[type=password],html.mk #setWin input:not([type]),html.mk #setWin select{min-height:44px;border:2px solid ${INK}!important;border-radius:12px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:400 15px Inter,system-ui,sans-serif!important;padding:0 12px!important;box-sizing:border-box}
-html.mk #setWin #setWg .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line,#E6E3DC);background:none!important;font-size:15px}
+html.mk #setWin input[type=text],html.mk #setWin input[type=email],html.mk #setWin input[type=password],html.mk #setWin input:not([type]),html.mk #setWin select{min-height:44px;border:2px solid ${INK}!important;border-radius:12px!important;background:var(--solid,#fff)!important;color:var(--ink,#141414)!important;font:400 17px Inter,system-ui,sans-serif!important;padding:0 12px!important;box-sizing:border-box}
+html.mk #setWin #setWg .it{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line,#E6E3DC);background:none!important;font-size:17px}
 html.mk #setWin #setWg .it b{font-weight:600}html.mk #setWin #setWg label.it b{font:700 18px ${CD};text-transform:uppercase;letter-spacing:.02em}
 html.mk #setWin #setWg input[type=checkbox]{width:22px;height:22px}
 html.mk #setWin #setWg .sb{flex:1 1 auto;margin:0!important}
