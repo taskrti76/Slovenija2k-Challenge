@@ -2,6 +2,18 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.89 + app — 2026-11-16
+- Trip planner is one sheet with four heights on the phone: hidden (a pill above the bar: "Načrt · 2 dni · 24,8 km", tap = back),
+  peek (name, time / length / ascent / hardest, day chips), half (stops, add, days), full (overnight options, walking per day,
+  profiles, GPX, save). Swipe the handle up / down, tap it = peek <-> half; moving the map shrinks it back to peek. PC: the
+  panel shows everything; ‹ hides it to the pill. Day chips zoom to that day and fade the others on the map.
+- Stops: "📍 Tapni karto za točko" stays on until switched off (several stops in a row); while the planner is open the search
+  bar at the top adds the chosen place as the next stop. Summary numbers wrap instead of being cut ("↑ 79…").
+- Android app: home-screen widget "Potrdi vrh" (4×2 and 2×1, Markacija look, light / dark). Switch on in the app: Jaz →
+  📲 Pripomoček. Tap = one GPS fix (≤ 30 s) -> nearest summit -> confirmed within 80 m (±60 m fix), notification with the
+  result; without signal the fix is saved and sent by itself when there is signal (also after a restart). Too far: nearest
+  summit, distance and direction. Needs supabase/10_widget.sql (own widget key; the page's login is not shared).
+
 ## web-v0.88 — 2026-11-16
 - Terms housekeeping (from the deep dive, claude/deep-dive-2026-11.md): offline area download uses 4 parallel requests
   (OpenFreeMap terms: at most 4); ARSO credit in the wording their re-use notice asks for; Copernicus credit with the year;

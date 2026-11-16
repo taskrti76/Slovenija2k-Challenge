@@ -185,6 +185,29 @@ window.gpsPeakBtn = p => { if (!IN_APP || p.lat == null) return null; const b = 
 // opening a peak's routes in the app while tracking is off: once a day, a hint where to switch it on
 window.gpsHint = () => { if (!IN_APP || gWatch || get('dvat3d_gpshint') === today()) return; put('dvat3d_gpshint', today());
   setTimeout(() => toast(L('Na turi? Rdeči gumb → 📍 GPS vrhovi — vrh se na vrhu potrdi sam.', 'On a hike? Red button → 📍 GPS summits — the summit is confirmed when you are on top.')), 1500); };
+// ---------- 📲 home-screen widget "Potrdi vrh" (Android app, app/native): one tap = GPS fix -> nearest summit -> confirmed.
+// It runs without this page, so it gets its own key (supabase/10_widget.sql: widget_key_create); the phone keeps the key.
+const WGP = CAPN ? capPlugin('SummitWidget') : null;
+async function wgFill(){ const E = $a('meWg'); if (!E) return;
+  const old = () => { E.innerHTML = `<div class="nb">${L('Pripomoček ima nova različica aplikacije — Nastavitve → 📱 Android aplikacija.','The widget needs the new app version — Settings → 📱 Android app.')}</div>`; };
+  if (!WGP) return old();
+  let st; try{ st = await WGP.status(); }catch(_){ return old(); }
+  const ok = v => v ? `<b style="color:#2E7D4F">${L('dovoljeno','allowed')}</b>` : `<b style="color:#C8102E">${L('ni dovoljeno','not allowed')}</b>`;
+  E.innerHTML = `<label class="it" style="cursor:pointer"><div><b>${L('Potrdi vrh na domačem zaslonu','Confirm summits from the home screen')}</b></div><span><input type="checkbox" id="wgOn" ${st.enabled ? 'checked' : ''} ${S ? '' : 'disabled'}></span></label>
+    <div class="nb" style="margin:4px 0 8px">${L('Na vrhu tapni markacijo na pripomočku: en GPS odčitek, najbližji vrh se potrdi (do 80 m). Brez signala se shrani in pošlje sam, ko je signal. Lokacijo prebere samo ob tapu.','On the summit tap the blaze on the widget: one GPS fix, the nearest summit is confirmed (within 80 m). Without signal it is saved and sent by itself later. Location is read only when you tap.')}</div>
+    ${S ? '' : `<div class="nb">${L('Za pripomoček se prijavi.','Sign in to use the widget.')}</div>`}
+    ${st.enabled ? `<div class="it"><div>${L('Lokacija med uporabo','Location while in use')}</div><span>${ok(st.location)}</span></div>
+      <div class="it"><div>${L('Obvestila','Notifications')}</div><span>${ok(st.notifications)}</span></div>
+      <div class="it"><div>${L('Čakajo na signal','Waiting for signal')}</div><span><b>${st.pending || 0}</b></span></div>
+      <div class="it"><div>${L('Na domačem zaslonu','On the home screen')}</div><span><b>${st.placed || 0}</b></span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="sb pri" id="wgPin">${L('Dodaj na domači zaslon','Add to home screen')}</button><button class="sb" id="wgPinS">${L('Mali (2×1)','Small (2×1)')}</button></div>` : ''}`;
+  const on = $a('wgOn'); if (on) on.onchange = async () => { on.disabled = true;
+    try{ if (on.checked){ const k = await rpc('widget_key_create', {device: 'Android'}, true); await WGP.enable({key: k, url: SB, apikey: KEY, lang: window.LANG === 'en' ? 'en' : 'sl'}); toast(L('Pripomoček je vklopljen.','Widget on.')); }
+      else { const r = await WGP.disable(); if (r && r.key) rpc('widget_key_revoke', {k: r.key}, true).catch(() => {}); } }
+    catch(e){ toastErr(L('Ni šlo: ','Failed: ') + (e.message || e)); }
+    wgFill(); };
+  const pin = small => WGP.pin({small}).then(r => { if (!r || !r.ok) toast(L('Dolgo pritisni prazen del domačega zaslona → Pripomočki → 2000-čaki.','Long-press an empty spot on the home screen → Widgets → 2000-čaki.')); }).catch(() => {});
+  const p1 = $a('wgPin'), p2 = $a('wgPinS'); if (p1) p1.onclick = () => pin(false); if (p2) p2.onclick = () => pin(true); }
 async function flushVQ(){ if (!VQ.length) return; const keep = [];
   for (const q of VQ){ try{ await rpc('verify_ascent', q, true); }
     catch(e){ const m = String(e.message || ''); if (/too far|inaccurate|unknown peak|bad time/.test(m)){ delete VER[q.pid]; continue; }   // the server says no
@@ -1024,7 +1047,9 @@ async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC()
     ${ac(`🗺 ${L('Moje poti','My routes')} (${MY.length})`, MY.length ? MY.slice().reverse().slice(0, 30).map((r, j) => { const i = MY.length - 1 - j, km = r.coords && r.coords.length > 1 ? lineKm(r.coords) : 0;
         return `<div class="it"><div><a data-rt="${i}">${esc(r.name || L('Pot','Route'))}</a> <small class="nb">${km.toFixed(1)} km${r.vis && r.vis !== 'private' ? ' · ' + (r.vis === 'public' ? L('javna','public') : L('s povezavo','link')) : ''}</small></div><span><a data-gpx="${i}">GPX</a></span></div>`; }).join('')
         : `<div class="nb">${L('Nariši pot z ✏️ Riši pot in jo shrani.','Draw a route with ✏️ Draw route and save it.')}</div>`)}
+    ${IN_APP ? ac(`📲 ${L('Pripomoček »Potrdi vrh«','Widget “Confirm summit”')}`, `<div id="meWg"><div class="nb">…</div></div>`) : ''}
     <div id="meSoc">${S ? `<div class="nb">…</div>` : ac(`👥 ${L('Prijatelji in skupine','Friends & groups')}`, `<div class="nb">${L('Za prijatelje, skupine in lestvico potrebuješ račun.','Friends, groups and the leaderboard need an account.')}</div>`)}</div>`;
+  if (IN_APP) wgFill();
   const bind = () => { B.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
     B.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, meOpen));
     B.querySelectorAll('[data-g]').forEach(a => a.onclick = () => { soShell('gr'); grView(a.dataset.g); }); };

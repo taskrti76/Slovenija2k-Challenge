@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="w_surface">#FFFFFFFF</color>
+  <color name="w_border">#FF141414</color>
+  <color name="w_ink">#FF141414</color>
+  <color name="w_mute">#FF626870</color>
+  <color name="w_chip">#FFF2F0EB</color>
+  <color name="w_red">#FFC8102E</color>
+  <color name="w_off">#FFD9D5CD</color>
+  <string name="w_desc">Potrdi vrh z enim tapom: GPS, najbližji vrh, potrditev. Brez signala se pošlje kasneje.</string>
+  <string name="w_name">Potrdi vrh</string>
+  <string name="w_name_small">Potrdi vrh (mali)</string>
+</resources>

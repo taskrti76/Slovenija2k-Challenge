@@ -205,7 +205,11 @@ function search(){ const q = norm(inp.value.trim()); if (q.length < 2){ res.inne
   res.innerHTML = out.slice(0, 8).map((r, i) => `<button role="option" data-i="${i}"><b>${r.t.replace(/[<>&]/g, '')}</b><span>${r.sub}</span></button>`).join('') || `<div class="no">${L('Ni zadetkov','No results')}</div>`;
   sb.classList.add('open');
   res.querySelectorAll('button').forEach(b => b.onclick = () => { const r = out[+b.dataset.i]; inp.value = ''; res.innerHTML = ''; sb.classList.remove('open'); inp.blur();
+    // trip plan open: a result becomes the next stop of the plan
+    if (window.planActive && planActive()){ if (r.k === 'peak') planAddPeak(r.id); else planAdd({name: r.t, lat: r.lat, lon: r.lon, k: r.k}); return; }
     if (r.k === 'peak') openPeak(r.id, true); else map.flyTo({center: [r.lon, r.lat], zoom: Math.max(map.getZoom(), 14), essential: true}); }); }
+const PH0 = L('Išči vrh, kočo ali kraj','Search peak, hut or place');
+window.searchPh = t => { inp.placeholder = t || PH0; };
 inp.oninput = search; inp.onkeydown = e => { if (e.key === 'Enter'){ const b = res.querySelector('button'); if (b) b.click(); } if (e.key === 'Escape'){ inp.value = ''; search(); } };
 addEventListener('pointerdown', e => { if (!sb.contains(e.target)){ sb.classList.remove('open'); } });
 sb.querySelector('.av').onclick = () => window.showMe && showMe();
@@ -255,12 +259,13 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
     for (const id of CARDS){ const c = $(id); if (!shown(c)) continue;
       if (PH()){ let bot = null, rt = null;
         if (dr && dr.width > dr.height) bot = Math.round(H - dr.top + 8); else if (dr) rt = Math.round(W - dr.left + 8);
-        const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '');
+        const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '') + '|' + (c.dataset.st || '');
         if (c.dataset.dgs === sig && c.style.getPropertyValue('max-height')) continue;   // (the card's own code may have cleared our styles) clr(c); c.dataset.dgs = sig;
         if (K){ setP(c, 'top', 'calc(8px + env(safe-area-inset-top))'); setP(c, 'bottom', 'auto'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); setP(c, 'max-height', (H - 16) + 'px'); continue; }
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
         const top = sr ? sr.bottom + 8 : 8; let mh = Math.max(160, H - (bot || 0) - top);
+        if (id === 'plCard' && c.dataset.st === 'half') mh = Math.min(mh, Math.max(260, Math.round(mh * 0.6)));   // trip plan: half height, the map stays above
         // summit routes upright: at most ~half the screen (it scrolls inside), so the routes stay visible on the map above it
         if (id === 'rcard' && bot != null) mh = Math.min(mh, Math.max(220, Math.round(mh * 0.55)));
         setP(c, 'max-height', mh + 'px'); }

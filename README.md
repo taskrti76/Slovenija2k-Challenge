@@ -24,7 +24,8 @@ Live: https://taskrti76.github.io/Slovenija2k-Challenge/ · Android app: `app/` 
 | `src/sw_template.js` | Service worker template (offline cache; keeps old entries on update). |
 | `src/peaks_final.json`, `src/peaks_extra.json` | Peaks (coords from DEM height+prominence match, LiDAR-snapped). |
 | `app/` | Android app: loads the live site; `www/offline.html` starts the saved copy or the built-in copy without signal. |
-| `supabase/` | Database schema / policies. |
+| `app/native/` | Android-only code copied into the app by `android.yml`: home-screen widget "Potrdi vrh" (Java + res), plugin `SummitWidget`. |
+| `supabase/` | Database schema / policies, run in order in the SQL Editor (`10_widget.sql`: widget keys + `widget_verify`). |
 | `badges/`, `tools/badges/` | Badge art and social backgrounds (`backdrops.py`, `emblem.py`). |
 | `data/` | Peak lists (CSV/TSV) and fetched data. |
 | `docs/PLATFORMS.md` | Web vs app: what differs, decisions, open items. |

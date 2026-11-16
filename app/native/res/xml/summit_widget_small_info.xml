@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" android:minWidth="110dp" android:minHeight="40dp"
+  android:targetCellWidth="2" android:targetCellHeight="1" android:resizeMode="horizontal" android:updatePeriodMillis="0"
+  android:initialLayout="@layout/summit_widget_small" android:previewLayout="@layout/summit_widget_small"
+  android:description="@string/w_desc" android:widgetCategory="home_screen"/>

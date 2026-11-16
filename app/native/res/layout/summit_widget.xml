@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_root"
+  android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical"
+  android:background="@drawable/w_bg" android:paddingStart="16dp" android:paddingEnd="12dp" android:paddingTop="12dp" android:paddingBottom="12dp">
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+    <TextView android:id="@+id/w_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12sp" android:textStyle="bold"
+      android:textColor="@color/w_mute" android:maxLines="1" android:ellipsize="end"/>
+    <TextView android:id="@+id/w_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="26sp"
+      android:fontFamily="sans-serif-condensed" android:textStyle="bold" android:textAllCaps="true" android:textColor="@color/w_ink" android:maxLines="1" android:ellipsize="end"/>
+    <TextView android:id="@+id/w_line" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:textSize="13sp"
+      android:textColor="@color/w_mute" android:maxLines="2" android:ellipsize="end"/>
+    <TextView android:id="@+id/w_pill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:background="@drawable/w_pill"
+      android:paddingStart="10dp" android:paddingEnd="10dp" android:paddingTop="4dp" android:paddingBottom="4dp" android:textSize="12.5sp" android:textStyle="bold"
+      android:textColor="@color/w_ink" android:maxLines="1" android:ellipsize="end" android:visibility="gone"/>
+  </LinearLayout>
+  <ImageView android:id="@+id/w_blaze" android:layout_width="84dp" android:layout_height="84dp" android:layout_marginStart="10dp" android:src="@drawable/w_blaze"
+    android:contentDescription="@string/w_name"/>
+</LinearLayout>

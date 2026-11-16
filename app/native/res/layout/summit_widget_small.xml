@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/w_root"
+  android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="horizontal" android:gravity="center_vertical"
+  android:background="@drawable/w_bg" android:paddingStart="8dp" android:paddingEnd="10dp" android:paddingTop="6dp" android:paddingBottom="6dp">
+  <ImageView android:id="@+id/w_blaze" android:layout_width="52dp" android:layout_height="52dp" android:src="@drawable/w_blaze" android:contentDescription="@string/w_name"/>
+  <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:layout_marginStart="8dp" android:orientation="vertical">
+    <TextView android:id="@+id/w_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone"/>
+    <TextView android:id="@+id/w_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="18sp" android:fontFamily="sans-serif-condensed"
+      android:textStyle="bold" android:textAllCaps="true" android:textColor="@color/w_ink" android:maxLines="1" android:ellipsize="end"/>
+    <TextView android:id="@+id/w_line" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/w_mute"
+      android:maxLines="1" android:ellipsize="end"/>
+    <TextView android:id="@+id/w_pill" android:layout_width="wrap_content" android:layout_height="wrap_content" android:visibility="gone"/>
+  </LinearLayout>
+</LinearLayout>

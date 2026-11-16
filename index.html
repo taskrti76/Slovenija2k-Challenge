@@ -2886,7 +2886,18 @@ let PL={stops:[],opt:{sleep:'hut',biv:true,tent:false,hours:7,ret:false,best:tru
 try{ const o=JSON.parse(localStorage.getItem(PLK)||'null'); if(o&&Array.isArray(o.stops)) PL={stops:o.stops.slice(0,12),opt:Object.assign(PL.opt,o.opt||{})}; }catch(_){}
 const plSave=()=>{ try{ localStorage.setItem(PLK,JSON.stringify(PL)); }catch(_){} };
 const DAYC=['#1565c0','#e65100','#2e7d32','#6a1b9a','#c62828','#00838f','#827717','#4e342e'];
+// sheet height (phone): peek / half / full; hidden = closed but the plan stays on the map with a pill to bring it back
+const PLSK='dvat3d_plst'; let PLST='peek', PLSEL=-1, plHid=false; try{ const v=localStorage.getItem(PLSK); if(/^(peek|half|full)$/.test(v||'')) PLST=v; }catch(_){}
+const plPhone=()=>!DESK();
+function plSetSt(st){ PLST=st; try{ localStorage.setItem(PLSK,st); }catch(_){} plApplySt(); }
+function plApplySt(){ const st=plPhone()?PLST:'full'; plCard.classList.remove('s-peek','s-half','s-full'); plCard.classList.add('s-'+st); plCard.dataset.st=st; }
 const plCard=document.createElement('div'); plCard.className='card'; plCard.id='plCard'; document.body.append(plCard);
+const plPill=document.createElement('button'); plPill.id='plPill'; plPill.type='button'; document.body.append(plPill);
+plPill.onclick=()=>{ plHid=false; if(plPhone()&&PLST==='full') PLST='peek'; planOpen(); };
+function plPillUpd(){ const show=plHid&&PL.stops.length>0&&!plCard.classList.contains('on'); plPill.classList.toggle('on',show); if(!show) return;
+  const R=PLR, D=R?R.days:null, km=D?D.reduce((a,d)=>a+d.km,0):0;
+  plPill.innerHTML=`${D?D.slice(0,4).map((_,i)=>`<i class="d" style="background:${DAYC[i%DAYC.length]};${i?'margin-left:-6px':''}"></i>`).join(''):''}<b>${LP('Načrt','Plan')}</b><span class="t">${D?`${D.length} ${D.length===1?LP('dan','day'):LP('dni','days')} · ${km.toFixed(1)} km`:`${PL.stops.length} ${LP('točk','stops')}`}</span><span class="u" aria-hidden="true">▴</span>`;
+  plPill.setAttribute('aria-label',LP('Odpri načrt','Open the plan')); }
 const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:none;z-index:7}#plCard.on{display:block}
 @media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){#plCard{left:calc(var(--lw) + 50px);top:12px;bottom:auto;width:min(calc(340px * var(--ui,1)),44vw);max-height:calc(100vh - 60px)}#plCard .rh{cursor:move;user-select:none}}
 #plCard .pls{margin:4px 0}#plCard .plr{display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line)}#plCard .plr .n{width:20px;height:20px;border-radius:50%;background:#1d2321;color:#fff;font:700 11px system-ui;display:flex;align-items:center;justify-content:center;flex:none}
@@ -2902,7 +2913,25 @@ const plCss=document.createElement('style'); plCss.textContent=`#plCard{display:
 #plCard .go{width:100%;margin:8px 0 4px;border:0;border-radius:9px;background:#1976d2;color:#fff;font:600 1em system-ui;padding:9px;cursor:pointer}#plCard .go:disabled{opacity:.5}
 #plCard .warn{color:#c62828;font-size:.88em;margin:4px 0}#plCard .hint{color:var(--mute);font-size:.85em;margin:3px 0}
 #plCard .pday{border-left:4px solid;padding:4px 0 6px 8px;margin:8px 0}#plCard .pday b{display:block}#plCard .pday .st{font-size:.88em;color:var(--mute)}#plCard .pday .sl{font-size:.9em;margin-top:2px}
-#plCard .plb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}#plCard .tot{font-weight:600;margin:6px 0}`;
+#plCard .plb{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}#plCard .tot{font-weight:600;margin:6px 0}
+/* one sheet, four heights (phone): hidden (pill) · peek (summary) · half (stops + days) · full (options, profiles, export); PC: always full, ‹ folds it to the pill */
+#plCard .plh{display:none;width:40px;height:5px;border-radius:3px;background:var(--line);margin:-4px auto 6px;touch-action:none;cursor:grab}
+#plCard .plh::before{content:'';display:block;margin:-12px -30px;height:29px}
+#plCard .rh b.pln{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#plCard .plsum{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin:2px 0 6px}
+#plCard .plsum b{display:block;font-size:1.1em;white-space:nowrap}#plCard .plsum small{color:var(--mute);font-size:.78em}
+#plCard .plsum .one{flex:1 1 100%;color:var(--mute);font-size:.92em}
+#plCard .pldays{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 6px}#plCard .pldays button{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line);background:transparent;color:inherit;border-radius:16px;padding:5px 11px;font:inherit;font-size:.9em;font-weight:600;cursor:pointer}
+#plCard .pldays button.on{background:#1d2321;color:#fff;border-color:#1d2321}#plCard .pldays i{width:10px;height:10px;border-radius:50%;flex:none}
+#plCard .pday b{white-space:normal;overflow-wrap:anywhere}#plCard .pday .st,#plCard .pday .sl{overflow-wrap:anywhere}
+#plCard .plo label{flex-wrap:wrap}#plCard .plo input[type=range]{flex:1;min-width:120px}
+#plCard.s-peek .plL,#plCard.s-peek .plO,#plCard.s-half .plO,#plCard.s-half .prof{display:none}#plCard .plL .tot{display:none}
+#plCard .pickon{background:#C8102E!important;color:#fff!important;border-color:#C8102E!important}
+#plPill{display:none;position:fixed;z-index:8;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));align-items:center;gap:8px;height:44px;padding:0 6px 0 14px;border-radius:22px;border:2px solid #141414;background:var(--solid,#fff);color:var(--ink,#141414);font:600 13.5px Inter,system-ui,sans-serif;box-shadow:0 4px 14px rgba(16,24,32,.18);cursor:pointer;white-space:nowrap;max-width:calc(100vw - 32px)}
+#plPill.on{display:flex}#plPill .d{width:10px;height:10px;border-radius:50%;flex:none}#plPill .t{overflow:hidden;text-overflow:ellipsis}
+#plPill .u{width:30px;height:30px;border-radius:15px;background:#C8102E;color:#fff;display:flex;align-items:center;justify-content:center;flex:none;font-size:15px}
+@media (min-width:701px) and (min-height:501px),(min-width:701px) and (pointer:fine){#plPill{left:calc(var(--lw,0px) + 50px);transform:none;bottom:24px}}
+@media (max-width:700px),(max-height:500px) and (pointer:coarse){#plCard .plh{display:block}}`;
 document.head.append(plCss);
 // everything with a name that can be a stop: peaks, huts / bivouacs, trailheads / parkings
 function plIndex(){ const L=[], seen=new Set(), add=(label,o)=>{ if(seen.has(label)) return; seen.add(label); L.push([label,o]); };
@@ -2915,26 +2944,39 @@ let PLI=null;
 const nearNamed=(la,lo)=>{ let b=null,bd=400; for(const [,o] of (PLI||(PLI=plIndex()))){ const d=hav(la,lo,o.lat,o.lon); if(d<bd){ bd=d; b=o; } } return b; };
 window.planAdd=o=>{ if(!o) return; PL.stops.push({name:o.name,lat:+o.lat.toFixed(6),lon:+o.lon.toFixed(6),k:o.k||'pt'}); PL.stops=PL.stops.slice(0,12); PLR=null; plSave(); planOpen(); plDraw(); };
 window.planAddPeak=id=>{ const p=byId[id]; if(p) planAdd({name:p.name.split(' (')[0],lat:p.lat,lon:p.lon,k:'peak'}); };
-window.planOpen=()=>{ plCard.classList.add('on'); document.body.classList.remove('menu'); if(popup) popup.remove(); plRender(); };
-const plClose=()=>{ plCard.classList.remove('on'); plPick=false; map.getCanvas().style.cursor=''; plClear(); };
-map.on('click',e=>{ if(!plPick) return; plPick=false; map.getCanvas().style.cursor='';
+window.planOpen=()=>{ plHid=false; plCard.classList.add('on'); document.body.classList.remove('menu'); if(popup) popup.remove(); plApplySt(); plRender(); plPillUpd(); window.searchPh&&searchPh(LP('Dodaj točko: vrh, koča, kraj','Add a stop: peak, hut, place')); };
+window.planActive=()=>plCard.classList.contains('on');
+// hide: the sheet goes, the plan stays drawn on the map, the pill brings it back
+const plHide=()=>{ plCard.classList.remove('on'); plHid=true; plPick=false; map.getCanvas().style.cursor=''; plPillUpd(); window.searchPh&&searchPh(); };
+const plClose=()=>{ plCard.classList.remove('on'); plHid=false; plPick=false; map.getCanvas().style.cursor=''; plClear(); plPillUpd(); window.searchPh&&searchPh(); };
+map.on('click',e=>{ if(!plPick||!plCard.classList.contains('on')) return;
   const o=nearNamed(e.lngLat.lat,e.lngLat.lng)||{name:LP('Točka','Point')+` ${e.lngLat.lat.toFixed(4)}, ${e.lngLat.lng.toFixed(4)}`,lat:e.lngLat.lat,lon:e.lngLat.lng,k:'pt'};
   if(popup) setTimeout(()=>popup&&popup.remove(),0); planAdd(o); });
 function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt, S=PL.stops, KI={peak:'▲',hut:'🏠',biv:'⛺',sh:'⛺',start:'P',place:'⌂',pt:'•'};
-  plCard.innerHTML=`<div class="rh"><b>🗓 ${LP('Načrtovalnik ture','Trip planner')}</b><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
-    <div class="hint">${LP('Dodaj točke v vrstnem redu: prvi je izhodišče. Vrh, koča, izhodišče, mesto ali vas — ali klikni katerokoli točko na karti.','Add stops in order: the first is the start. Peak, hut, trailhead, town or village — or click any spot on the map.')}</div>
+  const nm0=S.length?(S.length>1?`${S[0].name} → ${S[S.length-1].name}`:S[0].name):LP('Načrt ture','Trip plan'), Rr=PLR;
+  const sum=Rr?(()=>{ const D=Rr.days, km=D.reduce((a,d)=>a+d.km,0), up=D.reduce((a,d)=>a+d.up,0), t=D.reduce((a,d)=>a+d.t,0), sac=Math.max(0,...D.map(d=>d.sac||0));
+      return `<div><b>${fmtT(t)}</b><small>${LP('hoje','walking')}</small></div><div><b>${km.toFixed(1)} km</b><small>${LP('dolžina','length')}</small></div><div><b>↑ ${Math.round(up)} m</b><small>${LP('vzpon','ascent')}</small></div><div><b>${sac?SACT[sac]:'–'}</b><small>${LP('najtežje','hardest')}</small></div>`; })()
+    :`<div class="one">${S.length<2?LP('Dodaj vsaj dve točki: prva je izhodišče.','Add at least two stops: the first is the start.'):`${S.length} ${LP('točk','stops')}`}</div>`;
+  plCard.innerHTML=`<div class="plh" role="button" aria-label="${LP('Povleci za višino','Drag to resize')}"></div><div class="rh"><b class="pln" title="${esc(nm0)}">${esc(nm0)}</b><button class="x hd" aria-label="${LP('Skrij (načrt ostane na karti)','Hide (the plan stays on the map)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" aria-label="${LP('Zapri','Close')}">×</button></div>
+    <div class="plsum">${sum}</div>
+    ${Rr&&Rr.days.length>1?`<div class="pldays"><button data-day="-1" class="${PLSEL<0?'on':''}">${LP('Vse','All')}</button>${Rr.days.map((_,i)=>`<button data-day="${i}" class="${PLSEL===i?'on':''}"><i style="background:${DAYC[i%DAYC.length]}"></i>${LP('Dan','Day')} ${i+1}</button>`).join('')}</div>`:''}
+    ${!Rr?`<button class="go" id="plGo" ${S.length<2?'disabled':''}>${LP('Izračunaj turo','Plan the trip')}</button>`:''}
+    <div class="plL"><div class="hint">${LP('Prvi je izhodišče. Dodajaj z iskanjem zgoraj, tukaj ali s tapom na karto.','The first is the start. Add with the search above, here, or by tapping the map.')}</div>
     <div class="pls">${S.map((x,i)=>`<div class="plr"><i class="n">${i+1}</i><span title="${esc(x.name)}">${KI[x.k]||'•'} ${esc(x.name)}</span><button data-a="up" data-i="${i}" ${i?'':'disabled'}>↑</button><button data-a="dn" data-i="${i}" ${i<S.length-1?'':'disabled'}>↓</button><button data-a="rm" data-i="${i}">✕</button></div>`).join('')||`<div class="hint">${LP('Še ni krajev.','No places yet.')}</div>`}</div>
-    <div class="pla"><input id="plQ" type="search" autocomplete="off" enterkeyhint="search" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"><button id="plPk" class="${plPick?'on':''}" title="${LP('Klikni na karto','Click on the map')}">📍</button></div>
+    <div class="pla"><input id="plQ" type="search" autocomplete="off" enterkeyhint="search" placeholder="${LP('Dodaj vrh, kočo, izhodišče …','Add a peak, hut, trailhead …')}"></div>
     <div class="plsug" id="plSug" role="listbox"></div>
-    <div class="q">${LP('Prenočevanje','Overnight')}</div>
+    <div class="plb"><button id="plPk" class="${plPick?'pickon':''}" aria-pressed="${plPick}">📍 ${plPick?LP('Tapaš točke na karto — izklopi','Tapping stops on the map — turn off'):LP('Tapni karto za točko','Tap the map to add')}</button></div>
+    <div id="plOut">${PLR?plOut():''}</div></div>
+    <div class="plO"><div class="q">${LP('Prenočevanje','Overnight')}</div>
     <div class="chips" id="plSl"><button data-v="none" class="${O.sleep==='none'?'on':''}">${LP('brez spanja (en dan)','no sleep (one go)')}</button><button data-v="hut" class="${O.sleep==='hut'?'on':''}">${LP('v kočah','at huts')}</button></div>
     ${O.sleep==='hut'?`<div class="plo"><label><input type="checkbox" id="plBiv" ${O.biv?'checked':''}> ${LP('tudi bivaki','bivouacs too')}</label><label><input type="checkbox" id="plTent" ${O.tent?'checked':''}> ${LP('imam šotor','I have a tent')}</label></div>
       ${O.tent?`<div class="warn">⚠ ${LP('Kampiranje v naravi je v Sloveniji prepovedano, v Triglavskem narodnem parku strogo. Šotor le na dovoljenih mestih ali v sili.','Wild camping is forbidden in Slovenia, strictly in Triglav National Park. Tent only where allowed or in an emergency.')}</div>`:''}
       <div class="plo"><label>${LP('Hoje na dan','Walking per day')} <input type="range" id="plH" min="3" max="12" step="0.5" value="${O.hours}"> <b id="plHv">${O.hours} h</b></label></div>`:''}
     <div class="plo"><label><input type="checkbox" id="plBest" ${O.best?'checked':''}> ${LP('najboljši vrstni red','best order')}</label><label><input type="checkbox" id="plRet" ${O.ret?'checked':''}> ${LP('nazaj na začetek','back to the start')}</label></div>
     <div class="plb"><button id="plRev" ${S.length<2?'disabled':''} title="${LP('Obrni vrstni red (konec postane začetek)','Reverse the order (the end becomes the start)')}">⇄ ${LP('Obrni smer','Reverse')}</button></div>
-    <button class="go" id="plGo" ${S.length<2?'disabled':''}>${LP('Izračunaj turo','Plan the trip')}</button><div id="plOut">${PLR?plOut():''}</div>`;
-  plCard.querySelector('.x').onclick=plClose;
+    </div>`;
+  plCard.querySelector('.x:not(.hd)').onclick=plClose; plCard.querySelector('.x.hd').onclick=plHide;
+  plCard.querySelectorAll('.pldays button').forEach(b=>b.onclick=()=>{ PLSEL=+b.dataset.day; plSel(); plRender(); });
   // own suggestion list inside the window (the browser's list collided with the phone keyboard): up to 8 matches, tap one to add
   const nAll=HUTS.length+STARTS_ALL.length+PLACES.length; if(PLI&&PLI.n!==nAll) PLI=null;   // huts / places arrive later than the peaks
   const idx=PLI||(PLI=plIndex(),PLI.n=nAll,PLI), q=plCard.querySelector('#plQ'), sg=plCard.querySelector('#plSug');
@@ -2947,14 +2989,14 @@ function plRender(){ if(!plCard.classList.contains('on')) return; const O=PL.opt
     sg.querySelectorAll('button').forEach(b=>b.onclick=()=>{ const o=top[+b.dataset.i]; if(o){ q.value=''; sg.innerHTML=''; planAdd(o[1]); } }); return top; };
   q.oninput=sugg; q.onkeydown=e=>{ if(e.key==='Enter'){ const t=sugg(); if(t[0]){ q.value=''; planAdd(t[0][1]); } } if(e.key==='Escape'){ q.value=''; sg.innerHTML=''; } };
   q.onfocus=()=>setTimeout(()=>{ try{ q.scrollIntoView({block:'start',behavior:'smooth'}); }catch(_){} },300);
-  plCard.querySelector('#plPk').onclick=()=>{ plPick=!plPick; map.getCanvas().style.cursor=plPick?'crosshair':''; plRender(); if(plPick&&!DESK()) toastOk&&toastOk(LP('Tapni na karto.','Tap on the map.')); };
+  plCard.querySelector('#plPk').onclick=()=>{ plPick=!plPick; map.getCanvas().style.cursor=plPick?'crosshair':''; if(plPick&&plPhone()) plSetSt('peek'); plRender(); if(plPick&&!DESK()) toastOk&&toastOk(LP('Tapaj točke na karto.','Tap stops on the map.')); };
   plCard.querySelectorAll('.plr button').forEach(b=>b.onclick=()=>{ const i=+b.dataset.i, a=b.dataset.a;
     if(a==='rm') S.splice(i,1); else { const j=a==='up'?i-1:i+1; [S[i],S[j]]=[S[j],S[i]]; } PLR=null; plSave(); plRender(); plDraw(); });
   plCard.querySelectorAll('#plSl button').forEach(b=>b.onclick=()=>{ O.sleep=b.dataset.v; PLR=null; plSave(); plRender(); });
   const ck=(id,k)=>{ const e=plCard.querySelector(id); if(e) e.onchange=()=>{ O[k]=e.checked; PLR=null; plSave(); plRender(); }; };
   ck('#plBiv','biv'); ck('#plTent','tent'); ck('#plBest','best'); ck('#plRet','ret');
   const h=plCard.querySelector('#plH'); if(h){ h.oninput=()=>{ plCard.querySelector('#plHv').textContent=h.value+' h'; }; h.onchange=()=>{ O.hours=+h.value; PLR=null; plSave(); }; }
-  plCard.querySelector('#plGo').onclick=planCompute;
+  const pg=plCard.querySelector('#plGo'); if(pg) pg.onclick=planCompute;
   plCard.querySelector('#plRev').onclick=()=>{ const had=!!PLR; S.reverse(); PLR=null; plSave(); plDraw(); plRender(); if(had) planCompute(); };
   plOutBind(); }
 // ---------- computing ----------
@@ -3008,8 +3050,8 @@ async function planCompute(){ const S=PL.stops, O=PL.opt, go=plCard.querySelecto
     for(const d of days){ const zz=P.zs.slice(d.a,d.b+1), au=ascentOf(zz); Object.assign(d,{km:P.dist[d.b]-P.dist[d.a],up:au.up,down:au.down,t:T(d.b)-T(d.a),
       sac:Math.max(0,...P.sac.slice(d.a,d.b+1)),fer:P.tk.slice(d.a,d.b+1).includes('f'),stops:sIdx.map((si,k)=>[si,S[ord[k]].name]).filter(([si])=>si>d.a&&si<=d.b).map(x=>x[1]),
       from:d.a===0?S[ord[0]].name:(days[days.indexOf(d)-1].sleep||{}).name||''}); }
-    PLR={P,days,ord,warn,coords,sIdx}; plDraw(); plRender();
-    const B=new maplibregl.LngLatBounds(); P.pts.forEach(p=>B.extend(p)); map.fitBounds(B,{padding:{top:60,bottom:60,left:DESK()?420:40,right:60},duration:900}); }
+    PLR={P,days,ord,warn,coords,sIdx}; PLSEL=-1; plDraw(); plRender(); plPillUpd();
+    const B=new maplibregl.LngLatBounds(); P.pts.forEach(p=>B.extend(p)); map.fitBounds(B,{padding:plPad(),duration:900}); }
   catch(e){ console.error(e); const o=plCard.querySelector('#plOut'); if(o) o.innerHTML=`<div class="warn">${esc(e.message||e)}</div>`; }
   finally { const b=plCard.querySelector('#plGo'); if(b){ b.disabled=PL.stops.length<2; b.textContent=LP('Izračunaj turo','Plan the trip'); } } }
 // one day's part of the profile, rebased to its start (for the small chart / GPX)
@@ -3027,11 +3069,18 @@ function plOut(){ const R=PLR, D=R.days, km=D.reduce((s,d)=>s+d.km,0), up=D.redu
     <div class="hint">${LP('Časi so po tvoji kondiciji (⚙ Nastavitve), brez postankov. Pred turo preveri odprtost koč in razmere.','Times follow your fitness (⚙ Settings), without breaks. Check hut opening and conditions before you go.')}</div>`; }
 function plOutBind(){ if(!PLR) return; const R=PLR, nm=i=>`${LP('Tura','Trip')} ${PL.stops.map(x=>x.name).slice(0,3).join(' – ')}${i!=null?` · ${LP('dan','day')} ${i+1}`:''}`;
   plCard.querySelectorAll('[data-gpx]').forEach(b=>b.onclick=()=>{ const d=R.days[+b.dataset.gpx]; coordsGPX(nm(+b.dataset.gpx),R.P.pts.slice(d.a,d.b+1)); });
-  plCard.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{ const d=R.days[+b.dataset.show], B=new maplibregl.LngLatBounds(); R.P.pts.slice(d.a,d.b+1).forEach(p=>B.extend(p)); map.fitBounds(B,{padding:{top:60,bottom:60,left:DESK()?420:40,right:60},duration:800}); });
+  plCard.querySelectorAll('[data-show]').forEach(b=>b.onclick=()=>{ const d=R.days[+b.dataset.show], B=new maplibregl.LngLatBounds(); R.P.pts.slice(d.a,d.b+1).forEach(p=>B.extend(p)); PLSEL=+b.dataset.show; plSel(); plRender(); });
   const g=plCard.querySelector('#plGpx'); if(g) g.onclick=()=>coordsGPX(nm(),R.P.pts);
   const sv=plCard.querySelector('#plSave'); if(sv) sv.onclick=()=>{ MY.push({id:newId(),name:nm(),coords:R.coords,date:Date.now()}); saveMy(); myRender(); toastOk&&toastOk(LP('Shranjeno med moje poti.','Saved to my routes.')); };
-  const cl=plCard.querySelector('#plClr'); if(cl) cl.onclick=()=>{ PL.stops=[]; PLR=null; plSave(); plClear(); plRender(); }; }
+  const cl=plCard.querySelector('#plClr'); if(cl) cl.onclick=()=>{ PL.stops=[]; PLR=null; PLSEL=-1; plSave(); plClear(); plRender(); }; }
 // ---------- on the map ----------
+function plSel(){ try{ if(map.getLayer('pl-line')) map.setPaintProperty('pl-line','line-opacity',PLSEL<0?1:['case',['==',['get','d'],PLSEL],1,0.35]);
+  if(PLR&&PLR.days[PLSEL]){ const d=PLR.days[PLSEL], B=new maplibregl.LngLatBounds(); PLR.P.pts.slice(d.a,d.b+1).forEach(p=>B.extend(p)); map.fitBounds(B,{padding:plPad(),duration:800}); }
+  else if(PLR){ const B=new maplibregl.LngLatBounds(); PLR.P.pts.forEach(p=>B.extend(p)); map.fitBounds(B,{padding:plPad(),duration:800}); } }catch(_){} }
+// map padding that keeps the plan out from under the sheet / panel
+function plPad(){ const r=plCard.classList.contains('on')?plCard.getBoundingClientRect():null;
+  if(DESK()) return {top:70,bottom:60,left:r?Math.min(innerWidth*0.45,r.right+30):60,right:60};
+  return {top:76,left:30,right:30,bottom:r?Math.max(90,Math.min(innerHeight*0.6,innerHeight-r.top+20)):110}; }
 function plClear(){ try{ ['pl-lbl','pl-pt','pl-line','pl-line-c'].forEach(id=>map.getLayer(id)&&map.removeLayer(id)); map.getSource('plan')&&map.removeSource('plan'); }catch(_){} }
 function plDraw(){ if(!map.isStyleLoaded()) return; const F=[];
   if(PLR) PLR.days.forEach((d,i)=>F.push({type:'Feature',properties:{d:i},geometry:{type:'LineString',coordinates:PLR.P.pts.slice(d.a,d.b+1)}}));
@@ -3045,6 +3094,12 @@ function plDraw(){ if(!map.isStyleLoaded()) return; const F=[];
   map.addLayer({id:'pl-pt',type:'circle',source:'plan',filter:['==',['geometry-type'],'Point'],paint:{'circle-radius':['match',['get','k'],'z',10,9],'circle-color':['match',['get','k'],'z','#fff','#1d2321'],'circle-stroke-color':['match',['get','k'],'z','#1d2321','#fff'],'circle-stroke-width':2}});
   map.addLayer({id:'pl-lbl',type:'symbol',source:'plan',filter:['==',['geometry-type'],'Point'],layout:{'text-field':['get','l'],'text-font':['Noto Sans Bold'],'text-size':11,'text-allow-overlap':true,'icon-allow-overlap':true},paint:{'text-color':['match',['get','k'],'z','#1d2321','#fff']}}); }
 map.on('load',()=>{ if(PL.stops.length) plDraw(); });
+map.on('dragstart',()=>{ if(plPhone()&&plCard.classList.contains('on')&&PLST!=='peek'){ PLST='peek'; plApplySt(); } });
+// handle / header: swipe up = taller, down = lower (peek -> hidden), tap the handle = peek <-> half
+{ let y0=null, t0=0; plCard.addEventListener('pointerdown',e=>{ if(!plPhone()||!e.target.closest('.plh,.rh')||e.target.closest('button,input')) return; y0=e.clientY; t0=Date.now(); });
+  plCard.addEventListener('pointerup',e=>{ if(y0==null) return; const d=e.clientY-y0, tap=Math.abs(d)<8&&Date.now()-t0<400, onH=!!e.target.closest('.plh'); y0=null;
+    const O=['peek','half','full'], i=O.indexOf(PLST);
+    if(d<-40) plSetSt(O[Math.min(2,i+1)]); else if(d>40){ if(i===0) plHide(); else plSetSt(O[i-1]); } else if(tap&&onH) plSetSt(PLST==='peek'?'half':'peek'); }); }
 makeMovable('plCard');
 })();
 
@@ -4532,6 +4587,29 @@ window.gpsPeakBtn = p => { if (!IN_APP || p.lat == null) return null; const b = 
 // opening a peak's routes in the app while tracking is off: once a day, a hint where to switch it on
 window.gpsHint = () => { if (!IN_APP || gWatch || get('dvat3d_gpshint') === today()) return; put('dvat3d_gpshint', today());
   setTimeout(() => toast(L('Na turi? Rdeči gumb → 📍 GPS vrhovi — vrh se na vrhu potrdi sam.', 'On a hike? Red button → 📍 GPS summits — the summit is confirmed when you are on top.')), 1500); };
+// ---------- 📲 home-screen widget "Potrdi vrh" (Android app, app/native): one tap = GPS fix -> nearest summit -> confirmed.
+// It runs without this page, so it gets its own key (supabase/10_widget.sql: widget_key_create); the phone keeps the key.
+const WGP = CAPN ? capPlugin('SummitWidget') : null;
+async function wgFill(){ const E = $a('meWg'); if (!E) return;
+  const old = () => { E.innerHTML = `<div class="nb">${L('Pripomoček ima nova različica aplikacije — Nastavitve → 📱 Android aplikacija.','The widget needs the new app version — Settings → 📱 Android app.')}</div>`; };
+  if (!WGP) return old();
+  let st; try{ st = await WGP.status(); }catch(_){ return old(); }
+  const ok = v => v ? `<b style="color:#2E7D4F">${L('dovoljeno','allowed')}</b>` : `<b style="color:#C8102E">${L('ni dovoljeno','not allowed')}</b>`;
+  E.innerHTML = `<label class="it" style="cursor:pointer"><div><b>${L('Potrdi vrh na domačem zaslonu','Confirm summits from the home screen')}</b></div><span><input type="checkbox" id="wgOn" ${st.enabled ? 'checked' : ''} ${S ? '' : 'disabled'}></span></label>
+    <div class="nb" style="margin:4px 0 8px">${L('Na vrhu tapni markacijo na pripomočku: en GPS odčitek, najbližji vrh se potrdi (do 80 m). Brez signala se shrani in pošlje sam, ko je signal. Lokacijo prebere samo ob tapu.','On the summit tap the blaze on the widget: one GPS fix, the nearest summit is confirmed (within 80 m). Without signal it is saved and sent by itself later. Location is read only when you tap.')}</div>
+    ${S ? '' : `<div class="nb">${L('Za pripomoček se prijavi.','Sign in to use the widget.')}</div>`}
+    ${st.enabled ? `<div class="it"><div>${L('Lokacija med uporabo','Location while in use')}</div><span>${ok(st.location)}</span></div>
+      <div class="it"><div>${L('Obvestila','Notifications')}</div><span>${ok(st.notifications)}</span></div>
+      <div class="it"><div>${L('Čakajo na signal','Waiting for signal')}</div><span><b>${st.pending || 0}</b></span></div>
+      <div class="it"><div>${L('Na domačem zaslonu','On the home screen')}</div><span><b>${st.placed || 0}</b></span></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="sb pri" id="wgPin">${L('Dodaj na domači zaslon','Add to home screen')}</button><button class="sb" id="wgPinS">${L('Mali (2×1)','Small (2×1)')}</button></div>` : ''}`;
+  const on = $a('wgOn'); if (on) on.onchange = async () => { on.disabled = true;
+    try{ if (on.checked){ const k = await rpc('widget_key_create', {device: 'Android'}, true); await WGP.enable({key: k, url: SB, apikey: KEY, lang: window.LANG === 'en' ? 'en' : 'sl'}); toast(L('Pripomoček je vklopljen.','Widget on.')); }
+      else { const r = await WGP.disable(); if (r && r.key) rpc('widget_key_revoke', {k: r.key}, true).catch(() => {}); } }
+    catch(e){ toastErr(L('Ni šlo: ','Failed: ') + (e.message || e)); }
+    wgFill(); };
+  const pin = small => WGP.pin({small}).then(r => { if (!r || !r.ok) toast(L('Dolgo pritisni prazen del domačega zaslona → Pripomočki → 2000-čaki.','Long-press an empty spot on the home screen → Widgets → 2000-čaki.')); }).catch(() => {});
+  const p1 = $a('wgPin'), p2 = $a('wgPinS'); if (p1) p1.onclick = () => pin(false); if (p2) p2.onclick = () => pin(true); }
 async function flushVQ(){ if (!VQ.length) return; const keep = [];
   for (const q of VQ){ try{ await rpc('verify_ascent', q, true); }
     catch(e){ const m = String(e.message || ''); if (/too far|inaccurate|unknown peak|bad time/.test(m)){ delete VER[q.pid]; continue; }   // the server says no
@@ -5371,7 +5449,9 @@ async function meBody(){ const B = $a('lbBody'); if (!B) return; const c = myC()
     ${ac(`🗺 ${L('Moje poti','My routes')} (${MY.length})`, MY.length ? MY.slice().reverse().slice(0, 30).map((r, j) => { const i = MY.length - 1 - j, km = r.coords && r.coords.length > 1 ? lineKm(r.coords) : 0;
         return `<div class="it"><div><a data-rt="${i}">${esc(r.name || L('Pot','Route'))}</a> <small class="nb">${km.toFixed(1)} km${r.vis && r.vis !== 'private' ? ' · ' + (r.vis === 'public' ? L('javna','public') : L('s povezavo','link')) : ''}</small></div><span><a data-gpx="${i}">GPX</a></span></div>`; }).join('')
         : `<div class="nb">${L('Nariši pot z ✏️ Riši pot in jo shrani.','Draw a route with ✏️ Draw route and save it.')}</div>`)}
+    ${IN_APP ? ac(`📲 ${L('Pripomoček »Potrdi vrh«','Widget “Confirm summit”')}`, `<div id="meWg"><div class="nb">…</div></div>`) : ''}
     <div id="meSoc">${S ? `<div class="nb">…</div>` : ac(`👥 ${L('Prijatelji in skupine','Friends & groups')}`, `<div class="nb">${L('Za prijatelje, skupine in lestvico potrebuješ račun.','Friends, groups and the leaderboard need an account.')}</div>`)}</div>`;
+  if (IN_APP) wgFill();
   const bind = () => { B.querySelectorAll('[data-pk]').forEach(a => a.onclick = () => { lbClose(); setTimeout(() => openPeak(a.dataset.pk, true), 60); });
     B.querySelectorAll('[data-u]').forEach(a => a.onclick = () => lbProfile(a.dataset.u, meOpen));
     B.querySelectorAll('[data-g]').forEach(a => a.onclick = () => { soShell('gr'); grView(a.dataset.g); }); };
@@ -6079,7 +6159,11 @@ function search(){ const q = norm(inp.value.trim()); if (q.length < 2){ res.inne
   res.innerHTML = out.slice(0, 8).map((r, i) => `<button role="option" data-i="${i}"><b>${r.t.replace(/[<>&]/g, '')}</b><span>${r.sub}</span></button>`).join('') || `<div class="no">${L('Ni zadetkov','No results')}</div>`;
   sb.classList.add('open');
   res.querySelectorAll('button').forEach(b => b.onclick = () => { const r = out[+b.dataset.i]; inp.value = ''; res.innerHTML = ''; sb.classList.remove('open'); inp.blur();
+    // trip plan open: a result becomes the next stop of the plan
+    if (window.planActive && planActive()){ if (r.k === 'peak') planAddPeak(r.id); else planAdd({name: r.t, lat: r.lat, lon: r.lon, k: r.k}); return; }
     if (r.k === 'peak') openPeak(r.id, true); else map.flyTo({center: [r.lon, r.lat], zoom: Math.max(map.getZoom(), 14), essential: true}); }); }
+const PH0 = L('Išči vrh, kočo ali kraj','Search peak, hut or place');
+window.searchPh = t => { inp.placeholder = t || PH0; };
 inp.oninput = search; inp.onkeydown = e => { if (e.key === 'Enter'){ const b = res.querySelector('button'); if (b) b.click(); } if (e.key === 'Escape'){ inp.value = ''; search(); } };
 addEventListener('pointerdown', e => { if (!sb.contains(e.target)){ sb.classList.remove('open'); } });
 sb.querySelector('.av').onclick = () => window.showMe && showMe();
@@ -6129,12 +6213,13 @@ document.querySelectorAll('.panel .grp label input[type=checkbox]').forEach(c =>
     for (const id of CARDS){ const c = $(id); if (!shown(c)) continue;
       if (PH()){ let bot = null, rt = null;
         if (dr && dr.width > dr.height) bot = Math.round(H - dr.top + 8); else if (dr) rt = Math.round(W - dr.left + 8);
-        const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '');
+        const sig = bot + '|' + rt + '|' + (sr ? Math.round(sr.bottom) : '') + '|' + (c.dataset.st || '');
         if (c.dataset.dgs === sig && c.style.getPropertyValue('max-height')) continue;   // (the card's own code may have cleared our styles) clr(c); c.dataset.dgs = sig;
         if (K){ setP(c, 'top', 'calc(8px + env(safe-area-inset-top))'); setP(c, 'bottom', 'auto'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); setP(c, 'max-height', (H - 16) + 'px'); continue; }
         if (bot != null){ setP(c, 'bottom', bot + 'px'); setP(c, 'left', '8px'); setP(c, 'right', '8px'); setP(c, 'border-radius', '20px'); }
         if (rt != null) setP(c, 'right', rt + 'px');
         const top = sr ? sr.bottom + 8 : 8; let mh = Math.max(160, H - (bot || 0) - top);
+        if (id === 'plCard' && c.dataset.st === 'half') mh = Math.min(mh, Math.max(260, Math.round(mh * 0.6)));   // trip plan: half height, the map stays above
         // summit routes upright: at most ~half the screen (it scrolls inside), so the routes stay visible on the map above it
         if (id === 'rcard' && bot != null) mh = Math.min(mh, Math.max(220, Math.round(mh * 0.55)));
         setP(c, 'max-height', mh + 'px'); }
