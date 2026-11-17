@@ -1,6 +1,6 @@
 name: Off-trail grades
 # Difficulty of the pathless ground between the nearest mapped path and each summit (tools/offtrail_grade.py),
-# then the page is rebuilt so the grades are in index.html. Run by hand (Actions -> Off-trail grades -> Run workflow),
+# saved to data/offtrail.json; the page loads that file itself (no rebuild). Run by hand (Actions -> Off-trail grades -> Run workflow),
 # again after a big OSM pack update.
 on:
   workflow_dispatch:
@@ -19,12 +19,11 @@ jobs:
         with: { python-version: '3.12' }
       - run: pip install numpy pillow scipy scikit-image rasterio
       - run: python tools/offtrail_grade.py
-      - run: python tools/build.py
       - name: Commit grades + rebuilt page
         run: |
           git config user.name  "offtrail-bot"
           git config user.email "offtrail-bot@users.noreply.github.com"
-          git add data/offtrail.json index.html sw.js
+          git add data/offtrail.json
           git diff --cached --quiet && exit 0
-          git commit -m "off-trail grades + page rebuild"
+          git commit -m "off-trail grades"
           for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((RANDOM % 20 + 5)); done
