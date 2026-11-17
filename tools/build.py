@@ -13,18 +13,13 @@ P_ALL = P + (json.load(open(_x, encoding='utf8')) if os.path.exists(_x) else [])
 # difficulty class per peak (tools/peak_tech.py from the routes; data/tech_overrides.json wins): {"c":1-3,"s":T of easiest route,"f":ferrata only}
 _t = os.path.join(R, 'data', 'peak_tech.json'); _o = os.path.join(R, 'data', 'tech_overrides.json')
 TECH = json.load(open(_t, encoding='utf8')) if os.path.exists(_t) else {}
-# pathless ground to the summit (tools/offtrail_grade.py, "Off-trail grades" Action): {"s":T,"deg":crux °,"g":pathless m,"d":m to the path}.
-# Every route ends with that bit, so the easiest way up is at least that hard; peaks with no route get their class from it.
-OT = json.load(open(os.path.join(R, 'data', 'offtrail.json'), encoding='utf8')) if os.path.exists(os.path.join(R, 'data', 'offtrail.json')) else {}
-for k, o in OT.items():
-    t = dict(TECH.get(k, {'x': 1})); s = max(t.get('s') or 0, o['s']) if not t.get('x') else o['s']
-    t['s'] = s; t['c'] = max(t.get('c') or 0, 3 if s >= 4 else 2) if not t.get('x') else (3 if s >= 4 else 2); t['ot'] = 1; TECH[k] = t
+# pathless grades (data/offtrail.json, "Off-trail grades" Action) are loaded by the page at run time (trails.js), so the Action
+# never has to rebuild index.html and an upload of index.html can't wipe them. Hand fixes are marked "ov" so the page keeps them.
 if os.path.exists(_o):
     for k, v in json.load(open(_o, encoding='utf8')).items():
-        if not k.startswith('_'): TECH[k] = {**TECH.get(k, {}), **v}
+        if not k.startswith('_'): TECH[k] = {**TECH.get(k, {}), **v, 'ov': 1}
 for _p in P_ALL:
     if _p['id'] in TECH: _p['tech'] = TECH[_p['id']]
-    if _p['id'] in OT: _p['ot'] = OT[_p['id']]
 MOVED = {k: v for k, v in json.load(open(os.path.join(R, 'data', 'id_moves.json'), encoding='utf8')).items() if not k.startswith('_')}   # merged duplicate peaks
 pk = os.path.join(R, 'dvat-osm.json.gz')
 b64 = base64.b64encode(open(pk, 'rb').read()).decode() if single and os.path.exists(pk) else ''

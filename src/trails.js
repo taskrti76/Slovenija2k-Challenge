@@ -1630,3 +1630,10 @@ map.on('load',()=>{ if(PL.stops.length) plDraw(); });
 const PLS=sheetize(plCard,{key:'plan',hide:()=>plHide()});
 makeMovable('plCard');
 })();
+// pathless grades + easiest lines (tools/offtrail_grade.py -> data/offtrail.json, "Off-trail grades" Action), loaded at run time:
+// the line is routed to and drawn dotted; the grade raises the peak's class (hand fixes in data/tech_overrides.json, "ov", win)
+if(location.protocol.startsWith('http')) fetch('data/offtrail.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).then(O=>{ if(!O) return;
+  for(const [id,o] of Object.entries(O)){ const p=byId[id]; if(!p||!o||!o.s) continue; p.ot=o;
+    const t=p.tech||{x:1}; if(t.ov) continue; const s=t.x?o.s:Math.max(t.s||0,o.s);
+    p.tech={...t,s,c:t.x?(s>=4?3:2):Math.max(t.c||0,s>=4?3:2),ot:1}; }
+  window.refreshPeaksMap&&refreshPeaksMap(); }).catch(()=>{});

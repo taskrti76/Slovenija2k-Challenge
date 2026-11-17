@@ -2,6 +2,11 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.97 — 2026-11-17
+- Off-trail grades + lines are loaded by the page from data/offtrail.json at run time (no longer baked into index.html).
+  Before, the Action rebuilt index.html with the new lines, and the next uploaded update (built with the old file) overwrote it.
+  The Action now only commits data/offtrail.json; hand fixes in data/tech_overrides.json still win.
+
 ## web-v0.96 — 2026-11-17
 - Peak photos: photos found only by position (within 1.5 km) must look like mountain photos (title / categories / description
   name a mountain word, a range or the peak) and are dropped if they are specimens, insects, labels … (Malo Špičje showed museum
