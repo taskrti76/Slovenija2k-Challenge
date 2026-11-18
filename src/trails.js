@@ -970,7 +970,7 @@ window.peakRoutesUI = async function(id){
   res.routes=res.routes.filter(r=>{ r.key=routeKey(p,r); const f=FXR[r.key]; if(!f) return true; r.fix=f;
     if(f.t){ r.stats.sac=+f.t; delete r.stats.sac0; } if(f.f!=null) r.stats.ferrata=!!f.f;   // admin grade wins over OSM and the pathless estimate
     if(f.start) r.start={...r.start,name:f.start};
-    if(f.geom&&f.geom.length>1){ r.coords=f.geom.map(x=>x.slice()); r.stats.len=lineLen(r.coords); r.gap=0; r.adm=true; const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); }
+    if(f.geom&&f.geom.length>1){ r.coords=f.geom.map(x=>x.slice()); r.stats.len=lineLen(r.coords); r.gap=0; r.adm=true; r.otn=0; delete r.stats.sac0; delete r.stats.ot; const sn=r.start.name.replace(/^pri /,''); r.huts=hutsAlong(r.coords).filter(h=>h!==sn); }
     return !f.hide||window.ADMIN; }).concat(ADD);
   if(!res.routes.length){ RT=null; setRoutesLayer(); c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Ni poti.</div>`; return; }
   RT={peak:p, routes:res.routes, sel:0, min:false}; setRoutesLayer(); renderRoutes(); fitRoutes();
@@ -1278,7 +1278,7 @@ function drawRender(){
   const quick=`<div class="plb onlyPeek"><button onclick="drawUndo()" ${D.hist.length?'':'disabled'}>↶ ${LP('Razveljavi','Undo')}</button><button onclick="drawDelSel()" ${D.pts.length?'':'disabled'}>🗑 ${D.sel>=0?LP('Izbriši izbrano','Delete selected'):LP('Zadnjo','Last')}</button></div>`;
   card.innerHTML=`${shHandle()}<div class="rh"><b class="pln">${D.edit>=0?esc(MY[D.edit].name):LP('Načrt ture','Trip plan')}</b><button class="x" onclick="drawMin(true)" aria-label="${LP('Skrij (risanje ostane vklopljeno)','Hide (drawing stays on)')}" title="${LP('Skrij','Hide')}">${DESK()?'‹':'▾'}</button><button class="x" onclick="stopDraw()" aria-label="${LP('Končaj risanje','Stop drawing')}">×</button></div>
     ${pmTabs('draw')}
-    ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha.
+    ${D.adm?`<div class="admd">🛠 <b>${esc(D.adm.p.name)}</b> · ${D.adm.isNew?'nova pot':'nova trasa poti'} — vleci točke, klik na črto doda točko; pot sledi potem. Od izhodišča do vrha. Za brezpotje (zadnji del brez poti) izklopi »sledi potem in cestam« spodaj — potem gre črta naravnost od točke do točke. Najtežje (T) nastaviš po shranjevanju v 🛠 Uredi pot.
       <div class="rb"><button class="pri" onclick="adminDrawSave()" ${drawCoords().length<2?'disabled':''}>💾 Shrani za vse</button><button onclick="adminDrawCancel()">Prekliči</button></div>${D.adm.err?`<div class="aerr">${esc(D.adm.err)}</div>`:''}</div>`:''}
     <div class="plsum">${sum}</div>
     ${quick}

@@ -374,7 +374,7 @@ setTimeout(window.bootOut,12000);</script>
     <div id="tiers"><button data-t="2000">2000+ m</button><button data-t="1500">1500–2000 m</button><button data-t="all">Vsi</button></div>
     <div id="progress"></div>
     <input id="q" type="search" placeholder="Išči vrh …" autocomplete="off">
-    <div id="chips"><button data-f="rank" id="chipRank">98 prominentnih</button><button data-f="all" id="chipAll">Vsi vrhovi</button></div>
+    <div id="chips"><button data-f="rank" id="chipRank">83 prominentnih</button><button data-f="all" id="chipAll">Vsi vrhovi</button></div>
     <div id="stchips"><button data-s="all">Vsi</button><button data-s="todo">Neobiskani</button><button data-s="done">Obiskani</button></div>
   </div>
   <div id="dlist"></div>
@@ -471,6 +471,17 @@ window.toastErr=msg=>{ const t=document.getElementById('toast'); if(!t) return; 
 addEventListener('error',e=>{ if(/_numberToString|Out of bounds\. Index requested/.test(e.message||'')) return; toastErr((e.message||'napaka')+(e.filename?' ('+e.filename.split('/').pop()+':'+e.lineno+')':'')); });
 addEventListener('unhandledrejection',e=>toastErr(String(e.reason&&e.reason.message||e.reason)));
 const PEAKS = __PEAKS__;
+// challenge: the main list is the prominent 2000ers WITH a path to the top (83). The pathless ones (p.extra, data/challenge.json)
+// count as prominent only when the list is unlocked: all 83 climbed, the switch in Nastavitve, or an admin. Until then they are
+// ordinary peaks (no rank), so lists, counts, map styles and badges all use the 83.
+for(const p of PEAKS) if(p.extra) p.rank0=p.rank;
+const EXK='dvat3d_show98';
+window.extraOn=()=>{ try{ const v=localStorage.getItem(EXK); return v==='1'||v==='auto'; }catch(_){ return false; } };
+window.setExtra=(on,why)=>{ const was=PEAKS.some(p=>p.extra&&p.rank!=null), now=!!(on||window.ADMIN);
+  if(why) try{ localStorage.setItem(EXK,on?why:'0'); }catch(_){}
+  for(const p of PEAKS) if(p.extra) p.rank=now?p.rank0:null;
+  if(was!==now&&window.refreshPeaksMap) refreshPeaksMap(); };
+for(const p of PEAKS) if(p.extra&&!extraOn()) p.rank=null;
 const ID_MOVED = __IDMOVES__;   // merged duplicate peaks: old id -> kept id (data/id_moves.json)
 const RANGES = [["Julijske Alpe","#c0392b"],["Kamniško-Savinjske Alpe","#1f6fb2"],["Karavanke","#7b3fa0"],["Predalpe","#e67e22"],["Pohorje","#00897b"],["Snežnik","#795548"]];
 // tiers: 2000 = Peakbagger list (+ OSM subpeaks), 1500 = OSM peaks 1500–2000 m with LiDAR prominence (main ≥100 m, subpeaks ≥30 m)
@@ -1463,6 +1474,9 @@ $('dlist').onclick=e=>{const t=e.target;
   if(t.matches('input[type=checkbox]')) toggleV(t.dataset.id,t.checked);
   else if(t.matches('.nm')&&!t.classList.contains('nc')){ if(PHONE_UI()) drawer.classList.remove('open'); openPeak(t.dataset.id,true); }};
 function refresh(){
+  // all 83 main peaks climbed: the 15 extra (pathless) ones unlock by themselves (once)
+  if(!extraOn()){ const M=PEAKS.filter(p=>p.tier!=='1500'&&p.rank!=null&&!p.extra); if(M.length&&M.every(p=>visited.has(p.id))){ setExtra(true,'auto');
+    setTimeout(()=>(window.toastOk||window.toast||(()=>{}))((window.LANG==='en'?'All 83 climbed! 15 extra peaks without a path to the top are now on the list.':'Vseh 83 osvojenih! Na seznamu je zdaj še 15 vrhov brez poti do vrha.')),300); } }
   const TP=PEAKS.filter(inTier), R=TP.filter(isMain), nA=cntV(TP), nR=cntV(R);
   $('vcount3').textContent=`${nR} / ${R.length}`; $('vcount2').textContent=visited.size?`${visited.size}`:'';
   $('tiers').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.t===TIER));

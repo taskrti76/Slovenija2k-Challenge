@@ -2,6 +2,21 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.99 — 2026-11-18
+- Challenge: the main list is the 83 prominent 2000ers with a path to the top. The 15 without one (data/challenge.json "extra")
+  join the list ("98 prominentnih") once all 83 are climbed (toast), with the switch in ⚙ Nastavitve → Izziv, or always for admins.
+  Until then they are ordinary peaks on the map and in the list. Counts, range badges and the leaderboard use the 83
+  (supabase/03_peaks.sql regenerated: run it again in Supabase).
+- Badges: 10 / 25 / 50 / "Vseh 83" (gold Triglav) count the 83. New "Vseh 98" badge (the Pelci ridge, Pelc nad Klonicami) appears
+  only when all 98 are climbed (admins always see it).
+- Admin: redrawing a route (🛠 Uredi pot → Nariši traso znova, or ＋ Nova pot) now also replaces the estimated pathless part; the
+  admin drawing note says how to draw pathless bits (switch off "sledi potem in cestam").
+- "Vseh 98" badge emblem drawn from the user's photo of the Pelci (badges/pelci.svg), zoomed out so the ridge and its drops show.
+- 360 zoom: the zoom bonus no longer applies to the middle / far distance and only a half bonus very near for the terrain
+  (every terrain tile is one big texture: the pool overflowed, the mid ring kept reloading, frames dropped, phones crashed);
+  coarse-while-moving holds 650 ms instead of 400 ms so quick zoom taps don't restart the loads.
+- Licence page: badges and backgrounds drawn from freely available photos (no author list needed).
+
 ## web-v0.98 — 2026-11-18
 - "Podatki in licence" page (licence.html): every source, what it is used for, licence and credit (OSM, OpenFreeMap, Mapterhorn,
   GURS, Esri, OpenTopoMap, Waymarked Trails, Open-Meteo, ARSO, Copernicus, ESA WorldCover, Windy, Wikimedia, hribi.net), fonts and

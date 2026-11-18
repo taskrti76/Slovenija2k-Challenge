@@ -51,6 +51,8 @@ win.innerHTML = `<div class="setcard"><button class="x" aria-label="${L('Zapri',
   <div class="chips" data-k="maxT">${[2,3,4,5,6].map(v => `<button data-v="${v}">T${v}</button>`).join('')}</div>
   <div class="chips" data-k="ferrata" style="margin-top:6px"><button data-v="1">${L('ferate: da','via ferratas: yes')}</button><button data-v="0">${L('ferate: ne','via ferratas: no')}</button></div>
   <div class="hint">${L('Težje poti in vrhovi dobijo oznako »⚠ nad tvojo mejo«. T2 planinska, T3 zahtevna planinska, T4 alpska, T5 zahtevna alpska, T6 težka alpska pot.','Harder routes and peaks get "⚠ above your limit". T2 mountain, T3 demanding mountain, T4 alpine, T5 demanding alpine, T6 difficult alpine.')}</div>
+  <div class="q">${L('Izziv','Challenge')}</div>
+  <label class="it" style="display:flex;gap:10px;align-items:flex-start"><input type="checkbox" id="setX98" style="margin-top:4px"> <span>${L('Pokaži vseh 98 prominentnih — tudi 15 vrhov brez poti do vrha (brezpotje, plezanje). Glavni izziv je 83 vrhov s potjo; dodatni se odklenejo sami, ko osvojiš vseh 83.','Show all 98 prominent — also the 15 peaks without a path to the top (off-trail, climbing). The main challenge is the 83 peaks with a path; the extra ones unlock by themselves once you have climbed all 83.')}</span></label>
   <h4>${L('Videz','Look')}</h4>
   <div class="tchips" id="setV2" role="radiogroup" style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">${[['mk', L('Markacija','Trail blaze')], ['0', L('Osnovni (stari)','Classic (legacy)')], ['1', L('Nov videz (stari)','New look (legacy)')]].map(([v, t]) =>
     `<button type="button" data-v="${v}" class="${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? 'on' : ''}" style="padding:7px 12px;border-radius:16px;border:1px solid var(--line);background:${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? 'var(--accent,#1565c0)' : 'transparent'};color:${(window.MK ? 'mk' : window.V2 ? '1' : '0') === v ? '#fff' : 'inherit'};font:inherit;cursor:pointer">${t}</button>`).join('')}</div>
@@ -71,7 +73,7 @@ $s('setTheme').onclick = e => { const b = e.target.closest('button[data-v]'); if
   $s('setTheme').querySelectorAll('button').forEach(x => { const on = x === b; x.classList.toggle('on', on); x.style.background = on ? 'var(--accent,#1565c0)' : 'transparent'; x.style.color = on ? '#fff' : 'inherit'; }); };
 $s('setV2').onclick = e => { const b = e.target.closest('button[data-v]'); if (!b) return; try{ localStorage.setItem('dvat3d_v2', b.dataset.v); }catch(_){} location.reload(); };
 window.setPref = (k, v) => { P[k] = k === 'ferrata' ? !!v : v; paintChips(); save(); }; window.FIT_K = FIT_K;
-const open = () => { win.classList.add('on'); document.body.classList.remove('menu'); window.onSettingsOpen && window.onSettingsOpen(); };
+const open = () => { const x = document.getElementById('setX98'); if (x){ x.checked = !!(window.extraOn && extraOn()); x.onchange = () => window.setExtra && setExtra(x.checked, x.checked ? '1' : '0'); } win.classList.add('on'); document.body.classList.remove('menu'); window.onSettingsOpen && window.onSettingsOpen(); };
 const close = () => win.classList.remove('on');
 window.openSettings = open; window.closeSettings = close;
 win.querySelector('.x').onclick = close; win.onclick = e => { if (e.target === win) close(); };

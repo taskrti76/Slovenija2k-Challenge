@@ -155,7 +155,14 @@ function zoomBy(f){ S.zoomK=clamp(S.zoomK*f, 0.3, 1.6); fitFov(); schedule(); }
 // Now tiles are picked as for the normal wide view, plus log2(1/zoomK) levels for the magnification
 // (2× zoom -> 1 level finer; the narrower view needs about as many tiles as before). Satellite + terrain.
 function zoomLod(){ for (const id of ['sat','dem_terrain']){ try{ const src = map.getSource(id); if (!src || !src.calculateTileZoom || src.calculateTileZoom.v360) continue;
-  const f = src.calculateTileZoom, g = (z, d2, dz, dc, fov) => !S.on ? f(z, d2, dz, dc, fov) : f(z, d2, dz, dc, clamp(fov / (S.zoomK || 1), 12, 75)) - 0.6 * Math.log2(S.zoomK || 1) - (S.lodLo ? 1 : 0);
+  // v0.99: the zoom bonus made the middle distance (2–15 km) load ~4× the tiles - for the terrain too, and every terrain tile
+  // is one 2048² texture: the pool overflowed, the mid ring kept reloading ("stuck"), frames dropped and phones crashed.
+  // Now: satellite gets the bonus near (full where its tile is z14+, none at z11 and coarser); terrain only a half bonus,
+  // only very near (z13+); when the bonus would push a tile past the next level it stops there.
+  const sat = id === 'sat', f = src.calculateTileZoom, g = (z, d2, dz, dc, fov) => { if (!S.on) return f(z, d2, dz, dc, fov);
+    const base = f(z, d2, dz, dc, clamp(fov / (S.zoomK || 1), 12, 75)), b = Math.min(1.2, -0.6 * Math.log2(S.zoomK || 1));
+    const w = sat ? clamp((base - 11) / 3, 0, 1) : 0.5 * clamp((base - 13) / 2, 0, 1);
+    return base + (b > 0 ? b * w : b) - (S.lodLo ? 1 : 0); };   // zoomed out: coarser everywhere, as before
   g.v360 = 1; src.calculateTileZoom = g; }catch(_){} } }
 function setAuto(on, warm){
   S.auto = on; $$('v360auto').classList.toggle('on', on && !warm); cancelAnimationFrame(S.raf);
@@ -325,7 +332,7 @@ let still=0;
 let lodT = 0;
 function lodMoving(){ if (!S.on) return; clearTimeout(lodT);
   if (!S.lodLo){ S.lodLo = true; try{ map._update(true); }catch(_){} }
-  lodT = setTimeout(() => { if (!S.on || S.auto) return; S.lodLo = false; try{ map._update(true); }catch(_){} }, 400); }
+  lodT = setTimeout(() => { if (!S.on || S.auto) return; S.lodLo = false; try{ map._update(true); }catch(_){} }, 650); }   // 650 ms: quick zoom taps no longer flip coarse/fine and restart the loads each time
 window.__v360moving = () => { if (!S.on) return; lodMoving(); const lo = window.LITE_ON ? 1 : (qi===2 ? Q[1].pr : 0); if (!lo) return; clearTimeout(still);
   if (!movingPR){ movingPR=true; setPR(Math.min(devicePixelRatio, lo)); }
   still=setTimeout(()=>{ if (!S.on || S.auto) return; movingPR=false; setPR(Math.min(devicePixelRatio,Q[qi].pr)); }, 350); };

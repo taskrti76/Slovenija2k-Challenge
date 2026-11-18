@@ -1,0 +1,20 @@
+{
+ "_about": "Glavni izziv = prominentni dvatisočaki s potjo do vrha (83). Ti vrhovi (brez poti do vrha / brezpotje) so dodatni: pokažejo se, ko so vsi glavni osvojeni, s stikalom v Nastavitvah ali adminu. Uredi seznam tukaj (id-ji iz src/peaks_final.json), nato tools/build.py in 03_peaks.sql.",
+ "extra": [
+  "veliki-ozebnik-2480",
+  "pelc-nad-klonicami-2442",
+  "dovški-gamsovec-2440",
+  "planjava-2394",
+  "kotova-špica-2376",
+  "luknja-peč-2249",
+  "bedinji-vrh-2196",
+  "visoka-špica-2159",
+  "skala-2133",
+  "šmihelovec-2117",
+  "srebrnjak-2100",
+  "rušica-2096",
+  "velika-tičarica-2091",
+  "veliki-pihavec-2090",
+  "goličica-2076"
+ ]
+}

@@ -866,7 +866,7 @@ function bindHead(onBoard){
     if (b.dataset.p === 'lb'){ lbShell(); lbLoad(true); asideLB(); potw(); } else if (b.dataset.p === 'me') meOpen(); else soOpen(b.dataset.p); };
   const t = lb.querySelector('.lbtabs'); if (t) t.onclick = e => { const b = e.target.closest('button'); if (!b || b.dataset.b === LB.board) return; LB.board = b.dataset.b;
     lb.querySelectorAll('.lbtabs button').forEach(x => x.classList.toggle('on', x === b)); onBoard(); }; }
-const isP2 = p => p.tier !== '1500' && p.rank != null, isA2 = p => p.tier !== '1500', isP15 = p => p.tier === '1500' && p.is_sub === 'no';
+const isP2 = p => p.tier !== '1500' && (p.rank != null || p.rank0 != null) && !p.extra, isA2 = p => p.tier !== '1500', isP15 = p => p.tier === '1500' && p.is_sub === 'no';
 const countsOf = ids => { const P = ids.map(id => byId[id]).filter(Boolean);
   return {prom2000: P.filter(isP2).length, all2000: P.filter(isA2).length, prom1500: P.filter(isP15).length, all1500: P.filter(p => p.tier === '1500').length}; };
 const boardN = c => !c ? 0 : LB.board === 'a2000' ? c.all2000 : LB.board === 'p1500' ? c.prom1500 : LB.board === 'all' ? (c.all2000 || 0) + (c.all1500 || 0) : c.prom2000;
@@ -1106,7 +1106,7 @@ function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; 
 { const c = get(FXK); if (c) applyFixes(fixesFrom(c), true); }
 async function loadFixes(){ try{ const rows = await call('/rest/v1/fixes?select=kind,key,data,updated_at&limit=5000', {auth: false}); put(FXK, rows); applyFixes(fixesFrom(rows)); }catch(_){} }   // 08 not run yet -> nothing
 setTimeout(loadFixes, 1200);
-function setAdmin(){ const a = !!(S && S.role === 'admin'); if (a === !!window.ADMIN) return; window.ADMIN = a; window.rerenderRoutes && rerenderRoutes(); window.poiFixesChanged && poiFixesChanged(); }
+function setAdmin(){ const a = !!(S && S.role === 'admin'); if (a === !!window.ADMIN) return; window.ADMIN = a; window.setExtra && setExtra(window.extraOn && extraOn()); window.rerenderRoutes && rerenderRoutes(); window.poiFixesChanged && poiFixesChanged(); }
 setAdmin();
 async function saveFix(kind, key, data, del){
   if (del) await call(`/rest/v1/fixes?kind=eq.${kind}&key=eq.${encodeURIComponent(key)}`, {method: 'DELETE', headers: {Prefer: 'return=minimal'}});
@@ -1324,17 +1324,23 @@ async function asideGR(){ SO.aside = asideGR; const A = $a('lbAside'); if (!A) r
 const sname = p => p.name.split(' (')[0];
 const RANGE_ORDER = ['Julijske Alpe', 'Kamniško-Savinjske Alpe', 'Karavanke', 'Pohorje', 'Snežnik', 'Predalpe'];
 // one peak per badge (SIL_PK), drawn as its own emblem (SIL_ART)
-const SIL_PK = {c10: 'Mangart', c25: 'Jalovec', c50: 'Razor', c98: 'Triglav', 'Julijske Alpe*': 'Škrlatica', 'Julijske Alpe': 'Visoki Kanin',
+const SIL_PK = {c10: 'Mangart', c25: 'Jalovec', c50: 'Razor', c98: 'Triglav', c98x: 'Pelc nad Klonicami', 'Julijske Alpe*': 'Škrlatica', 'Julijske Alpe': 'Visoki Kanin',
   'Kamniško-Savinjske Alpe*': 'Grintovec', 'Kamniško-Savinjske Alpe': 'Ojstrica', 'Karavanke*': 'Stol', 'Karavanke': 'Košutnikov turn',
   'Pohorje*': 'Črni vrh', 'Pohorje': 'Rogla', 'Snežnik*': 'Veliki Snežnik', 'Snežnik': 'Travica', 'Predalpe*': 'Altemaver', 'Predalpe': 'Porezen'};
 const silPeak = (k, rng) => { const nm = SIL_PK[k], ok = p => sname(p) === nm && p.lat != null; return nm ? PEAKS.find(p => ok(p) && (!rng || p.range === rng)) || PEAKS.find(ok) || null : null; };
 const BN = n => ({'Košutnikov turn': 'Košuta'})[n] || n;   // name on the badge band
-function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = PEAKS.filter(isP2), out = [], tr = window.T || (x => x);
+// main challenge = prominent 2000ers with a path to the top (83); "all 98" adds the pathless ones (p.extra) - its badge shows only once earned (or to admins)
+const promAll = p => p.tier !== '1500' && (p.rank != null || p.rank0 != null), promMain = p => promAll(p) && !p.extra;
+function badgeDefs(){ const T0 = new Set(window.TICKS ? TICKS.get() : []), P2 = PEAKS.filter(promMain), out = [], tr = window.T || (x => x), NM = P2.length;
   const nP2 = P2.filter(p => T0.has(p.id)).length;
   for (const n of [10, 25, 50, P2.length]){ const k = 'c' + (n >= P2.length ? 98 : n), pk = silPeak(k);
     out.push({k, pk, col: n >= P2.length ? '#b8860b' : n >= 50 ? '#c0392b' : n >= 25 ? '#6a1b9a' : '#1565c0', ring: n >= P2.length ? 'gold' : 'silver',
-      t: n >= P2.length ? L('Vseh 98','All 98') : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? '98' : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : '', ids: P2.map(p => p.id),
-      how: n >= P2.length ? L('Osvoji vseh 98 prominentnih dvatisočakov.','Climb all 98 prominent 2000ers.') : L(`Osvoji katerih koli ${n} od 98 prominentnih dvatisočakov.`, `Climb any ${n} of the 98 prominent 2000ers.`)}); }
+      t: n >= P2.length ? L(`Vseh ${NM}`,`All ${NM}`) : L(`${n} dvatisočakov`, `${n} 2000ers`), big: n >= P2.length ? String(NM) : String(n), d: Math.min(nP2, n), n, sub: [], kind: pk ? '⛰ ' + sname(pk) : '', ids: P2.map(p => p.id),
+      how: n >= P2.length ? L(`Osvoji vseh ${NM} prominentnih dvatisočakov s potjo do vrha.`,`Climb all ${NM} prominent 2000ers with a path to the top.`) : L(`Osvoji katerih koli ${n} od ${NM} prominentnih dvatisočakov.`, `Climb any ${n} of the ${NM} prominent 2000ers.`)}); }
+  // all 98 (with the pathless ones): hidden until earned
+  { const A = PEAKS.filter(promAll), d = A.filter(p => T0.has(p.id)).length, pk = silPeak('c98x');
+    if (d >= A.length || window.ADMIN) out.push({k: 'c98x', pk, col: '#263238', ring: 'gold', t: L(`Vseh ${A.length}`, `All ${A.length}`), big: String(A.length), d, n: A.length, sub: [], kind: pk ? '⛰ ' + sname(pk) : '', ids: A.map(p => p.id),
+      how: L(`Osvoji vseh ${A.length} prominentnih dvatisočakov — tudi ${A.length - NM} brez poti do vrha (brezpotje, plezanje).`, `Climb all ${A.length} prominent 2000ers — also the ${A.length - NM} without a path to the top (off-trail, climbing).`)}); }
   // the 10 highest peaks of Slovenia (prominent or not) - gold Triglav
   { const T10 = PEAKS.filter(p => p.tier !== '1500' && p.lat != null).sort((a, b) => b.elev - a.elev).slice(0, 10), pk = silPeak('c98');
     out.push({k: 'top10', pk, emb: ['triglav_gold', 55.5], col: '#b8860b', ring: 'gold', t: L('10 najvišjih','10 highest'), big: 'TOP 10', d: T10.filter(p => T0.has(p.id)).length, n: T10.length, sub: [],
@@ -1373,13 +1379,16 @@ const SIL_ART = {
   'Veliki Snežnik': {m: 'M2 72Q26 40 50 32Q74 40 98 72Z', k: 'M50 32Q74 40 98 72H50Z', w: 'M26 46Q38 34 50 32Q62 34 74 46Q66 44 60 48Q55 43 50 46Q44 42 38 48Q32 44 26 46Z', d: HUT(56, 36)},
   Travica: {m: 'M2 72Q30 42 52 40Q74 44 98 72Z', d: [[14,67,7],[22,62,7],[80,63,7],[88,68,7]].map(t => TREE(...t)).join(''), l: 'M40 48l2-4 2 4 M50 45l2-4 2 4 M60 48l2-4 2 4'},
   Altemaver: {m: 'M2 72L16 50L26 40L64 37L78 42L86 52L98 72Z', k: 'M64 37L78 42L86 52L98 72H62Z', r: 'M20 50L26 42L30 52Z M34 48L38 41L41 50Z', x: HUT(50, 38)},   // Krekova koča
+  'Pelc nad Klonicami': {m: 'M2 72L12 58L17 61L22 46L26 52L31 38L35 45L39 30L43 39L47 22L51 34L55 26L59 37L63 31L67 44L71 40L76 52L82 50L98 72Z', k: 'M47 22L51 34L55 26L59 37L63 31L67 44L71 40L76 52L82 50L98 72H46Z',
+    w: 'M45 28L47 22L49 28Z M53.5 30L55 26L57 31Z M37.5 35L39 30L40.5 35Z', r: 'M28 50l3-8 2 9Z M60 45l3-6 2 8Z'},   // the Pelci ridge - all 98 (with the pathless ones)
   Porezen: {m: 'M2 72Q26 44 50 38Q74 44 98 72Z', k: 'M50 38Q74 44 98 72H50Z', x: 'M48.6 38v-12l1.4-2.4 1.4 2.4v12Z'}};   // memorial
 // emblems drawn from photos like the app logo (tools/badges/emblem.py, files in badges/): [file, highest land point in the 100 box]
 const EMB = {'Škrlatica': ['skrlatica', 41.5], Mangart: ['mangart', 10.5], Jalovec: ['jalovec', 24.5], 'Visoki Kanin': ['kanin', 34], Grintovec: ['grintovec', 20.5],
   Ojstrica: ['ojstrica', 16], Stol: ['stol', 33.5], 'Košutnikov turn': ['kosuta', 34.5], 'Veliki Snežnik': ['sneznik', 47], Porezen: ['porezen', 37], Triglav: ['triglav', 55.5],
-  Razor: ['razor', 26], Rogla: ['rogla', 18], 'Črni vrh': ['crni-vrh', 62.5], Altemaver: ['altemaver', 75]};
-const embImg = e => { const s = Math.max(1.05, 78 / (100 - e[1])), ty = 22 - s * e[1], tx = 50 - 50 * s;   // ridge top at y 22, photo fills to the bottom
-  return `<image href="badges/${e[0]}.svg" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${(100 * s).toFixed(1)}" height="${(100 * s).toFixed(1)}"/>`; };
+  Razor: ['razor', 26], Rogla: ['rogla', 18], 'Črni vrh': ['crni-vrh', 62.5], Altemaver: ['altemaver', 75], 'Pelc nad Klonicami': ['pelci', 52.3, 1.1]};
+const embImg = e => { const s = e[2] || Math.max(1.05, 78 / (100 - e[1])), ty = (e[2] ? 30 : 22) - s * e[1], tx = 50 - 50 * s, bot = ty + 100 * s;   // ridge top at y 22, photo fills to the bottom
+  // [file, top, scale]: zoomed out (wide ridges), ridge top at y 30; below the photo the dark foreground continues to the rim
+  return `<image href="badges/${e[0]}.svg" x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${(100 * s).toFixed(1)}" height="${(100 * s).toFixed(1)}"/>` + (bot < 99 ? `<rect x="0" y="${(bot - 0.6).toFixed(1)}" width="100" height="${(100.6 - bot).toFixed(1)}" fill="#2c385a"/>` : ''); };
 function badgeSVG(b){ const id = 'bg' + (++BID), done = b.d >= b.n, f = b.d / b.n, C = 2 * Math.PI * 46, gold = b.ring === 'gold', rim = gold ? ['#f9e08b', '#b8860b'] : ['#f4f6f7', '#90a4ae'];
   const E = b.emb || (b.pk && EMB[sname(b.pk)]), A = b.pk && SIL_ART[sname(b.pk)] || SIL_ART.Grintovec, band = b.big || (b.sub || [])[0] || '', fs = b.big ? (b.big.length > 3 ? 14 : b.big.length > 2 ? 17 : 19) : Math.min(11, 125 / Math.max(6, band.length));
   const sky = E ? ['#0e3a86', '#9cc9ec'] : gold ? [b.col, '#fff'] : [b.col, '#ffcc80'];   // ★ = day sky, all peaks = evening sky
@@ -1417,6 +1426,7 @@ const PKTXT = {
   Rogla: ['Pohorski vrh s športnim središčem in razglednim stolpom.', 'A Pohorje summit with a sports centre and a lookout tower.'],
   'Veliki Snežnik': ['Najvišji vrh Slovenije zunaj Alp, dinarski kras. Tik pod vrhom stoji koča.', 'The highest peak of Slovenia outside the Alps, Dinaric karst. A hut stands just below the top.'],
   Altemaver: ['Najvišja točka Ratitovca v Škofjeloškem hribovju; pod njo stoji Krekova koča.', 'The highest point of Ratitovec in the Škofja Loka hills; Krek hut stands below it.'],
+  'Pelc nad Klonicami': ['Eden od Pelcev — divjega nazobčanega grebena nad Trento. Do vrha ni poti: prečenje Pelcev je zahtevno plezanje in velja za enega najlepših grebenov v Sloveniji.', 'One of the Pelci — the wild jagged ridge above Trenta. No path to the top: the Pelci traverse is a demanding climb and counts among the finest ridges in Slovenia.'],
   Porezen: ['Razgledni vrh Cerkljanskega hribovja s kočo in spomenikom NOB.', 'A viewpoint of the Cerkno hills with a hut and a WWII memorial.']};
 window.badgeOpen = k => { const b = badgeDefs().find(x => x.k === k); if (!b) return; const T0 = new Set(window.TICKS ? TICKS.get() : []);
   const done = b.d >= b.n, pk = b.pk, tx = pk && PKTXT[sname(pk)], left = (b.ids || []).filter(id => !T0.has(id) && byId[id]).map(id => byId[id]).sort((a, c) => c.elev - a.elev);
