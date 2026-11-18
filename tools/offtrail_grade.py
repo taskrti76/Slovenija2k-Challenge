@@ -11,8 +11,9 @@ the smallest angle a for which ground no steeper than a connects the summit with
 binary search on a + flood fill). a = crux of the easiest line; its length = shortest way through that ground.
 Ground type (ESA WorldCover 10 m) changes the felt angle before that: forest −8°, shrubs −3°, grass 0, bare rock / scree
 +4°, snow / ice +6° — steep forest is less serious than steep alpine rock. "deg" is that effective angle, "lc" the ground at the crux.
-Grade from the crux angle (calibration below; hand fixes go to data/tech_overrides.json, they win):
-  < 20° T2 (easy pathless)  · < 28° T3 · < 36° T4 (steep grass / easy rock) · < 44° T5 (scrambling) · ≥ 44° T6
+Grade from the crux angle, CALIBRATED on the same run: the same crux measure is taken along every OSM path with a
+sac_scale (T2…T6) in the peaks' windows; a straight line through the median crux per grade gives the limits halfway
+between grades (stored in offtrail.json "_calib"). Old fixed guess (fallback): < 20° T2 · < 28° T3 · < 36° T4 · < 44° T5 · ≥ 44° T6.
 Output data/offtrail.json: {peak_id: {"s": T 2..6, "deg": crux °, "g": pathless metres, "d": straight distance to the path,
 "lc": ground at the crux, "l": the line summit -> path as [[lon, lat], …]} — the page routes to the path end of "l" and shows "l" as a
 dotted "not a path" line.
@@ -94,6 +95,7 @@ def tile(x, y, fake):
     CACHE[(x, y)] = h; return h
 
 FALLBACK = [0]
+CAL, CAL_SEEN = {}, set()   # OSM sac_scale -> crux angles of graded paths (calibration)
 def fetch(z, x, y):
     for a in range(4):
         try:
@@ -111,7 +113,7 @@ def ways():
     for i, n in enumerate(W['len']):
         g = []
         for _ in range(n): x += W['xy'][o]; y += W['xy'][o + 1]; o += 2; g.append((y / 1e6, x / 1e6))
-        if g: a = np.array(g); out.append((a, a[:, 0].min(), a[:, 0].max(), a[:, 1].min(), a[:, 1].max()))
+        if g: a = np.array(g); out.append((a, a[:, 0].min(), a[:, 0].max(), a[:, 1].min(), a[:, 1].max(), int(W['s'][i] or 0), i))
     return out
 
 def grade(p, W, fake):
@@ -132,21 +134,22 @@ def grade(p, W, fake):
     # path cells: every mapped way, sampled every ~cell/2
     tgt = np.zeros(h.shape, bool); H, Wd = h.shape
     bl, bt, bw, be = ilat(y0 + n), ilat(y0), ilon(x0), ilon(x0 + n)
-    for g, a0, a1_, o0, o1_ in W:
+    wcells = []   # graded ways (OSM sac_scale) in the window: their cells, for the calibration
+    for g, a0, a1_, o0, o1_, sac, wi in W:
         if a1_ < bl or a0 > bt or o1_ < bw or o0 > be: continue
-        g = g.tolist()
+        g = g.tolist(); cells = []
         for (a1, o1), (a2, o2) in zip(g, g[1:] or g):
             k = max(1, int(math.hypot((mx(o2) - mx(o1)), (my(a2) - my(a1))) / STEP * 2))
             for t in np.linspace(0, 1, k + 1):
                 c = int((mx(o1 + (o2 - o1) * t) - x0) / STEP); rr = int((my(a1 + (a2 - a1) * t) - y0) / STEP)
-                if 0 <= rr < H and 0 <= c < Wd: tgt[rr, c] = True
+                if 0 <= rr < H and 0 <= c < Wd:
+                    tgt[rr, c] = True
+                    if sac >= 2 and (not cells or cells[-1] != (rr, c)): cells.append((rr, c))
+        if sac >= 2 and len(cells) >= 8 and wi not in CAL_SEEN: CAL_SEEN.add(wi); wcells.append((sac, cells))
     sr, sc = int((cy - y0) / STEP), int((cx - x0) / STEP)
     # the listed coordinate can sit a few metres off the top (on a cliff face): start from the highest cell within ~35 m
     rr_ = max(1, int(35 / cell)); win = h[max(0, sr - rr_):sr + rr_ + 1, max(0, sc - rr_):sc + rr_ + 1]
     k = np.unravel_index(np.argmax(win), win.shape); sr, sc = max(0, sr - rr_) + k[0], max(0, sc - rr_) + k[1]
-    if not tgt.any(): return {'none': 1}
-    ys, xs = np.nonzero(tgt); d0 = float(np.min(np.hypot(ys - sr, xs - sc)) * cell)
-    if d0 < MIN_GAP: return {'d': round(d0)}
     # easiest possible line = the one whose steepest bit is the gentlest (bottleneck / minimax path), not the cheapest sum:
     # find the smallest angle a such that ground no steeper than a connects the summit with a mapped path.
     # Slope is averaged over 3 × 3 cells (~20 m) so one noisy LiDAR cell or a 2 m step does not decide the grade.
@@ -155,10 +158,17 @@ def grade(p, W, fake):
     LA, LO = np.meshgrid(rows, cols, indexing='ij'); lc = landcover(LA, LO, fake)
     adj = np.vectorize(lambda v: LC_ADJ.get(int(v), 0.0), otypes=[np.float32])(lc)
     sl = np.maximum(sl + adj, 0)
-    s3 = ndimage.uniform_filter(sl, 3); seed = np.zeros(h.shape, bool); seed[max(0, sr - 1):sr + 2, max(0, sc - 1):sc + 2] = True
+    s3 = ndimage.uniform_filter(sl, 3)
+    # calibration: the same "crux" measure (steepest ~20 m, ground type counted) along paths whose OSM grade is known
+    for sac, cells in wcells:
+        v = s3[tuple(np.array(cells).T)]; CAL.setdefault(sac, []).append(float(v.max()))
+    seed = np.zeros(h.shape, bool); seed[max(0, sr - 1):sr + 2, max(0, sc - 1):sc + 2] = True
     def joins(a):
         lab, _ = ndimage.label((s3 <= a) | seed, structure=np.ones((3, 3)))
         k = lab[sr, sc]; return k > 0 and bool((lab[tgt] == k).any())
+    if not tgt.any(): return {'none': 1}
+    ys, xs = np.nonzero(tgt); d0 = float(np.min(np.hypot(ys - sr, xs - sc)) * cell)
+    if d0 < MIN_GAP: return {'d': round(d0)}
     lo, hi = 0.0, 80.0
     if not joins(hi): return {'none': 1, 'd': round(d0)}
     while hi - lo > 0.5:
@@ -172,7 +182,7 @@ def grade(p, W, fake):
     m = MCP_Geometric(cost); acc, _ = m.find_costs([(sr, sc)], ends=list(zip(ys, xs)), find_all_ends=False)
     acc = np.where(tgt, acc, np.inf); e = np.unravel_index(np.argmin(acc), acc.shape)
     path = np.array(m.traceback(e)); L = float((np.hypot(*np.diff(path, axis=0).T) * cell).sum()) if len(path) > 1 else 0.0
-    T = next((t for lim, t in BANDS if crux < lim), 6)
+    T = None   # set after all peaks, from the calibration (main)
     # ground at the crux of that line (most common class along the cells within 1° of the crux)
     pc = path[np.abs(s3[path[:, 0], path[:, 1]] - crux) <= 1.5] if len(path) else path
     vals = lc[pc[:, 0], pc[:, 1]] if len(pc) else lc[path[:, 0], path[:, 1]]
@@ -205,11 +215,22 @@ def main():
     for i, p in enumerate(P):
         try: r = grade(p, W, a.fake)
         except Exception as e: print('!', p['id'], e, flush=True); continue
-        if r and 's' in r:
-            out[p['id']] = r; hist[r['s']] = hist.get(r['s'], 0) + 1
-            print(f"{p['id']:34s} T{r['s']}  crux {r['deg']:2d}°  pathless {r['g']:4d} m  (path {r['d']} m away)", flush=True)
+        if r and 'deg' in r:
+            out[p['id']] = r
+            print(f"{p['id']:34s} crux {r['deg']:2d}°  pathless {r['g']:4d} m  (path {r['d']} m away)", flush=True)
+    # calibration: limits between grades = midpoints between the median crux of OSM T2…T6 paths in the same windows
+    # (a path with cables / steps is easier than bare ground at the same angle, so pathless ground graded this way is, if anything, too easy).
+    med = {g: float(np.median(v)) for g, v in CAL.items() if len(v) >= 15}
+    print('calibration (OSM grade: paths, median crux °):', {g: (len(CAL[g]), round(med[g], 1)) for g in sorted(med)}, flush=True)
+    if len(med) >= 2:   # straight line through the grade medians (fills grades with too few paths), limits halfway between grades
+        gs = sorted(med); k, c = np.polyfit(gs, [med[g] for g in gs], 1, w=[min(len(CAL[g]), 200) ** .5 for g in gs])
+        k = max(k, 2.0); bands = [(c + k * (g + .5), g) for g in (2, 3, 4, 5)]
+    else: bands = BANDS   # no calibration possible: the old guess
+    print('bands (crux below -> T):', bands, flush=True)
+    for r in out.values(): r['s'] = next((t for lim, t in bands if r['deg'] < lim), 6); hist[r['s']] = hist.get(r['s'], 0) + 1
+    out['_calib'] = {'bands': [[round(l, 1), g] for l, g in bands], 'median': {str(g): round(m, 1) for g, m in med.items()}, 'n': {str(g): len(v) for g, v in CAL.items()}}
     json.dump(out, open(os.path.join(R, 'data', 'offtrail.json'), 'w', encoding='utf8'), separators=(',', ':'), sort_keys=True, ensure_ascii=False)
-    print(len(out), 'off-trail summits; T histogram', dict(sorted(hist.items())))
+    print(len(out) - 1, 'off-trail summits; T histogram', dict(sorted(hist.items())))
     print('z14 tiles missing, filled from z13/z12:', FALLBACK[0])
 
 if __name__ == '__main__': main()

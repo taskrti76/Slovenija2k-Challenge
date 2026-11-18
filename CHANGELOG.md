@@ -2,6 +2,20 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v0.98 — 2026-11-18
+- "Podatki in licence" page (licence.html): every source, what it is used for, licence and credit (OSM, OpenFreeMap, Mapterhorn,
+  GURS, Esri, OpenTopoMap, Waymarked Trails, Open-Meteo, ARSO, Copernicus, ESA WorldCover, Windy, Wikimedia, hribi.net), fonts and
+  libraries, donations note. Linked from Nastavitve (next to Zasebnost), the privacy page and the map credits ("Vsi viri").
+- Map credits: "Powered by Esri" on the satellite layer.
+- Peak photos: author and licence on every thumbnail.
+- Summit routes: a click on any route line on the map selects that route.
+- Summit routes close when another peak is opened or the peak's window is closed.
+- Routes card: for peaks checked against hribi.net, a line "Normalna smer po hribi.net: …" — the route grades below come from OSM
+  and can be stricter (the audit found that for 40 of the 98 prominent peaks).
+- Off-trail grades are calibrated on the same run: the crux measure is taken along OSM paths with a known grade (T2…T6) in the
+  same windows; the limits between grades follow from them (offtrail.json "_calib"). Run the "Off-trail grades" Action again.
+- data/peakbagger_2000.tsv removed from the repository (delete it on GitHub too).
+
 ## web-v0.97 — 2026-11-17
 - Off-trail grades + lines are loaded by the page from data/offtrail.json at run time (no longer baked into index.html).
   Before, the Action rebuilt index.html with the new lines, and the next uploaded update (built with the old file) overwrote it.

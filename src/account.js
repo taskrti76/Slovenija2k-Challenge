@@ -485,7 +485,7 @@ function draw(){
       <div class="row"><button class="alt" id="accSoc">👥 ${L('Prijatelji in skupine','Friends & groups')}${badgeN() ? ` <i class="bdg">${badgeN()}</i>` : ''}</button></div>
       <div class="row"><button class="alt" id="accSave">${L('Shrani','Save')}</button><button class="alt" id="accOut">${L('Odjava','Log out')}</button><button class="alt" id="accExp">⬇ ${L('Izvozi moje podatke','Export my data')}</button></div>
       <div class="ah">${L('Ob odjavi ta brskalnik pozabi tvoje kljukice in poti – ostanejo v računu.','On log-out this browser forgets your ticks and routes - they stay in your account.')}</div>
-      <div class="ah" style="margin-top:6px"><a href="privacy.html" target="_blank">${L('Zasebnost – kaj shranjujemo','Privacy - what we store')}</a></div>
+      <div class="ah" style="margin-top:6px"><a href="privacy.html" target="_blank">${L('Zasebnost – kaj shranjujemo','Privacy - what we store')}</a> · <a href="licence.html" target="_blank">${L('Podatki in licence','Data and licences')}</a></div>
       <details style="margin-top:10px"><summary style="cursor:pointer;color:#b3261e;font-size:.9em">${L('Izbriši račun','Delete account')}</summary>
         <div class="ah">${L('Izbriše račun, vrhove, poti, prijateljstva in članstva v skupinah. Za potrditev vpiši uporabniško ime.','Deletes the account, peaks, routes, friendships and group memberships. Type your username to confirm.')}</div>
         <input type="text" id="accDelU" autocomplete="off" placeholder="${esc(S.username || '')}"><div class="row"><button class="alt danger" id="accDel">${L('Trajno izbriši','Delete for good')}</button></div></details>`;
@@ -525,7 +525,7 @@ function draw(){
       <button class="go" id="accGo" type="submit" disabled>${up ? L('Ustvari račun','Create account') : L('Prijava','Sign in')}</button>
     </form>
     ${up ? '' : `<div class="ah" style="margin-top:8px">${L('Pozabljeno geslo? Piši skrbniku strani.','Forgot your password? Contact the site admin.')}</div>`}
-    <div class="ah" style="margin-top:6px"><a href="privacy.html" target="_blank">${L('Zasebnost – kaj shranjujemo','Privacy - what we store')}</a></div>`;
+    <div class="ah" style="margin-top:6px"><a href="privacy.html" target="_blank">${L('Zasebnost – kaj shranjujemo','Privacy - what we store')}</a> · <a href="licence.html" target="_blank">${L('Podatki in licence','Data and licences')}</a></div>`;
   box.querySelector('.tabs').onclick = e => { const b = e.target.closest('button'); if (b && b.dataset.m !== mode){ mode = b.dataset.m; draw(); } };
   $a('accU').oninput = e => { const v = e.target.value.toLowerCase().replace(/\s/g, ''); if (v !== e.target.value) e.target.value = v; };
   $a('accForm').onsubmit = async e => { e.preventDefault(); const err = $a('accErr'); err.textContent = '';

@@ -127,12 +127,12 @@ const relForeign=r=>!!r&&(/\b(CAI|SAF|ÖAV|OeAV|ÖTK|Alpenverein|Naturfreunde|Cl
 const relPZS=r=>!!r&&!relForeign(r)&&(/red_round|white_dot|red:white|knafel/i.test(r['osmc:symbol']||'')||/\bPZS\b|planinsk\w* (zveza|društvo|drustvo)|^PD\b/i.test(r.operator||''));
 const relName=r=>r?(r.name||r.ref||''):'';
 function pathStats(g, edges){
-  let L=0, mk=0, rd=0, sac=0, fer=false, pz=0; const names=new Map(), rc=new Map();
-  for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m'||(w.rel&&w.rel.some(ri=>!relLong(RELS[ri])))) mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac) sac=w.sac;
+  let L=0, mk=0, rd=0, sac=0, fer=false, pz=0; const names=new Map(), rc=new Map(), bySac={}, hardN=new Map();
+  for(const q of edges){ const w=g.W[g.wy[q]], l=g.len[q]; L+=l; if(w.kind==='m'||(w.rel&&w.rel.some(ri=>!relLong(RELS[ri])))) mk+=l; if(w.kind==='r') rd+=l; if(w.kind==='f') fer=true; if(w.sac>sac){ sac=w.sac; hardN.clear(); } bySac[w.sac]=(bySac[w.sac]||0)+l; if(w.sac===sac&&sac) hardN.set(w.name||'(brez imena)',(hardN.get(w.name||'(brez imena)')||0)+l);
     if(w.name) names.set(w.name,(names.get(w.name)||0)+l);
     if(w.rel){ let p=false, fr=true; for(const ri of w.rel){ const R=RELS[ri]; if(relPZS(R)) p=true; if(!relForeign(R)) fr=false; if(!relLong(R)) rc.set(ri,(rc.get(ri)||0)+l); } if(p||(w.kind==='m'&&!fr)) pz+=l; } }
   const top=[...rc].sort((a,b)=>b[1]-a[1]).filter(x=>x[1]>=0.35*L).slice(0,4).map(x=>x[0]), cov=new Map(top.map(r=>[r,rc.get(r)/L]));
-  return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]), rels:top, cov, pzs:L?pz/L:0};
+  return {len:L, marked:L?mk/L:0, road:rd, sac, ferrata:fer, bySac, hard:[...hardN].sort((a,b)=>b[1]-a[1]).slice(0,3).map(([n,l])=>[n,Math.round(l)]), names:[...names].sort((a,b)=>b[1]-a[1]).slice(0,2).map(x=>x[0]), rels:top, cov, pzs:L?pz/L:0};
 }
 // Dijkstra restricted to edges accepted by ok(q)
 function searchF(g, src, maxCost, ok, wf){
@@ -716,6 +716,12 @@ function addLayers(){
   add({id:'rt-sel-c',type:'line',source:'routes',filter:['all',['get','sel'],['!',['has','gap']]],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#fff','line-width':8}});
   add({id:'rt-sel',type:'line',source:'routes',filter:['all',['get','sel'],['!',['has','gap']]],layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#1565c0','line-width':4.5}});
   add({id:'rt-gap',type:'line',source:'routes',filter:['has','gap'],layout:{'line-cap':'round'},paint:{'line-color':['case',['all',['has','ot'],['get','sel']],'#8e24aa',['has','ot'],'#ba68c8',['get','sel'],'#1565c0','#ff8f00'],'line-width':3,'line-dasharray':[1,1.6]}}); // last bit without a mapped trail
+  // a click on any route line picks that route (wide invisible line = easy to hit on a phone)
+  add({id:'rt-hit',type:'line',source:'routes',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#000','line-width':18,'line-opacity':0.001}});
+  if(!map.__rtHit){ map.__rtHit=1;
+    map.on('click','rt-hit',e=>{ if(window.DRAW_ON||!RT) return; const f=e.features.find(x=>x.properties.i!=null); if(!f) return; e.preventDefault();
+      const i=+f.properties.i; if(i===RT.sel) return; RT.sel=i; setRoutesLayer(); renderRoutes(); sideView(); routeProfiles(); });
+    map.on('mouseenter','rt-hit',()=>{ if(RT&&!window.DRAW_ON) map.getCanvas().style.cursor='pointer'; }); map.on('mouseleave','rt-hit',()=>{ if(!window.DRAW_ON) map.getCanvas().style.cursor=''; }); }
   // my routes + drawing
   if(!map.getSource('myroutes')) map.addSource('myroutes',{type:'geojson',data:EMPTY});
   add({id:'my-rt',type:'line',source:'myroutes',layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':'#6a1b9a','line-width':3.5,'line-opacity':.85}});
@@ -889,6 +895,7 @@ async function build(poi,tr,src){
 // ---------- routes per peak ----------
 const rcard=()=>el('rcard');
 let RT=null; // {peak, routes:[{...,P}] , sel}
+window.__dbgRoutes=()=>RT&&{peak:RT.peak.id,routes:RT.routes.map(r=>({start:r.start&&r.start.name,kind:r.start&&r.start.kind,rel:(r.stats.rels||[]).map(i=>relName(RELS[i])),pzsRel:(r.stats.rels||[]).some(i=>relPZS(RELS[i])),km:+(r.stats.len/1000).toFixed(1),sac:r.stats.sac,sac0:r.stats.sac0,fer:!!r.stats.ferrata,marked:+(r.stats.marked||0).toFixed(2),pzs:+(r.stats.pzs||0).toFixed(2),hard:r.stats.hard,bySac:r.stats.bySac,gap:r.gap,otn:r.otn||0,fix:r.fix?{t:r.fix.t,f:r.fix.f,hide:r.fix.hide}:null,adm:!!r.adm,key:r.key}))};   // audit (tools): the routes the card shows
 window.__dbg=()=>({RT,STARTS,HUTS,G,peakRoutes,search,trace,nearestNode,pathStats,RELS,relLong,relName,badRoute,snapRoad}); // for tests
 // start of an official-relation route: its from/to tag (the one that is not the peak), else nearest named place
 function relStartName(r,p){ const R=RELS[r.rel], pn=(p.name||'').toLowerCase().split(/[ (]/)[0];
@@ -920,13 +927,13 @@ function routeFocus(){ const on=!!(RT&&RT.routes&&RT.routes.length)&&!window.NO_
   }catch(e){ console.warn('routeFocus',e); } }
 window.routeFocus=routeFocus;
 function setRoutesLayer(){ setTimeout(routeFocus,0); map.getSource('routes').setData(!RT?EMPTY:{type:'FeatureCollection',features:RT.routes.flatMap((r,i)=>{ const g=r.gap>25, c=r.otn?r.coords.slice(0,-(r.otn+1)):g?r.coords.slice(0,-1):r.coords;
-  const f=[{type:'Feature',properties:{sel:i===RT.sel},geometry:{type:'LineString',coordinates:c}}];
-  if(r.otn) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true,ot:true},geometry:{type:'LineString',coordinates:r.coords.slice(-(r.otn+2))}});
-  if(g) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true},geometry:{type:'LineString',coordinates:r.coords.slice(-2)}}); return f; })}); }
+  const f=[{type:'Feature',properties:{sel:i===RT.sel,i},geometry:{type:'LineString',coordinates:c}}];
+  if(r.otn) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true,ot:true,i},geometry:{type:'LineString',coordinates:r.coords.slice(-(r.otn+2))}});
+  if(g) f.push({type:'Feature',properties:{sel:i===RT.sel,gap:true,i},geometry:{type:'LineString',coordinates:r.coords.slice(-2)}}); return f; })}); }
 function hutsAlong(coords){ const out=[]; for(const h of HUTS){ for(let i=0;i<coords.length;i+=3){ if(hav(h.lat,h.lon,coords[i][1],coords[i][0])<120){ out.push([i,h.name]); break; } } } return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]).filter((n,i,a)=>a.indexOf(n)===i); } // in order from the start
 window.peakRoutesUI = async function(id){
-  const p=byId[id]; if(!p) return; if(popup) popup.remove(); window.gpsHint&&gpsHint();
-  const c=rcard(); c.style.display='block'; document.body.classList.remove('menu');
+  const p=byId[id]; if(!p) return; window.__rtOpening=true; if(popup) popup.remove(); window.__rtOpening=false; window.gpsHint&&gpsHint();
+  const c=rcard(); c.style.display='block'; c.dataset.pk=id; document.body.classList.remove('menu');
   if(!inG(p.lat,p.lon,0.17)){ c.innerHTML=`<div class="rh"><b>${p.name}</b><button class="x" onclick="closeRoutes()">×</button></div><div class="rm">Pripravljam omrežje poti …</div>`;
     // trails still loading: carry on by itself once they are there (the card used to stay at "Pripravljam …")
     if(!GRAPHSRC){ if(!loading) loadData(); c.dataset.pk=id; const t=setInterval(()=>{ if(!GRAPHSRC) return; clearInterval(t); if(c.style.display!=='none'&&c.dataset.pk===id) window.peakRoutesUI(id); },700); setTimeout(()=>clearInterval(t),180000); return; }
@@ -1057,7 +1064,7 @@ window.sideView=()=>{ if(!RT) return; const r=RT.routes[RT.sel], C=r.coords; if(
     duration:window.LITE_ON?1000:2000, easing:x=>x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2, essential:true}); };
 window.routesMin=()=>{ if(!RT) return; RT.min=!RT.min; renderRoutes(); fitRoutes(); };
 function renderRoutes(){
-  const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`+(!RT.min&&RT.routes.some(r=>r.otn)?`<div class="otw">⚠ ${LP('Pikčasti vijolični del do vrha ni pot: je najlažja smer, ocenjena iz reliefa in pokrovnosti tal. Ni markirana ne preverjena — smer in težavnost preveri sam.','The dotted purple part to the top is not a path: it is the easiest line estimated from the terrain and land cover. Not marked or checked — check the line and the difficulty yourself.')}</div>`:'');
+  const c=rcard(), p=RT.peak, hd=`<div class="rh"><b>${p.name}</b> · ${Math.round(p.elev)} m · ${RT.routes.length} ${RT.routes.length===1?'pot':'poti'}<button class="x mn" onclick="routesMin()" title="${RT.min?'Pokaži poti':'Skrij seznam poti'}">${RT.min?'▴':'▾'}</button><button class="x" onclick="closeRoutes()">×</button></div>`+(!RT.min&&p.tech&&p.tech.ov&&p.tech.c?`<div class="ovn">ⓘ ${LP('Normalna smer po hribi.net','Normal route per hribi.net')}: <b>${[,LP('lahka','easy'),LP('zahtevna','difficult'),LP('zelo zahtevna','very difficult')][p.tech.c]}</b>. ${LP('Ocene posameznih poti spodaj so iz OSM in so lahko strožje.','The grades of the routes below come from OSM and can be stricter.')}</div>`:'')+(!RT.min&&RT.routes.some(r=>r.otn)?`<div class="otw">⚠ ${LP('Pikčasti vijolični del do vrha ni pot: je najlažja smer, ocenjena iz reliefa in pokrovnosti tal. Ni markirana ne preverjena — smer in težavnost preveri sam.','The dotted purple part to the top is not a path: it is the easiest line estimated from the terrain and land cover. Not marked or checked — check the line and the difficulty yourself.')}</div>`:'');
   c.classList.toggle('rmin',!!RT.min);
   if(RT.min){ const r=RT.routes[RT.sel], s=r.stats, P=r.P;
     c.innerHTML=hd+`<div class="rs" onclick="routesMin()" style="cursor:pointer">iz ${r.start.name.replace(/^pri /,'')} · ${(s.len/1000).toFixed(1)} km${P?` · ↑${Math.round(P.up)} m · ${fmtT(profT(P)*((window.PROFILE&&window.PROFILE.fitK)||1))}`:''} · ${sacTxt(s)}</div>`; return; }
@@ -1112,6 +1119,7 @@ function renderRoutesV2(c,hd){ const p=RT.peak;
       try{ await window.adminRoutePatch(rr,{[x.dataset.k]:v}); }catch(err){ x.textContent=v0; (window.toastErr||alert)(err.message||err); } }; });
   c.querySelectorAll('.ri.v2c').forEach(d=>d.onclick=()=>{ RT.sel=+d.dataset.i; setRoutesLayer(); renderRoutes(); c.scrollTop=0; sideView(); routeProfiles(); }); }
 window.routeClimbed=()=>{ if(!RT) return; const r=RT.routes[RT.sel]; window.climbedVia&&window.climbedVia(RT.peak.id, routeLabel(r)); };
+window.routesPeak=()=>RT&&RT.peak?RT.peak.id:(rcard()&&rcard().style.display!=='none'?rcard().dataset.pk||null:null);
 window.closeRoutes=()=>{ RT=null; setRoutesLayer(); rcard().style.display='none'; window.myHide&&myHide(); };
 window.routeGPX=()=>{ const r=RT.routes[RT.sel], P=r.P; const nm=`${RT.peak.name} iz ${r.start.name.replace(/^pri /,'')}`;
   download(slug(nm)+'.gpx', toGPX(nm, P?P.pts:r.coords, P?P.z:null, [{lat:RT.peak.lat,lon:RT.peak.lon,ele:RT.peak.elev,name:RT.peak.name},{lat:r.start.lat,lon:r.start.lon,name:r.start.name}])); };
@@ -1237,7 +1245,7 @@ function pmSwitch(m){ if(m==='draw'){ startDraw(); } else { if(window.DRAW_ON) s
 // menus (bottom bar, left column, round menu): one entry, opens the mode used last
 window.planTool=()=>{ if(pmGet()==='draw') startDraw(); else planOpen(); };
 window.planToolOn=()=>!!(window.DRAW_ON||(window.planActive&&planActive()));
-const pmCss=document.createElement('style'); pmCss.textContent=`.otw{margin:4px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(142,36,170,.1);border:1px solid rgba(142,36,170,.35);font-size:.86em;line-height:1.35}
+const pmCss=document.createElement('style'); pmCss.textContent=`.ovn{margin:4px 0 6px;font-size:.86em;color:var(--mute)}.ovn b{color:var(--ink)}.otw{margin:4px 0 8px;padding:8px 10px;border-radius:10px;background:rgba(142,36,170,.1);border:1px solid rgba(142,36,170,.35);font-size:.86em;line-height:1.35}
 .card .pmode{display:flex;gap:4px;padding:3px;margin:2px 0 8px;border-radius:12px;background:rgba(127,127,127,.12)}
 .card .pmode button{flex:1;border:0;border-radius:9px;background:transparent;color:inherit;font:600 .92em Inter,system-ui,sans-serif;padding:7px 6px;cursor:pointer;opacity:.75}
 .card .pmode button.on{background:var(--solid,#fff);opacity:1;box-shadow:0 1px 3px rgba(16,24,32,.18)}

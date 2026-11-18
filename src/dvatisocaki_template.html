@@ -481,7 +481,7 @@ const T2K=PEAKS.filter(p=>p.tier==='2000'), T15=PEAKS.filter(p=>p.tier==='1500')
 const RCOL = Object.fromEntries(RANGES);
 
 const DEM = {type:"raster-dem", url:"https://tiles.mapterhorn.com/tilejson.json", encoding:"terrarium",
-  attribution:'<a href="https://mapterhorn.com/attribution" target="_blank">Mapterhorn</a> (ARSO/GURS LiDAR, CC BY 4.0)'};
+  attribution:'<a href="https://mapterhorn.com/attribution" target="_blank">Mapterhorn</a> (ARSO/GURS LiDAR, CC BY 4.0) · <a href="licence.html" target="_blank">Vsi viri / all sources</a>'};
 
 const style = {
   version:8,
@@ -490,7 +490,7 @@ const style = {
     dem_terrain:DEM, dem_hs:DEM, // relief + snow map share the hillshade source (one DEM copy less in memory)
     sat:{type:"raster",tileSize:256,maxzoom:19,
       tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}","https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-      attribution:"Esri, Maxar, Earthstar Geographics"},
+      attribution:'Powered by <a href="https://www.esri.com" target="_blank">Esri</a> · Esri, Maxar, Earthstar Geographics'},
     topo:{type:"raster",tileSize:256,maxzoom:17,
       tiles:["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
       attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>, SRTM | © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'},
@@ -1352,6 +1352,7 @@ let popup=null;
 function openPeak(id,fly){
   if(window.DRAW_ON||window.ADM_MOVE) return;
   const p=byId[id]; if(!p||p.lat==null) return;
+  if(window.routesPeak&&routesPeak()&&routesPeak()!==id) window.closeRoutes&&closeRoutes();   // another peak: its routes window goes away
   const box=document.createElement('div');
   box.innerHTML=`<b>${p.name}</b> · ${p.elev.toFixed(p.elev%1?1:0)} m${p.rank?` · <span title="rang po prominenci">#${p.rank}</span>`:''}
     <br><span style="color:#666">${p.range}${p.massif?' · '+p.massif:''}${p.is_sub==='yes'?' · podvrh':''}${p.tier==='1500'?' · 1500–2000 m':''}${p.prom!=null?` · prominenca ${Math.round(p.prom)} m`:''}</span>
@@ -1377,11 +1378,12 @@ function openPeak(id,fly){
   if(window.adminPeakBox&&window.ADMIN) box.append(adminPeakBox(p));   // admin: correct position / height / name
   if(window.planAddPeak){ const pb=document.createElement('button'); pb.className='pplan'; pb.textContent='＋ V načrt ture'; pb.onclick=()=>window.planAddPeak(id); box.append(pb); }
   if(window.V2&&window.v2PeakBox) v2PeakBox(box,p,{lab,row,rb,vb});   // new look (design.js): same parts, new order and header   // multi-day planner (trails.js) if(window.pubRoutesBox) box.append(pubRoutesBox(p)); if(window.circleBox) box.append(circleBox(p));   // routes other users shared publicly
-  if(popup) popup.remove();
+  window.__rtOpening=true; if(popup) popup.remove(); window.__rtOpening=false;
   if(window.prefetch360) window.prefetch360(p.id); // 360 is often next: start loading its coarse far ring quietly
   // focusAfterOpen off: the browser used to scroll the whole page (and the map inside it) to a popup still off-screen,
   // which left the map half out of view on phones
-  const show=()=>{ if(popup) popup.remove(); popup=new maplibregl.Popup({offset:10,maxWidth:'calc(275px * var(--ui,1))',anchor:'bottom',focusAfterOpen:false}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map); };
+  const show=()=>{ window.__rtOpening=true; if(popup) popup.remove(); window.__rtOpening=false; popup=new maplibregl.Popup({offset:10,maxWidth:'calc(275px * var(--ui,1))',anchor:'bottom',focusAfterOpen:false}).setLngLat([p.lon,p.lat]).setDOMContent(box).addTo(map);
+    popup.on('close',()=>{ if(!window.__rtOpening&&window.routesPeak&&routesPeak()===id) window.closeRoutes&&closeRoutes(); }); };   // peak window closed: its routes window too
   if(!fly){ show(); return; }
   // from the list: fly so the peak sits in the middle of the free part of the screen (a bit low, so its window fits above it)
   const m=map.getContainer().getBoundingClientRect(), pnl=document.querySelector('.panel'), dr=document.getElementById('drawer');

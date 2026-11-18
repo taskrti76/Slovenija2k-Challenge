@@ -183,7 +183,7 @@ function goTo(p){
 window.enter360 = id => { try { enter360_(id); } catch (err) { console.error(err); window.toastErr && toastErr('360: ' + err.message); try { exit360(); } catch(_){} } };
 function enter360_(id){
   const p = byId[id]; if (!p || p.lat == null) return;
-  if (popup) popup.remove();
+  window.__rtOpening = true; if (popup) popup.remove(); window.__rtOpening = false;
   if (S.on){ goTo(p); return; }
   const base = (document.querySelector('input[name=base]:checked') || {}).value || 'relief';
   S.prev = {cam:{center:map.getCenter(), zoom:map.getZoom(), pitch:map.getPitch(), bearing:map.getBearing()}, base,
