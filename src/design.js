@@ -149,7 +149,7 @@ window.v2PeakBox = (box, p, o) => {
         ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" title="${ea(x.artist || 'Wikimedia Commons')} · ${ea(x.lic)}" aria-label="${L('Fotografija','Photo')} ${i + 1}: ${ea(x.artist)}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/330px-').replace(/"/g, '%22')}" data-full="${(x.img || '').replace(/"/g, '%22')}" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.parentNode.remove()}"><i class="pa">${ea(x.artist || 'Commons').slice(0, 22)} · ${ea(x.lic)}</i></button>`).join('')
         + `<small>${L('Foto','Photos')}: Wikimedia Commons</small>`;
       ps.querySelectorAll('button').forEach(b => b.onclick = () => peakPicsBig(pics, +b.dataset.i, p.name)); } }, 60)); }
-  if (window.isAlp && isAlp(p)){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span><b>${L('Alpinistični vzpon','Alpinistic climb')}</b> — ${L('do vrha ni poti, zadnji del je ocenjen T6+ (plezanje). Ni planinska tura; vreme se zanj vedno oceni slabo.','no path to the top, the last part is graded T6+ (climbing). Not a hike; the weather rating is always poor for it.')}</span>`; box.append(w); }
+  if (window.isAlp && isAlp(p)){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span><b>${L('Alpinistični vzpon','Alpinistic climb')}</b> — ${L('najlažja smer je brezpotje T6 ali plezanje — ni planinska tura. Vreme in razmere se zanj ocenijo strožje.','the easiest way is pathless T6 or climbing — not a hike. Weather and conditions are judged stricter for it.')}</span>`; box.append(w); }
   else if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
   { const sb = $('snow'), cm = window.snowAt && sb && sb.checked ? snowAt(p.lat, p.lon) : null;   // snow on the summit (snow layer on)
     if (cm != null){ const d = document.createElement('div'); d.className = 'v2snow'; d.textContent = `❄ ${L('Sneg','Snow')} (${L('model','model')}, ${snowDay()}): ~${cm} cm`; box.append(d); } }
@@ -181,7 +181,8 @@ const setLw = () => { if (PH()){ B.style.removeProperty('--lw'); return; }
 // ---------- computer: a rail of icons on the left; the peak list and the map panel open next to it, one at a time ----------
 const rail = document.createElement('nav'); rail.id = 'v2rail'; rail.setAttribute('aria-label', 'Glavni meni'); B.append(rail);
 let railSig = '';
-function railRender(){ const items = window.fabItemsList ? fabItemsList().filter(x => x[0] !== '◧' && x[0] !== '❓') : [];
+function railRender(){ const items0 = window.fabItemsList ? fabItemsList().filter(x => x[0] !== '◧' && x[0] !== '❓') : [];
+  const items = [...items0].sort((a, b) => (a[0] === '👤' && b[0] === '🗓') ? 1 : (a[0] === '🗓' && b[0] === '👤') ? -1 : 0);   // PC: Načrt above Moj profil
   const sig = items.map(x => x[1] + (x[3] || '')).join('|') + (B.classList.contains('lclosed') ? 0 : 1) + ($('drawer').classList.contains('open') ? 1 : 0);
   if (sig === railSig) return; railSig = sig;
   const dOpen = $('drawer').classList.contains('open'), lOpen = !B.classList.contains('lclosed');

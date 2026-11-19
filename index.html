@@ -2101,9 +2101,9 @@ document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closes
 .pbig{border:1px solid var(--line);background:transparent;color:inherit;border-radius:6px;padding:0 6px;font:inherit;font-size:1em;cursor:pointer}`; document.head.append(c); }
 window.__prof={profile,profileSVG,profStats,profT,terrainAt};
 const fmtT=hh=>{ const m=Math.round(hh*60); return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} h`; };
-const SACT=['','T1','T2','T3','T4','T5','T6'];
+const SACT=['','T1','T2','T3','T4','T5','T6','UIAA II+'];   // SAC T1–T6 (T6 = the top of the hiking scale); 7 = climbing, UIAA II and harder (admin)
 // path grade + harder pathless top: "T3+T5"
-const sacTxt=s=>{ const top=s.ot&&s.sac>=6?'T6+':SACT[s.sac]; return s.sac0&&s.sac>s.sac0?`${SACT[s.sac0]}+${top}`:(top||'T?'); };   // T6+ = pathless T6 top (alpinistic)
+const sacTxt=s=>s.sac0&&s.sac>s.sac0?`${SACT[s.sac0]}+${SACT[s.sac]}`:(SACT[s.sac]||'T?');
 const OTL=o=>o&&o.lc?({gozd:LP('gozd','forest'),grmovje:LP('grmovje','shrubs'),trava:LP('trava','grass'),skala:LP('skala, melišče','rock, scree'),sneg:LP('sneg, led','snow, ice')})[o.lc]||'':'';
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function download(name, text, type='application/gpx+xml'){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
@@ -2573,7 +2573,7 @@ window.adminWayAt=(la,lo)=>{ if(!G||!inG(la,lo)) return null; const i=nearestNod
   for(let q=G.off[i];q<G.off[i+1];q++){ const w=G.W[G.wy[q]]; if(w&&w.kind!=='g'&&w.id) return {id:w.id,name:w.name||'',kind:w.kind,lat:G.lat[i],lon:G.lon[i]}; } return null; };
 // difficulty class of a route / peak (used by the weather rating), as PZS marks paths in Slovenia: 1 lahka (T1–T2), 2 zahtevna (T3),
 // 3 zelo zahtevna (T4–T6 or ferrata) - OSM in Slovenia tags the 'zelo zahtevna' paths (Triglav, Jalovec, Mangart ...) mostly as T4
-window.routeClass = r => r ? (r.stats.ot && r.stats.sac >= 6 && !(r.fix && r.fix.t) ? 4 : r.stats.ferrata || r.stats.sac >= 4 ? 3 : r.stats.sac >= 3 ? 2 : 1) : null;   // 4 = pathless T6+ top: alpinistic
+window.routeClass = r => r ? (r.stats.sac >= 7 || (r.stats.ot && r.stats.sac >= 6 && !(r.fix && r.fix.t)) ? 4 : r.stats.ferrata || r.stats.sac >= 4 ? 3 : r.stats.sac >= 3 ? 2 : 1) : null;   // 4 = pathless T6+ top: alpinistic
 window.selRoute = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? RT.routes[RT.sel] : null;
 window.selRouteClass = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? window.routeClass(RT.routes[RT.sel]) : null;
 // tools/peak_tech.js: routes of a peak without touching the UI
@@ -4182,12 +4182,12 @@ async function seriesFor(p){ const extra = Promise.all([window.loadSat ? window.
 //   good >= 75, so-so 45–74, bad < 45; thunder in the forecast is always bad.
 // harder peaks / routes: the same weather matters more (snow on a T5 ridge is winter alpinism, wind on exposed rock, wet slabs ...)
 // class 1 lahka (T1–T2) · 2 zahtevna (T3) · 3 zelo zahtevna (T4–T6, ferrata); winter experience from the profile scales snow
-const MULT = {snow:[1,1.6,2.5], fresh:[1,1.6,2.5], wind:[1,1.3,1.6], rain:[1,1.3,1.6], cold:[1,1.2,1.4], cloud:[1,1.2,1.2], storm:[1,1,1]};
+const MULT = {snow:[1,1.6,2.5,3.5], fresh:[1,1.6,2.5,3.5], wind:[1,1.3,1.6,2.2], rain:[1,1.3,1.6,2.4], cold:[1,1.2,1.4,1.7], cloud:[1,1.2,1.2,1.6], storm:[1,1,1,1.3]};   // 4th = alpinistic (pathless T6 / climbing): harsher
 const WINTER_K = [1.5, 1, 0.5];
-const CLS_N = () => [L('lahka','easy'), L('zahtevna','demanding'), L('zelo zahtevna','very demanding'), L('alpinistična (T6+)','alpinistic (T6+)')];
+const CLS_N = () => [L('lahka','easy'), L('zahtevna','demanding'), L('zelo zahtevna','very demanding'), L('alpinistična (T6 brezpotje / plezanje)','alpinistic (T6 pathless / climbing)')];
 // class 4 = alpinistic: the easiest way up ends in pathless ground graded T6 (tools/offtrail_grade.py) - climbing, not a hike.
 // An admin grade on the selected route or a hand fix (tech_overrides, "ov") wins.
-window.isAlp = p => !!(p && p.tech && !p.tech.ov && p.tech.ot && (p.tech.s || 0) >= 6);
+window.isAlp = p => !!(p && p.tech && (((p.tech.s || 0) >= 7) || (!p.tech.ov && p.tech.ot && (p.tech.s || 0) >= 6)));   // 7 = climbing (UIAA II+), set by an admin
 window.peakClass = p => (window.selRouteClass && window.selRouteClass(p.id)) || (window.isAlp(p) ? 4 : null) || (p.tech && p.tech.c) || null;
 const chill = (T, V) => T <= 10 && V > 4.8 ? 13.12 + 0.6215*T - 11.37*V**0.16 + 0.3965*T*V**0.16 : T;
 // hardest bit of the way (T-grade 1–6, via ferrata) - snow is judged by it: the selected route, else the peak's easiest route
@@ -4200,7 +4200,7 @@ const WINTER_SNOW = [1.3, 1, 0.55];   // winter experience: none / easy winter t
 const snowPts = (cm, tg, winter) => { if (!(cm >= 1)) return 0; const b = cm < 5 ? 0 : cm < 15 ? 1 : cm < 30 ? 2 : cm < 50 ? 3 : 4, t = tg.f ? 6 : Math.min(6, Math.max(1, tg.t || 2));
   return Math.min(100, Math.round(SNOW_T[t][b] * (WINTER_SNOW[winter ?? 1] ?? 1))); };
 function day(s, d, elev, cls, tg){
-  const alp = cls === 4, ci = Math.min(3, Math.max(1, cls || 1)) - 1, pr = window.PROFILE || {}, wk = WINTER_K[pr.winter ?? 1] ?? 1;
+  const alp = cls === 4, ci = Math.min(4, Math.max(1, cls || 1)) - 1, pr = window.PROFILE || {}, wk = WINTER_K[pr.winter ?? 1] ?? 1;
   const nh = s.hours.length, all = s.hours.map((h, i) => d*nh + i);
   const win = all.filter((k, i) => s.hours[i] >= DAY_H[0] && s.hours[i] <= DAY_H[1]), pm = all.filter((k, i) => s.hours[i] >= PM_H && s.hours[i] <= DAY_H[1]);
   const g = (a, I) => a ? I.map(k => a[k]).filter(x => x != null) : [];
@@ -4240,11 +4240,14 @@ function day(s, d, elev, cls, tg){
   const av = window.avaAt && s.lat != null ? window.avaAt(s.lat, s.lon, elev, s.days[d]) : null;
   if (av){ o.ava = av; if ((o.snowcm || 0) >= 10 || av.level >= 3) add([0, 0, 5, 20, 40, 60][av.level] || 0, `lavinska nevarnost ${av.level} (ARSO)`, `avalanche danger ${av.level} (ARSO)`, 'snow'); }
   if (o.chill != null) add(o.chill <= -20 ? 20 : o.chill <= -10 ? 8 : 0, `mrzlo (občutek ${Math.round(o.chill)} °C)`, `cold (feels like ${Math.round(o.chill)} °C)`, 'cold');
-  // alpinistic summit (pathless T6+): never recommended as a tour, whatever the weather - only for climbers who know the line
-  if (alp) o.pen.push([60, L('alpinistični vzpon (brezpotje T6+) — le za izkušene alpiniste', 'alpinistic climb (pathless T6+) — experienced climbers only')]);
+  // alpinistic summit (pathless T6 / climbing): conditions count harder (MULT 4th column) and stricter limits - wet rock, some wind,
+  // a little rain or any cloud on the line already matter there
+  if (alp){ const wr = o.p >= 0.2 && o.p < 0.5 ? 10 : 0, wd = o.g >= 40 && o.g < 50 ? 10 : o.w >= 20 && o.w < 30 ? 8 : 0, cl = o.c != null && o.c >= 60 && o.c < 70 ? 8 : 0;
+    add(wr, 'mokra skala (malo padavin)', 'wet rock (a little rain)', 'rain'); add(wd, `veter na grebenu ${r1(o.w)} km/h, sunki ${r1(o.g)}`, `wind on the ridge ${r1(o.w)} km/h, gusts ${r1(o.g)}`, 'wind');
+    add(cl, 'oblaki na smeri (orientacija)', 'cloud on the line (route finding)', 'cloud'); }
   o.pen.sort((a, b) => b[0] - a[0]);
   o.score = Math.max(0, 100 - sum(o.pen.map(x => x[0])));
-  o.r = o.thunder || o.score < 45 ? 2 : o.score < 75 ? 1 : 0;
+  o.r = o.thunder || o.score < (alp ? 55 : 45) ? 2 : o.score < (alp ? 85 : 75) ? 1 : 0;   // alpinistic: stricter limits for a good / poor day
   o.why = o.pen.map(x => x[1]); o.storm = o.thunder || capeMax >= 1000; o.cls = alp ? 4 : ci + 1;
   return o; }
 const worst = X => X.reduce((a, b) => rank(b) > rank(a) ? b : a, X[0]);
@@ -4277,11 +4280,11 @@ const css = document.createElement('style'); css.textContent = `
 #wxBig .tw{overflow-x:auto}#wxBig .note{font-size:.8em;color:#777;margin-top:8px}#wxBig td.win{background:#f6faf6}`;
 document.head.append(css);
 
-const SACT_ = ['', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
+const SACT_ = ['', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'UIAA II+'];
 function clsLine(p, o){ const sel = window.selRouteClass && window.selRouteClass(p.id), tc = p.tech, pr = window.PROFILE || {};
   const src = sel ? L('izbrana pot', 'selected route') : tc ? (tc.s ? SACT_[tc.s] + ', ' : '') + (tc.x ? (tc.ot ? L('brezpotje, ocena iz reliefa', 'pathless, estimate from terrain') : L('brezpotje, groba ocena', 'pathless, rough estimate')) : tc.ot ? L('najlažja pot + brezpotje do vrha', 'easiest route + pathless top') : L('najlažja pot', 'easiest route')) : L('ocena', 'estimate');
   const over = tc && ((tc.s && pr.maxT && tc.s > pr.maxT) || (tc.f && pr.ferrata === false));
-  return `<div style="font-size:.88em;color:#555;margin-bottom:3px">${L('Zahtevnost','Difficulty')}: <b>${CLS_N()[o.cls - 1]}</b> (${src})${o.cls === 4 ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('alpinistični vzpon, ni planinska tura','alpinistic climb, not a hike')}</span>` : over ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('nad tvojo mejo','above your limit')}</span>` : ''}</div>`; }
+  return `<div style="font-size:.88em;color:#555;margin-bottom:3px">${L('Zahtevnost','Difficulty')}: <b>${CLS_N()[o.cls - 1]}</b> (${src})${o.cls === 4 ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('alpinistični vzpon — pogoji ocenjeni strožje','alpinistic climb — conditions judged stricter')}</span>` : over ? ` · <span style="color:#c62f28;font-weight:700">⚠ ${L('nad tvojo mejo','above your limit')}</span>` : ''}</div>`; }
 // --- big window: all days, the score with every deduction, hourly table 06–21 h
 function big(p, s, D, DD, sel){
   let el = $w('wxBig'); if (el) el.remove();
@@ -5711,7 +5714,7 @@ window.adminRouteGeom = async (A, coords) => {
     modal(`<h3>🛠 ${L('Nova pot','New route')} · ${esc(A.p.name)}</h3><div class="admform">
       <label>${L('Izhodišče','Start')}<input id="anS" maxlength="80" value="${esc(A.start || '')}"></label>
       <label>${L('Ime poti','Route name')}<input id="anN" maxlength="120" placeholder="${L('npr. Tominškova pot','e.g. Tominšek route')}"></label>
-      <label>${L('Najtežje (T)','Hardest (T)')}<select id="anT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${t === 3 ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+      <label>${L('Najtežje (T)','Hardest (T)')}<select id="anT">${[1,2,3,4,5,6,7].map(t => `<option value="${t}"${t === 3 ? ' selected' : ''}>${t === 7 ? L('plezanje (UIAA II+)','climbing (UIAA II+)') : 'T' + t}</option>`).join('')}</select></label>
       <label><input type="checkbox" id="anF"> ${L('ferata','via ferrata')}</label>
       <label>${L('Opomba','Note')}<input id="anO" maxlength="300"></label>
       <div class="ab"><button class="sb pri" id="anV">💾 ${L('Shrani za vse','Save for everybody')}</button></div><div class="am" id="anM"></div></div>`);
@@ -5720,7 +5723,7 @@ window.adminRouteGeom = async (A, coords) => {
 // route card: grade, via ferrata, name, note, hide
 window.adminRouteEdit = (p, r) => { const f = r.fix || {};
   modal(`<h3>🛠 ${L('Uredi pot','Edit route')}</h3><div class="sub">${esc(p.name)} · ${L('iz','from')} ${esc(((r.start && r.start.name) || '').replace(/^pri /, ''))}</div>
-    <div class="admform"><label>${L('Najtežje (T)','Hardest (T)')}<select id="afT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${(f.t || r.stats.sac) == t ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+    <div class="admform"><label>${L('Najtežje (T)','Hardest (T)')}<select id="afT">${[1,2,3,4,5,6,7].map(t => `<option value="${t}"${(f.t || r.stats.sac) == t ? ' selected' : ''}>${t === 7 ? L('plezanje (UIAA II+)','climbing (UIAA II+)') : 'T' + t}</option>`).join('')}</select></label>
     <label><input type="checkbox" id="afF" ${(f.f != null ? f.f : r.stats.ferrata) ? 'checked' : ''}> ${L('ferata','via ferrata')}</label>
     <label>${L('Ime poti','Route name')}<input id="afN" maxlength="120" value="${esc(f.name || '')}" placeholder="${L('pusti prazno = iz OSM','empty = from OSM')}"></label>
     <label>${L('Opomba (ključna mesta, nevarnosti)','Note (key passages, hazards)')}<input id="afO" maxlength="300" value="${esc(f.note || '')}"></label>
@@ -6314,7 +6317,7 @@ window.v2PeakBox = (box, p, o) => {
         ps.innerHTML = pics.map((x, i) => `<button data-i="${i}" title="${ea(x.artist || 'Wikimedia Commons')} · ${ea(x.lic)}" aria-label="${L('Fotografija','Photo')} ${i + 1}: ${ea(x.artist)}"><img loading="lazy" alt="" src="${(x.img || '').replace(/\/1280px-/, '/330px-').replace(/"/g, '%22')}" data-full="${(x.img || '').replace(/"/g, '%22')}" onerror="if(this.dataset.full&&this.src!==this.dataset.full){this.src=this.dataset.full}else{this.parentNode.remove()}"><i class="pa">${ea(x.artist || 'Commons').slice(0, 22)} · ${ea(x.lic)}</i></button>`).join('')
         + `<small>${L('Foto','Photos')}: Wikimedia Commons</small>`;
       ps.querySelectorAll('button').forEach(b => b.onclick = () => peakPicsBig(pics, +b.dataset.i, p.name)); } }, 60)); }
-  if (window.isAlp && isAlp(p)){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span><b>${L('Alpinistični vzpon','Alpinistic climb')}</b> — ${L('do vrha ni poti, zadnji del je ocenjen T6+ (plezanje). Ni planinska tura; vreme se zanj vedno oceni slabo.','no path to the top, the last part is graded T6+ (climbing). Not a hike; the weather rating is always poor for it.')}</span>`; box.append(w); }
+  if (window.isAlp && isAlp(p)){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span><b>${L('Alpinistični vzpon','Alpinistic climb')}</b> — ${L('najlažja smer je brezpotje T6 ali plezanje — ni planinska tura. Vreme in razmere se zanj ocenijo strožje.','the easiest way is pathless T6 or climbing — not a hike. Weather and conditions are judged stricter for it.')}</span>`; box.append(w); }
   else if (over){ const w = document.createElement('div'); w.className = 'v2warn'; w.innerHTML = ICON.warn + `<span>${L('Normalna pot','Normal route')} <b>${tg.f ? L('ferata','via ferrata') : 'T' + tg.t}</b> — ${L('nad tvojo mejo','above your limit')} T${PR.maxT}</span>`; box.append(w); }
   { const sb = $('snow'), cm = window.snowAt && sb && sb.checked ? snowAt(p.lat, p.lon) : null;   // snow on the summit (snow layer on)
     if (cm != null){ const d = document.createElement('div'); d.className = 'v2snow'; d.textContent = `❄ ${L('Sneg','Snow')} (${L('model','model')}, ${snowDay()}): ~${cm} cm`; box.append(d); } }
@@ -6346,7 +6349,8 @@ const setLw = () => { if (PH()){ B.style.removeProperty('--lw'); return; }
 // ---------- computer: a rail of icons on the left; the peak list and the map panel open next to it, one at a time ----------
 const rail = document.createElement('nav'); rail.id = 'v2rail'; rail.setAttribute('aria-label', 'Glavni meni'); B.append(rail);
 let railSig = '';
-function railRender(){ const items = window.fabItemsList ? fabItemsList().filter(x => x[0] !== '◧' && x[0] !== '❓') : [];
+function railRender(){ const items0 = window.fabItemsList ? fabItemsList().filter(x => x[0] !== '◧' && x[0] !== '❓') : [];
+  const items = [...items0].sort((a, b) => (a[0] === '👤' && b[0] === '🗓') ? 1 : (a[0] === '🗓' && b[0] === '👤') ? -1 : 0);   // PC: Načrt above Moj profil
   const sig = items.map(x => x[1] + (x[3] || '')).join('|') + (B.classList.contains('lclosed') ? 0 : 1) + ($('drawer').classList.contains('open') ? 1 : 0);
   if (sig === railSig) return; railSig = sig;
   const dOpen = $('drawer').classList.contains('open'), lOpen = !B.classList.contains('lclosed');

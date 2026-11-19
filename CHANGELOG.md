@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v1.02 — 2026-11-19
+- Alpinistic class reworked: no flat −60 any more. Conditions count harder (bigger deductions: snow ×3.5, rain ×2.4, wind ×2.2 …)
+  and stricter rules (wet rock from 0.2 mm, gusts from 40 km/h, cloud on the line from 60 %; good day only from 85 points, poor
+  below 55). Shown as "alpinistična (T6 brezpotje / plezanje)"; "T6+" label dropped (SAC ends at T6).
+- Admin route grade: new option "plezanje (UIAA II+)" above T6 for climbing routes (makes the peak alpinistic).
+- PC left column: Načrt above Moj profil.
+
 ## web-v1.01 — 2026-11-19
 - Icons: every emoji in the page (menus, buttons, windows, weather, badges, toasts …) is drawn as a line icon (Lucide, ISC) -
   same look on every phone / computer, colour follows the text (src/icons.js; texts and translations keep their emoji keys).

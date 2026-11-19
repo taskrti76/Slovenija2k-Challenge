@@ -1191,7 +1191,7 @@ window.adminRouteGeom = async (A, coords) => {
     modal(`<h3>🛠 ${L('Nova pot','New route')} · ${esc(A.p.name)}</h3><div class="admform">
       <label>${L('Izhodišče','Start')}<input id="anS" maxlength="80" value="${esc(A.start || '')}"></label>
       <label>${L('Ime poti','Route name')}<input id="anN" maxlength="120" placeholder="${L('npr. Tominškova pot','e.g. Tominšek route')}"></label>
-      <label>${L('Najtežje (T)','Hardest (T)')}<select id="anT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${t === 3 ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+      <label>${L('Najtežje (T)','Hardest (T)')}<select id="anT">${[1,2,3,4,5,6,7].map(t => `<option value="${t}"${t === 3 ? ' selected' : ''}>${t === 7 ? L('plezanje (UIAA II+)','climbing (UIAA II+)') : 'T' + t}</option>`).join('')}</select></label>
       <label><input type="checkbox" id="anF"> ${L('ferata','via ferrata')}</label>
       <label>${L('Opomba','Note')}<input id="anO" maxlength="300"></label>
       <div class="ab"><button class="sb pri" id="anV">💾 ${L('Shrani za vse','Save for everybody')}</button></div><div class="am" id="anM"></div></div>`);
@@ -1200,7 +1200,7 @@ window.adminRouteGeom = async (A, coords) => {
 // route card: grade, via ferrata, name, note, hide
 window.adminRouteEdit = (p, r) => { const f = r.fix || {};
   modal(`<h3>🛠 ${L('Uredi pot','Edit route')}</h3><div class="sub">${esc(p.name)} · ${L('iz','from')} ${esc(((r.start && r.start.name) || '').replace(/^pri /, ''))}</div>
-    <div class="admform"><label>${L('Najtežje (T)','Hardest (T)')}<select id="afT">${[1,2,3,4,5,6].map(t => `<option value="${t}"${(f.t || r.stats.sac) == t ? ' selected' : ''}>T${t}</option>`).join('')}</select></label>
+    <div class="admform"><label>${L('Najtežje (T)','Hardest (T)')}<select id="afT">${[1,2,3,4,5,6,7].map(t => `<option value="${t}"${(f.t || r.stats.sac) == t ? ' selected' : ''}>${t === 7 ? L('plezanje (UIAA II+)','climbing (UIAA II+)') : 'T' + t}</option>`).join('')}</select></label>
     <label><input type="checkbox" id="afF" ${(f.f != null ? f.f : r.stats.ferrata) ? 'checked' : ''}> ${L('ferata','via ferrata')}</label>
     <label>${L('Ime poti','Route name')}<input id="afN" maxlength="120" value="${esc(f.name || '')}" placeholder="${L('pusti prazno = iz OSM','empty = from OSM')}"></label>
     <label>${L('Opomba (ključna mesta, nevarnosti)','Note (key passages, hazards)')}<input id="afO" maxlength="300" value="${esc(f.note || '')}"></label>
