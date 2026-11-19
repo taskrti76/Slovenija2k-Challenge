@@ -12,7 +12,7 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 //    service-worker cache. Coarse far ring already when a peak popup opens (~2 MB), the full ring once 360 starts.
 //    Turning later is then served from the cache (milliseconds) instead of the network.
 // 2) two passes: arrive with coarse tiles (few, fast) so the whole view is there at once, then switch to the chosen quality.
-const SAT_URL = (z,x,y) => `https://${(x+y)%2?'services':'server'}.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;   // same host split as the map
+const SAT_URL = (z,x,y) => window.satUrl(z,x,y);   // the map's own address: GURS DOF050 in Slovenia, Esri outside
 const DEM_URL = (z,x,y) => `https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`;
 // [zoom, from km, to km] - tile zoom the 360 view asks for at each distance (one zoom level per doubling of distance;
 // satellite measured at Visoka: z11–z18 within ~70 km, height tiles z12 near … z8 at 100+ km)
@@ -283,7 +283,7 @@ const PX_BUDGET = window.IS_PHONE ? 1.5e6 : 6e6;
 function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.clientHeight); pr=Math.min(pr, Math.sqrt(PX_BUDGET/css));
   if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 // sharpest satellite next to where you stand: z19 (~0.3 m) within ~100 m on Visoka (computer), z18 on a phone
-const satZ = () => window.IS_PHONE ? (qi===2 ? 18 : 17) : (qi===2 ? 19 : 18);
+const satZ = () => window.IS_PHONE ? (qi===2 ? 18 : 17) : 18;   // the satellite source ends at 18 (DOF050 0.5 m)
 function applyQuality(){ const q=Q[qi]; { const ss = S.on && map.getSource('sat'); if (ss) ss.maxzoom = satZ(); }
   window.TERRAIN_DELTA = S.on ? (qi===2 ? 0 : qi===1 ? 1 : 2) : null; window.applyTerrainLOD && window.applyTerrainLOD();
   rttOn(S.on);

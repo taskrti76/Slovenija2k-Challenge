@@ -1,7 +1,7 @@
 // Service worker: makes the site installable and usable without signal.
 // - app shell (page, data, icons, MapLibre) cached on install, refreshed in the background
 // - map tiles cached as you view them (LRU-trimmed); saved offline areas live in their own caches "dvat-reg-<id>" (extras.js)
-const VER = 'b18ed859b1';
+const VER = 'a3e4a74383';
 const SHELL = 'dvat-shell-' + VER, TILES = 'dvat-tiles', REGION = 'dvat-region';
 const SHELL_URLS = ['./', './index.html', './dvat-osm.json.gz', './manifest.webmanifest', './favicon.svg', './favicon.ico', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js', 'https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.css',
@@ -20,7 +20,7 @@ self.addEventListener('activate', e => {
     for (const k of ks){ try{ const oc = await caches.open(k); for (const r of await oc.keys()) if (!(await nc.match(r))){ const h = await oc.match(r); if (h) await nc.put(r, h); } }catch(_){} }
     await Promise.all(ks.map(k => caches.delete(k))); await self.clients.claim(); })());
 });
-const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|tiles\.openfreemap\.org\/(fonts|planet)\//.test(u);
+const isTile = u => /tiles\.mapterhorn\.com\/\d+\/|arcgisonline\.com\/.*\/tile\/|tile\.opentopomap\.org\/|tile\.waymarkedtrails\.org\/|\/dof050[\w-]*\/\d+\/\d+\/\d+\.webp|tiles\.openfreemap\.org\/(fonts|planet)\//.test(u);
 // Esri satellite comes from two hosts (server. / services.arcgisonline.com - twice the parallel downloads); cached under one name
 const keyOf = u => u.replace('//services.arcgisonline.com/', '//server.arcgisonline.com/');
 // trimming the tile cache lists every key (thousands) - done once a while after loading calms down, not after every tile
@@ -48,7 +48,7 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       const c = await caches.open(SHELL), hit = await c.match(r, {ignoreSearch: /(snow|weather)\.json/.test(u) ? false : true});
       // page + data files: always ask GitHub whether they changed (cheap 304 if not) instead of trusting the browser's 10-min HTTP cache
-      const fresh = /snow\.json|weather\.json|avalanche\.json|snowsat\.(json|png)|snowpack\.json|offtrail\.json|\.html$|\/$|dvat-osm\.json\.gz/.test(u) || r.mode === 'navigate';
+      const fresh = /snow\.json|weather\.json|avalanche\.json|snowsat\.(json|png)|snowpack\.json|offtrail\.json|tiles\.json|\.html$|\/$|dvat-osm\.json\.gz/.test(u) || r.mode === 'navigate';
       const net = (fresh ? fetch(r.url, {cache:'no-cache', credentials:'same-origin'}) : fetch(r)).then(res => { if (res.ok) c.put(r, res.clone()); return res; }).catch(() => null);
       // website down (404 / 5xx) counts like no signal: the saved copy wins over an error page
       if (r.mode === 'navigate' || /snow\.json|weather\.json|avalanche\.json|snowsat\.(json|png)|snowpack\.json|offtrail\.json|\.html$|\/$/.test(u)){ const res = await net; return res && res.ok ? res : hit || res || new Response('', {status:504}); }

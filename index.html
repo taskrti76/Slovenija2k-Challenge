@@ -388,7 +388,7 @@ setTimeout(window.bootOut,12000);</script>
 
   <div class="grp"><b>Podlaga</b>
     <label><input type="radio" name="base" value="relief" checked> Relief (barvna višina)</label>
-    <label><input type="radio" name="base" value="sat"> Satelit (Esri)</label>
+    <label><input type="radio" name="base" value="sat"> Satelit / ortofoto</label>
     <label><input type="radio" name="base" value="topo"> OpenTopoMap</label>
     <label><input type="radio" name="base" value="snow"> Snežna karta (sneg + izohipse)</label>
   </div>
@@ -494,14 +494,40 @@ const RCOL = Object.fromEntries(RANGES);
 const DEM = {type:"raster-dem", url:"https://tiles.mapterhorn.com/tilejson.json", encoding:"terrarium",
   attribution:'<a href="https://mapterhorn.com/attribution" target="_blank">Mapterhorn</a> (ARSO/GURS LiDAR, CC BY 4.0) · <a href="licence.html" target="_blank">Vsi viri / all sources</a>'};
 
+// ---------- satellite: GURS DOF050 orthophoto (0.5 m, 2023–25) inside Slovenia, Esri World Imagery around it ----------
+// One map source "sat://z/x/y": inside the DOF050 area one request to our tile worker (Cloudflare, edge-cached); a tile with no
+// picture there (404, e.g. Italy inside the box) or an error -> Esri; a border tile (transparent part) gets Esri painted underneath.
+// Its address comes from data/tiles.json ({"dof":"https://…/dof050/{z}/{x}/{y}.webp"}; empty = Esri only) - edit it on GitHub, no rebuild.
+const ESRI=(z,x,y)=>`https://${(x+y)%2&&!window.ESRI_ONE?'services':'server'}.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+const DOF_B=[13.3717,45.4976,15.6460,46.6551], DOF_MISS=new Set();
+const lon2x=(lo,z)=>(lo+180)/360*2**z, lat2y=(la,z)=>{ const r=la*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**z; };
+window.DOF_CFG=fetch('data/tiles.json').then(r=>r.ok?r.json():{}).catch(()=>({})).then(j=>{ const u=j&&j.dof||'';
+  window.DOF_TPL=/^https:\/\/.+\{z\}.+\{x\}.+\{y\}/.test(u)?u:''; window.DOF_ON=!!window.DOF_TPL;
+  if(window.DOF_ON){ const l=document.createElement('link'); l.rel='preconnect'; l.href=new URL(window.DOF_TPL.replace(/\{.\}/g,'0')).origin; l.crossOrigin=''; document.head.append(l); }
+  return window.DOF_TPL; });
+const inDof=(z,x,y)=>{ if(!window.DOF_ON||z<8||z>18) return false;
+  if(x+1<=lon2x(DOF_B[0],z)||x>=lon2x(DOF_B[2],z)||y+1<=lat2y(DOF_B[3],z)||y>=lat2y(DOF_B[1],z)) return false;
+  for(let k=z;k>=8;k--) if(DOF_MISS.has(`${k}/${x>>(z-k)}/${y>>(z-k)}`)) return false; return true; };
+window.satUrl=(z,x,y)=>inDof(z,x,y)?window.DOF_TPL.replace('{z}',z).replace('{x}',x).replace('{y}',y):ESRI(z,x,y);   // 360 prefetch uses the same addresses
+const getBuf=async(u,sig)=>{ const r=await fetch(u,{signal:sig,mode:'cors'}); if(!r.ok){ const e=new Error('HTTP '+r.status); e.status=r.status; throw e; } return r.arrayBuffer(); };
+const opaqueWebp=b=>{ const v=new Uint8Array(b,0,Math.min(16,b.byteLength)); return v.length>=16&&String.fromCharCode(v[12],v[13],v[14],v[15])==='VP8 '; };   // lossy, no alpha chunk
+async function underlay(dof,z,x,y,sig){ if(opaqueWebp(dof)||typeof OffscreenCanvas==='undefined') return dof;
+  let esri; try{ esri=await getBuf(ESRI(z,x,y),sig); }catch(e){ if(sig.aborted) throw e; return dof; }
+  try{ const [a,b]=await Promise.all([createImageBitmap(new Blob([esri])),createImageBitmap(new Blob([dof]))]);
+    const c=new OffscreenCanvas(256,256), g=c.getContext('2d'); g.drawImage(a,0,0,256,256); g.drawImage(b,0,0,256,256); a.close(); b.close();
+    return await (await c.convertToBlob({type:'image/webp',quality:.85})).arrayBuffer(); }catch(_){ return dof; } }
+maplibregl.addProtocol('sat',async(params,ac)=>{ const [z,x,y]=params.url.slice(6).split('/').map(Number), sig=ac.signal;
+  if(window.DOF_ON===undefined) await Promise.race([window.DOF_CFG,new Promise(r=>setTimeout(r,1500))]);
+  if(inDof(z,x,y)){ try{ return {data:await underlay(await getBuf(window.satUrl(z,x,y),sig),z,x,y,sig)}; }
+    catch(e){ if(sig.aborted) throw e; if(e.status===404) DOF_MISS.add(`${z}/${x}/${y}`); } }
+  return {data:await getBuf(ESRI(z,x,y),sig)}; });
 const style = {
   version:8,
   glyphs:"https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf",
   sources:{
     dem_terrain:DEM, dem_hs:DEM, // relief + snow map share the hillshade source (one DEM copy less in memory)
-    sat:{type:"raster",tileSize:256,maxzoom:19,
-      tiles:["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}","https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
-      attribution:'Powered by <a href="https://www.esri.com" target="_blank">Esri</a> · Esri, Maxar, Earthstar Geographics'},
+    sat:{type:"raster",tileSize:256,maxzoom:18,tiles:["sat://{z}/{x}/{y}"],   // z18 = 0.4 m/px here (DOF050 is 0.5 m); deeper zooms enlarge it
+      attribution:'Ortofoto <a href="https://www.e-prostor.gov.si" target="_blank">GURS</a> DOF050 (CC BY 4.0) · Powered by <a href="https://www.esri.com" target="_blank">Esri</a> · Esri, Maxar, Earthstar Geographics'},
     topo:{type:"raster",tileSize:256,maxzoom:17,
       tiles:["https://a.tile.opentopomap.org/{z}/{x}/{y}.png","https://b.tile.opentopomap.org/{z}/{x}/{y}.png","https://c.tile.opentopomap.org/{z}/{x}/{y}.png"],
       attribution:'© <a href="https://www.openstreetmap.org/copyright">OSM</a>, SRTM | © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'},
@@ -612,8 +638,7 @@ function skirtPatch(){ const t=map.terrain; if(!t||t.__skirt) return; t.__skirt=
   t.getMeshFrameDelta=z=>Math.max(f(z),window.SKIRT_MIN||0); }
 map.on('terrain',()=>setTimeout(()=>{ rttPatch(); skirtPatch(); },0)); map.once('load',()=>{ rttPatch(); skirtPatch(); });
 // second satellite host answers? (two hosts = twice the parallel downloads) - if not, back to the one we know works
-map.once('load',()=>{ const u=map.getStyle().sources.sat.tiles; if(u.length<2) return;
-  fetch(u[1].replace('{z}/{y}/{x}','3/2/4'),{mode:'cors',cache:'no-store'}).then(r=>{ if(!r.ok) throw 0; }).catch(()=>{ try{ map.getSource('sat').setTiles([u[0]]); }catch(_){} }); });
+map.once('load',()=>{ fetch(ESRI(3,4,1).replace('/server.','/services.'),{mode:'cors',cache:'no-store'}).then(r=>{ if(!r.ok) throw 0; }).catch(()=>{ window.ESRI_ONE=true; }); });
 (function(){ const c=$id('fastChk'); if(!c) return; c.checked=window.FAST_T;
   c.onchange=()=>{ window.FAST_T=c.checked; try{ localStorage.setItem('dvat3d_fastterrain',c.checked?'1':'0'); }catch(_){} window.applyTerrainLOD(); }; })();
 (function(){
@@ -3220,7 +3245,7 @@ const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
 //    service-worker cache. Coarse far ring already when a peak popup opens (~2 MB), the full ring once 360 starts.
 //    Turning later is then served from the cache (milliseconds) instead of the network.
 // 2) two passes: arrive with coarse tiles (few, fast) so the whole view is there at once, then switch to the chosen quality.
-const SAT_URL = (z,x,y) => `https://${(x+y)%2?'services':'server'}.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;   // same host split as the map
+const SAT_URL = (z,x,y) => window.satUrl(z,x,y);   // the map's own address: GURS DOF050 in Slovenia, Esri outside
 const DEM_URL = (z,x,y) => `https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`;
 // [zoom, from km, to km] - tile zoom the 360 view asks for at each distance (one zoom level per doubling of distance;
 // satellite measured at Visoka: z11–z18 within ~70 km, height tiles z12 near … z8 at 100+ km)
@@ -3491,7 +3516,7 @@ const PX_BUDGET = window.IS_PHONE ? 1.5e6 : 6e6;
 function setPR(pr){ const c=map.getContainer(), css=Math.max(1,c.clientWidth*c.clientHeight); pr=Math.min(pr, Math.sqrt(PX_BUDGET/css));
   if (map.setPixelRatio && Math.abs(map.getPixelRatio()-pr)>0.01) map.setPixelRatio(pr); }
 // sharpest satellite next to where you stand: z19 (~0.3 m) within ~100 m on Visoka (computer), z18 on a phone
-const satZ = () => window.IS_PHONE ? (qi===2 ? 18 : 17) : (qi===2 ? 19 : 18);
+const satZ = () => window.IS_PHONE ? (qi===2 ? 18 : 17) : 18;   // the satellite source ends at 18 (DOF050 0.5 m)
 function applyQuality(){ const q=Q[qi]; { const ss = S.on && map.getSource('sat'); if (ss) ss.maxzoom = satZ(); }
   window.TERRAIN_DELTA = S.on ? (qi===2 ? 0 : qi===1 ? 1 : 2) : null; window.applyTerrainLOD && window.applyTerrainLOD();
   rttOn(S.on);
@@ -3636,7 +3661,7 @@ let LANG = LS('dvat3d_lang') || ((navigator.language||'sl').toLowerCase().starts
 window.LANG = LANG;
 const RANGE_EN = {'Julijske Alpe':'Julian Alps','Kamniško-Savinjske Alpe':'Kamnik–Savinja Alps','Karavanke':'Karawanks','Predalpe':'Prealps','Pohorje':'Pohorje','Snežnik':'Snežnik'};
 const EN = Object.assign({}, RANGE_EN, {
-  'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit (Esri)':'Satellite (Esri)',
+  'Dvatisočaki':'Slovenian 2000ers', 'Podlaga':'Base map', 'Sloji':'Layers', 'Relief (barvna višina)':'Relief (colour by height)', 'Satelit / ortofoto':'Satellite / orthophoto',
   'Snežna karta (sneg + izohipse)':'Snow map (snow + contours)', 'Senčenje reliefa':'Hillshade', 'Waymarked Trails (slika)':'Waymarked Trails (image)', 'Imena vrhov':'Peak names',
   'Državna meja':'National border', 'Vode (reke, potoki, jezera, slapovi)':'Water (rivers, streams, lakes, waterfalls)', 'pred sneženjem – velja model':'before the last snowfall - model used', 'od takrat':'since then', 'Kraji (mesta, vasi)':'Places (towns, villages)', 'Izohipse (plastnice)':'Contour lines', '⛰ Nadmorska višina':'⛰ Elevation', '🏆 Lestvica':'🏆 Leaderboard', 'Lestvica':'Leaderboard', 'Nadmorska višina':'Elevation', 'Višina snega':'Snow depth', 'Višina snega (model, dnevno)':'Snow depth (model, daily)', 'Poti in koče (OSM)':'Trails & huts (OSM)', 'Poti (markirane + neoznačene)':'Trails (marked + unmarked)',
   'Koče, bivaki, izviri':'Huts, bivouacs, springs', 'Spletne kamere':'Webcams', 'Parkirišča / izhodišča':'Parking / trailheads', 'Ferate (oznake + težavnost)':'Via ferratas (signs + grade)', 'Riši pot':'Draw a route', 'Končaj risanje':'Finish drawing', 'Velikost besedila':'Text size',

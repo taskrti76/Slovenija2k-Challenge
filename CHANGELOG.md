@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v1.03 — 2026-11-19
+- Satellite base: inside Slovenia the GURS DOF050 orthophoto (0.5 m, 2023–25, CC BY 4.0) from our own tile worker
+  (tools/tiles-worker: one PMTiles file in Cloudflare R2, edge-cached, 30-day browser cache); Esri around it and wherever DOF050
+  has no picture (404 -> remembered, whole subtree skips straight to Esri). Border tiles get Esri painted under their
+  transparent part. One map source ("sat://"), so Slovenia costs one request per tile instead of two hosts of Esri.
+- Address in data/tiles.json ({"dof": "https://…/dof050/{z}/{x}/{y}.webp"}), read at start - edit on GitHub, no rebuild;
+  empty = Esri only as before. Service worker caches DOF tiles like the others; 360 prefetch uses the same addresses.
+- Satellite ends at z18 (0.4 m/px here); 360 "high" on a computer no longer asks for z19.
+- licence.html: GURS DOF050 now in use.
+
 ## web-v1.02 — 2026-11-19
 - Alpinistic class reworked: no flat −60 any more. Conditions count harder (bigger deductions: snow ×3.5, rain ×2.4, wind ×2.2 …)
   and stricter rules (wet rock from 0.2 mm, gusts from 40 km/h, cloud on the line from 60 %; good day only from 85 points, poor
