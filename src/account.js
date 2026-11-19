@@ -178,10 +178,23 @@ window.gpsPeakBtn = p => { if (!IN_APP || p.lat == null) return null; const b = 
       const n = {p, d: hav(l.latitude, l.longitude, p.lat, p.lon)}, why = gpsWhyNot(n, l); b.disabled = false;
       if (!why && gpsConfirm(p, l)){ b.textContent = '✓ ' + L('Potrjeno z GPS', 'Confirmed by GPS'); b.disabled = true; return; }
       b.textContent = '📍 ' + L('Poskusi znova', 'Try again'); toastErr(why || L('Ta vrh je že potrjen.', 'Already confirmed.')); },
-      e => { b.disabled = false; b.textContent = '📍 ' + L('Potrdi vrh z GPS', 'Confirm summit by GPS');
-        toastErr(e.code === 1 ? L('Dovoli dostop do lokacije (nastavitve telefona → aplikacije → 2000-čaki).', 'Allow location access (phone settings → apps → 2000-čaki).') : L('Lokacije ni bilo mogoče dobiti — poskusi na prostem.', 'Could not get a location — try outdoors.')); },
+      async e => { b.textContent = '📍 ' + L('Potrdi vrh z GPS', 'Confirm summit by GPS');
+        // the page's own location (WebView) is refused although the app has the permission - typically "approximate location" only,
+        // which the WebView treats as no permission. The app's native GPS plugin asks Android itself and says what is missing.
+        if (e.code === 1 && BGL){ const l = await nativeFix(); b.disabled = false; if (l){ const n = {p, d: hav(l.latitude, l.longitude, p.lat, p.lon)}, why = gpsWhyNot(n, l);
+            if (!why && gpsConfirm(p, l)){ b.textContent = '✓ ' + L('Potrjeno z GPS', 'Confirmed by GPS'); b.disabled = true; return; }
+            b.textContent = '📍 ' + L('Poskusi znova', 'Try again'); toastErr(why || L('Ta vrh je že potrjen.', 'Already confirmed.')); } return; }
+        b.disabled = false;
+        toastErr(e.code === 1 ? L('Dovoli lokacijo in vklopi »Natančna lokacija« (nastavitve telefona → aplikacije → 2000-čaki → dovoljenja → lokacija).', 'Allow location and turn on "Precise location" (phone settings → apps → 2000-čaki → permissions → location).') : L('Lokacije ni bilo mogoče dobiti — poskusi na prostem.', 'Could not get a location — try outdoors.')); },
       {enableHighAccuracy: true, timeout: 25000, maximumAge: 0}); };
   return b; };
+// one fresh fix from the app's native GPS plugin (asks for the permission itself); null + a message when it is refused
+function nativeFix(){ return new Promise(async res => { let id = null, done = false; const end = (l, msg) => { if (done) return; done = true; if (id) BGL.removeWatcher({id}).catch(() => {}); if (msg) toastErr(msg); res(l); };
+  setTimeout(() => end(null, L('Lokacije ni bilo mogoče dobiti — poskusi na prostem.', 'Could not get a location — try outdoors.')), 30000);
+  try{ id = await BGL.addWatcher({requestPermissions: true, stale: false, distanceFilter: 0}, (loc, err) => {
+      if (err){ if (err.code === 'NOT_AUTHORIZED'){ end(null, L('Lokacija ni dovoljena: nastavitve telefona → aplikacije → 2000-čaki → dovoljenja → lokacija: »Dovoli med uporabo« in »Natančna lokacija«.', 'Location not allowed: phone settings → apps → 2000-čaki → permissions → location: "Allow while using" and "Precise location".')); try{ BGL.openSettings(); }catch(_){} } return; }
+      if (loc) end(loc); }); }
+  catch(e){ end(null, L('GPS ni na voljo: ', 'GPS not available: ') + (e.message || e)); } }); }
 // opening a peak's routes in the app while tracking is off: once a day, a hint where to switch it on
 window.gpsHint = () => { if (!IN_APP || gWatch || get('dvat3d_gpshint') === today()) return; put('dvat3d_gpshint', today());
   setTimeout(() => toast(L('Na turi? Rdeči gumb → 📍 GPS vrhovi — vrh se na vrhu potrdi sam.', 'On a hike? Red button → 📍 GPS summits — the summit is confirmed when you are on top.')), 1500); };
@@ -223,7 +236,7 @@ async function gpsStart(){ if (gWatch) return;
   try{ await LNO.requestPermissions(); }catch(_){}   // Android 13+: needed for the notification while tracking
   try{ gWatch = await BGL.addWatcher({backgroundTitle: L('Spremljam vrhove', 'Watching for summits'), backgroundMessage: L('Ko prideš na vrh, ga potrdim z GPS.', 'When you reach a summit it is confirmed by GPS.'),
       requestPermissions: true, stale: false, distanceFilter: 10}, (loc, err) => {
-      if (err){ if (err.code === 'NOT_AUTHORIZED'){ gpsStop(); toastErr(L('Dovoli dostop do lokacije (nastavitve telefona → aplikacije → 2000-čaki).', 'Allow location access (phone settings → apps → 2000-čaki).')); try{ BGL.openSettings(); }catch(_){} } return; }
+      if (err){ if (err.code === 'NOT_AUTHORIZED'){ gpsStop(); toastErr(L('Dovoli lokacijo in vklopi »Natančna lokacija« (nastavitve telefona → aplikacije → 2000-čaki → dovoljenja → lokacija).', 'Allow location and turn on "Precise location" (phone settings → apps → 2000-čaki → permissions → location).')); try{ BGL.openSettings(); }catch(_){} } return; }
       if (loc) gpsFix(loc); });
     put(GTK, 1); toast(L('📍 Spremljam vrhove — na vrhu se potrdi sam.', '📍 Watching for summits — confirmed automatically on top.')); }
   catch(e){ gWatch = null; toastErr(L('GPS ni na voljo: ', 'GPS not available: ') + (e.message || e)); }

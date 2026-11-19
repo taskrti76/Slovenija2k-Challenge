@@ -155,14 +155,13 @@ function zoomBy(f){ S.zoomK=clamp(S.zoomK*f, 0.3, 1.6); fitFov(); schedule(); }
 // Now tiles are picked as for the normal wide view, plus log2(1/zoomK) levels for the magnification
 // (2× zoom -> 1 level finer; the narrower view needs about as many tiles as before). Satellite + terrain.
 function zoomLod(){ for (const id of ['sat','dem_terrain']){ try{ const src = map.getSource(id); if (!src || !src.calculateTileZoom || src.calculateTileZoom.v360) continue;
-  // v0.99: the zoom bonus made the middle distance (2–15 km) load ~4× the tiles - for the terrain too, and every terrain tile
-  // is one 2048² texture: the pool overflowed, the mid ring kept reloading ("stuck"), frames dropped and phones crashed.
-  // Now: satellite gets the bonus near (full where its tile is z14+, none at z11 and coarser); terrain only a half bonus,
-  // only very near (z13+); when the bonus would push a tile past the next level it stops there.
+  // v1.00 (measured, Triglav, Srednja, PC, one view direction): normal view 66 satellite tiles. Zoomed ~2.8× (fov 34° -> 12°):
+  //   MapLibre as is 19 tiles (blurry: its pitch rule gets much stronger as the view narrows) · old "wide fov + 0.6 bonus" 295 tiles
+  //   (4.5× - the middle distance got stuck loading, phones crashed) · wide fov only 135 · fov ÷ zoomK^0.8 ~80 = about the same
+  //   screen detail as the normal view. So: fov ÷ zoomK^0.8, no extra levels (Z360WF / Z360K override for testing).
   const sat = id === 'sat', f = src.calculateTileZoom, g = (z, d2, dz, dc, fov) => { if (!S.on) return f(z, d2, dz, dc, fov);
-    const base = f(z, d2, dz, dc, clamp(fov / (S.zoomK || 1), 12, 75)), b = Math.min(1.2, -0.6 * Math.log2(S.zoomK || 1));
-    const w = sat ? clamp((base - 11) / 3, 0, 1) : 0.5 * clamp((base - 13) / 2, 0, 1);
-    return base + (b > 0 ? b * w : b) - (S.lodLo ? 1 : 0); };   // zoomed out: coarser everywhere, as before
+    const zk = S.zoomK || 1, base = f(z, d2, dz, dc, clamp(fov / Math.pow(zk, window.Z360WF ?? 0.8), 12, 75)), b = -(window.Z360K ?? 0) * Math.log2(zk);
+    return base + (sat ? b : 0) - (S.lodLo ? 1 : 0); };
   g.v360 = 1; src.calculateTileZoom = g; }catch(_){} } }
 function setAuto(on, warm){
   S.auto = on; $$('v360auto').classList.toggle('on', on && !warm); cancelAnimationFrame(S.raf);

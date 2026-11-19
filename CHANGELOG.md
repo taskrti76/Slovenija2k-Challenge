@@ -2,6 +2,13 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v1.00 — 2026-11-19
+- 360 zoom, measured (Triglav, Srednja, PC, satellite tiles in one view): normal 66; zoomed ~2.8× before: 295 (middle distance
+  stuck loading, phones crashed). Now the tile detail uses fov ÷ zoomK^0.8 and no extra levels: 85 tiles, about the same screen
+  detail as the normal view (plain MapLibre would load 19 = blurry). Terrain follows the same rule.
+- App GPS "Potrdi vrh z GPS": if the page's location is refused although the app has permission (typically "approximate location"
+  only), it asks the app's native GPS instead; the message now says to turn on "Natančna lokacija" too.
+
 ## web-v0.99 — 2026-11-18
 - Challenge: the main list is the 83 prominent 2000ers with a path to the top. The 15 without one (data/challenge.json "extra")
   join the list ("98 prominentnih") once all 83 are climbed (toast), with the switch in ⚙ Nastavitve → Izziv, or always for admins.
