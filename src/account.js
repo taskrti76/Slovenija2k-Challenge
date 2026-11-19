@@ -617,7 +617,7 @@ const fabItems = () => [...(PHN() ? [['◧', L('Karta in sloji','Map & layers'),
   ...(S ? [['👥', L('Prijatelji','Friends'), () => soOpen('fr'), SO.badge.requests], ['⛰', L('Skupine','Groups'), () => soOpen('gr'), SO.badge.invites]] : []),
   ...(IN_APP ? [['📍', gWatch ? L('Ustavi GPS','Stop GPS') : L('GPS vrhovi','GPS summits'), () => gWatch ? gpsStop() : gpsStart()]] : []),
   ...(PHN() ? [['❓', L('Vodič','Guide'), () => window.startTour && startTour()]] : []),
-  ...(window.ADMIN ? [['🛠', L('Admin','Admin'), () => window.adminPanel && adminPanel()]] : [])];
+  ...(window.ADMIN ? [['🛠', L('Admin','Admin'), () => window.adminPanel && adminPanel()]] : isAdminRole() ? [['🛠', L('Admin način','Admin mode'), () => adminView(true)]] : [])];
 function fabClose(){ fab.classList.remove('open'); fabBg.classList.remove('on'); document.body.classList.remove('fabopen'); fab.querySelector('.fb').setAttribute('aria-expanded', 'false'); fab.querySelectorAll('.fo').forEach(o => o.remove()); }
 // bubbles on symmetric rings above the centred button. Every bubble and its label is checked against all the others, the button
 // and the screen edges; the first layout with no overlap wins (fewest rings, roundest, closest), so it also fits a phone held sideways
@@ -1119,7 +1119,11 @@ function fixesFrom(rows){ const F = {peak: {}, route: {}, closed: {}, poi: {}}; 
 { const c = get(FXK); if (c) applyFixes(fixesFrom(c), true); }
 async function loadFixes(){ try{ const rows = await call('/rest/v1/fixes?select=kind,key,data,updated_at&limit=5000', {auth: false}); put(FXK, rows); applyFixes(fixesFrom(rows)); }catch(_){} }   // 08 not run yet -> nothing
 setTimeout(loadFixes, 1200);
-function setAdmin(){ const a = !!(S && S.role === 'admin'); if (a === !!window.ADMIN) return; window.ADMIN = a; window.setExtra && setExtra(window.extraOn && extraOn()); window.rerenderRoutes && rerenderRoutes(); window.poiFixesChanged && poiFixesChanged(); }
+// admins can switch admin mode off (🛠 Admin → »Pogled kot uporabnik«) to see the site exactly as users do; the switch back stays in the menu
+const ASU = 'dvat3d_asuser', isAdminRole = () => !!(S && S.role === 'admin'), asUser = () => { try{ return localStorage.getItem(ASU) === '1'; }catch(_){ return false; } };
+window.adminView = on => { try{ localStorage.setItem(ASU, on ? '0' : '1'); }catch(_){} setAdmin(); window.fabClose && fabClose();
+  toast(on ? L('Admin način vklopljen.','Admin mode on.') : L('Pogled kot uporabnik — admin način izklopljen (vklop: meni → 🛠).','Viewing as a user — admin mode off (back on: menu → 🛠).')); };
+function setAdmin(){ const a = isAdminRole() && !asUser(); if (a === !!window.ADMIN) return; window.ADMIN = a; window.setExtra && setExtra(window.extraOn && extraOn()); window.rerenderRoutes && rerenderRoutes(); window.poiFixesChanged && poiFixesChanged(); }
 setAdmin();
 async function saveFix(kind, key, data, del){
   if (del) await call(`/rest/v1/fixes?kind=eq.${kind}&key=eq.${encodeURIComponent(key)}`, {method: 'DELETE', headers: {Prefer: 'return=minimal'}});
@@ -1213,11 +1217,13 @@ window.adminPanel = () => { const F = window.FIXES, rows = [...Object.entries(F.
     ...Object.entries(F.closed).map(([k, v]) => ['closed', k, `⛔ ${v.name || L('pot brez imena','unnamed path')} (#${k})`, v._at]),
     ...Object.entries(F.poi || {}).map(([k, v]) => ['poi', k, `${(PTYPES.find(x => x[0] === v.t) || ['', ''])[1]} · ${v.name || ''}${v.hide ? ' · ' + L('skrita','hidden') : ''}${k.startsWith('new|') ? ' · ' + L('nova','new') : ''}`, v._at])].sort((a, b) => String(b[3]).localeCompare(String(a[3])));
   modal(`<h3>🛠 Admin</h3><div class="sub">${L('Popravki veljajo takoj za vse uporabnike.','Fixes apply to everybody at once.')} ${rows.length} ${L('popravkov','fixes')}.</div>
+    <div class="ab"><button class="sb" id="adView">👁 ${L('Pogled kot uporabnik (izklopi admin način)','View as a user (admin mode off)')}</button></div>
     <div class="ab"><button class="sb pri" id="adClose">⛔ ${L('Zapri pot (klik na karto)','Close a path (click on the map)')}</button><button class="sb" id="adPoi">＋ ${L('Nova koča / bivak / ferata / kamera …','New hut / bivouac / ferrata / webcam …')}</button></div>
     <div class="admlist">${rows.map(([k, key, t, at]) => `<div class="it"><div><small>${k}</small> ${esc(t)}<br><small>${at ? new Date(at).toLocaleString() : ''}</small></div><button class="sb" data-k="${k}" data-key="${esc(key)}">↺</button></div>`).join('') || `<div class="sub">${L('Še ni popravkov.','No fixes yet.')}</div>`}</div>
     <div class="sub">${L('Vrh popraviš v njegovem oknu (🛠 Uredi vrh), pot v kartici poti (🛠 Uredi pot ali klik na ime v izbrani poti), kočo / bivak / parkirišče / ferato s klikom nanjo na karti (🛠 Uredi točko). Popravke opazijo samo admini (✎); ostali vidijo popravljene podatke.','Fix a peak in its window (🛠 Edit peak), a route in the route card (🛠 Edit route or click a name in the selected route), a hut / bivouac / parking / ferrata by clicking it on the map (🛠 Edit point). Only admins see the ✎ marks; everybody else just sees the corrected data.')}</div>`);
   card.querySelectorAll('.admlist [data-k]').forEach(b => b.onclick = async () => { try{ await saveFix(b.dataset.k, b.dataset.key, null, true); adminPanel(); }catch(e){ toastErr(errText(e)); } });
   $a('adPoi').onclick = () => { closeModal(); adminNewPoint(); };
+  $a('adView').onclick = () => { closeModal(); adminView(false); };
   $a('adClose').onclick = () => { closeModal(); toast(L('Klikni na pot, ki je zaprta …','Click the closed path …')); map.getCanvas().style.cursor = 'crosshair';
     map.once('click', async e => { map.getCanvas().style.cursor = ''; const w = window.adminWayAt && adminWayAt(e.lngLat.lat, e.lngLat.lng);
       if (!w){ toastErr(L('Tu ni poti (približaj se in klikni na črto poti).','No path here (zoom in and click the line).')); return; }

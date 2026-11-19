@@ -2,6 +2,16 @@
 
 Tags: `web-vX.Y` = GitHub Pages site. Future app builds get `app-vX.Y` (see docs/PLATFORMS.md).
 
+## web-v1.01 — 2026-11-19
+- Icons: every emoji in the page (menus, buttons, windows, weather, badges, toasts …) is drawn as a line icon (Lucide, ISC) -
+  same look on every phone / computer, colour follows the text (src/icons.js; texts and translations keep their emoji keys).
+- Alpinistic class: a summit whose easiest way ends in pathless ground graded T6 is "alpinistična (T6+)": a warning in the peak
+  window, "T6+" on its routes, and the weather rating is always poor for it (−60 "alpinistični vzpon"). Hand fixes still win.
+- Admin: 🛠 Admin → "Pogled kot uporabnik" switches admin mode off (see the site as users do); the menu then has "🛠 Admin način"
+  to switch it back on. Remembered per browser.
+- tools/dof050_tiles.py: GURS DOF050 sheets -> WebP tiles z8–18 -> one PMTiles file (run on a PC; white outside Slovenia ->
+  transparent, snow kept, no seams).
+
 ## web-v1.00 — 2026-11-19
 - 360 zoom, measured (Triglav, Srednja, PC, satellite tiles in one view): normal 66; zoomed ~2.8× before: 295 (middle distance
   stuck loading, phones crashed). Now the tile detail uses fov ÷ zoomK^0.8 and no extra levels: 85 tiles, about the same screen

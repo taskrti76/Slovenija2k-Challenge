@@ -543,7 +543,7 @@ window.__prof={profile,profileSVG,profStats,profT,terrainAt};
 const fmtT=hh=>{ const m=Math.round(hh*60); return `${Math.floor(m/60)}:${String(m%60).padStart(2,'0')} h`; };
 const SACT=['','T1','T2','T3','T4','T5','T6'];
 // path grade + harder pathless top: "T3+T5"
-const sacTxt=s=>s.sac0&&s.sac>s.sac0?`${SACT[s.sac0]}+${SACT[s.sac]}`:(SACT[s.sac]||'T?');
+const sacTxt=s=>{ const top=s.ot&&s.sac>=6?'T6+':SACT[s.sac]; return s.sac0&&s.sac>s.sac0?`${SACT[s.sac0]}+${top}`:(top||'T?'); };   // T6+ = pathless T6 top (alpinistic)
 const OTL=o=>o&&o.lc?({gozd:LP('gozd','forest'),grmovje:LP('grmovje','shrubs'),trava:LP('trava','grass'),skala:LP('skala, melišče','rock, scree'),sneg:LP('sneg, led','snow, ice')})[o.lc]||'':'';
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function download(name, text, type='application/gpx+xml'){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click(); }
@@ -1013,7 +1013,7 @@ window.adminWayAt=(la,lo)=>{ if(!G||!inG(la,lo)) return null; const i=nearestNod
   for(let q=G.off[i];q<G.off[i+1];q++){ const w=G.W[G.wy[q]]; if(w&&w.kind!=='g'&&w.id) return {id:w.id,name:w.name||'',kind:w.kind,lat:G.lat[i],lon:G.lon[i]}; } return null; };
 // difficulty class of a route / peak (used by the weather rating), as PZS marks paths in Slovenia: 1 lahka (T1–T2), 2 zahtevna (T3),
 // 3 zelo zahtevna (T4–T6 or ferrata) - OSM in Slovenia tags the 'zelo zahtevna' paths (Triglav, Jalovec, Mangart ...) mostly as T4
-window.routeClass = r => r ? (r.stats.ferrata || r.stats.sac >= 4 ? 3 : r.stats.sac >= 3 ? 2 : 1) : null;
+window.routeClass = r => r ? (r.stats.ot && r.stats.sac >= 6 && !(r.fix && r.fix.t) ? 4 : r.stats.ferrata || r.stats.sac >= 4 ? 3 : r.stats.sac >= 3 ? 2 : 1) : null;   // 4 = pathless T6+ top: alpinistic
 window.selRoute = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? RT.routes[RT.sel] : null;
 window.selRouteClass = id => RT && RT.peak && RT.peak.id === id && RT.routes[RT.sel] ? window.routeClass(RT.routes[RT.sel]) : null;
 // tools/peak_tech.js: routes of a peak without touching the UI
